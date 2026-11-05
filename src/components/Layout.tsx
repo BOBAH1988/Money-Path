@@ -37,9 +37,12 @@ export default function Layout() {
 
       <main className="content"><Outlet /></main>
 
-      {/* Нижняя панель — copyright строка */}
+      {/* Нижняя панель — copyright строка и обратная связь */}
       <nav className="bottom-nav">
         <span className="footer-text">{footerText}</span>
+        <a className="footer-link" href="mailto:79042044926@ya.ru">
+          Обратная связь
+        </a>
       </nav>
 
       {/* Выезжающее меню поверх всего */}

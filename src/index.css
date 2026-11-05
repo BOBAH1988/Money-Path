@@ -58,6 +58,22 @@ body { margin: 0; font-family: system-ui, sans-serif; }
   color: #6b7280;
 }
 
+.footer-link {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--accent, #007aff);
+  text-decoration: none;
+  margin-left: 16px;
+}
+
+.footer-link:hover {
+  text-decoration: underline;
+}
+
+.footer-link:active {
+  color: #005bb5;
+}
+
 /* ---------- Выезжающее меню ---------- */
 .menu-overlay {
   position: fixed;
