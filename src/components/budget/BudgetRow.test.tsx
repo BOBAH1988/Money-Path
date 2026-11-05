@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen, fireEvent, act } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import { BudgetRow } from './BudgetRow';
 
 const renderRow = (item: any, onUpdate = vi.fn(), onRemove = vi.fn()) =>
