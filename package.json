@@ -1,14 +1,16 @@
 {
   "name": "moneyscope",
   "private": true,
-  "version": "0.0.0",
+  "version": "0.0.2",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "oxlint",
     "preview": "vite preview",
-    "test": "vitest run"
+    "test": "vitest run",
+    "bump": "node scripts/bump-version.js",
+    "prepare": "node scripts/install-hooks.js"
   },
   "dependencies": {
     "react": "^19.3.1",

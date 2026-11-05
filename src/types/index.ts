@@ -55,3 +55,21 @@ export interface ParsePreview {
   totalByYear: Record<number, number>;
   errors: string[];
 }
+
+export type BudgetGroup = 'monthly' | 'planned';
+
+export type BudgetRowType = 'item' | 'subtotal' | 'total';
+
+export interface BudgetPlanItem {
+  id: string;
+  name: string;
+  amount: number;
+  group: BudgetGroup;
+  type: BudgetRowType;
+  linkedGroup?: BudgetGroup; // для subtotal: ссылка на группу, чей итог отображается
+}
+
+export interface BudgetPlan {
+  items: BudgetPlanItem[];
+  updatedAt: string;
+}
