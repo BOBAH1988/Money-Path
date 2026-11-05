@@ -102,7 +102,15 @@ export const BudgetTable = ({
                       <span className="input-suffix">₽</span>
                     </div>
                   </td>
-                  <td className="budget-cell budget-cell-actions" />
+                  <td className="budget-cell budget-cell-actions">
+                    <button
+                      className="btn-delete"
+                      onClick={() => setShowAddRow(false)}
+                      aria-label="Отмена"
+                    >
+                      ×
+                    </button>
+                  </td>
                 </tr>
               )}
 
