@@ -85,6 +85,7 @@ export const BudgetTable = ({
                       className="budget-input"
                       value={inputName}
                       onChange={(e) => setInputName(e.target.value)}
+                      onKeyDown={(e) => e.key === 'Enter' && handleAdd()}
                       placeholder="Новая строка"
                       autoFocus
                     />
@@ -95,27 +96,13 @@ export const BudgetTable = ({
                         className="budget-input budget-input-amount"
                         value={inputAmount}
                         onChange={(e) => setInputAmount(e.target.value)}
+                        onKeyDown={(e) => e.key === 'Enter' && handleAdd()}
                         placeholder="0"
                       />
                       <span className="input-suffix">₽</span>
                     </div>
                   </td>
-                  <td className="budget-cell budget-cell-actions">
-                    <button
-                      className="btn-add"
-                      onClick={handleAdd}
-                      aria-label="Добавить строку"
-                    >
-                      +
-                    </button>
-                    <button
-                      className="btn-delete"
-                      onClick={() => setShowAddRow(false)}
-                      aria-label="Отмена"
-                    >
-                      ×
-                    </button>
-                  </td>
+                  <td className="budget-cell budget-cell-actions" />
                 </tr>
               )}
 
