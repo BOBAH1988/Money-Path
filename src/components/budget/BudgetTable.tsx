@@ -35,7 +35,7 @@ export const BudgetTable = ({
     onAdd(group, trimmed, amountNum);
     setInputName('');
     setInputAmount('');
-    setShowAddRow(true);
+    setShowAddRow(false);
   };
 
   return (
