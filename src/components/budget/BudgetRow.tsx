@@ -50,7 +50,6 @@ export const BudgetRow = ({ item, onUpdate, onRemove }: Props) => {
     <tr className="budget-row budget-row-editing">
       <td className="budget-cell budget-cell-name">
         <input
-          autoFocus
           className="budget-input"
           value={name}
           onChange={(e) => setName(e.target.value)}
