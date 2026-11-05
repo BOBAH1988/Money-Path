@@ -113,14 +113,19 @@ export const BudgetTable = ({
                   </td>
                 </tr>
               )}
+
+              <tr className="budget-row total">
+                <td className="budget-cell budget-cell-name" colSpan={2}>
+                  <span className="footer-label">Итого:</span>
+                </td>
+                <td className="budget-cell budget-cell-amount">
+                  {total.toLocaleString('ru-RU')} ₽
+                </td>
+                <td className="budget-cell budget-cell-actions" />
+              </tr>
             </tbody>
           </table>
         </div>
-      </div>
-
-      <div className="budget-card-footer">
-        <span className="footer-label">Итого:</span>
-        <span className="footer-total">{total.toLocaleString('ru-RU')} ₽</span>
       </div>
     </section>
   );

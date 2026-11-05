@@ -435,26 +435,16 @@ body { margin: 0; font-family: system-ui, sans-serif; }
 .btn-delete:hover { background: #fee2e2; color: #ef4444; }
 .btn-delete:active { transform: scale(0.92); }
 
-.budget-row.total { background: #f3f4f6 !important; font-weight: 700; color: #111827; }
+.budget-row.total {
+  background: #f3f4f6 !important;
+  font-weight: 700;
+  color: #111827;
+  border-top: 2px solid var(--border, #e5e7eb);
+}
+.budget-row.total .budget-cell-name { font-weight: 700; color: #111827; }
+.budget-row.total .budget-cell-amount { font-weight: 800; color: var(--accent, #007aff); font-size: 16px; }
 .budget-row.subtotal .row-name { color: #6b7280; font-style: italic; }
 .budget-row.subtotal .row-amount { color: var(--accent, #007aff); }
-
-.budget-card-footer {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 12px 18px;
-  border-top: 2px solid var(--border, #e5e7eb);
-  background: #ffffff;
-}
-
-.footer-label { font-size: 14px; font-weight: 700; color: #111827; }
-.footer-total {
-  font-size: 16px;
-  font-weight: 800;
-  color: var(--accent, #007aff);
-  font-variant-numeric: tabular-nums;
-}
 
 .budget-summary {
   display: flex;
