@@ -14,8 +14,8 @@ const START_YEAR = 2026;
 const currentYear = new Date().getFullYear();
 const footerText =
   currentYear === START_YEAR
-    ? `Проект Vladimir Sokolov ${START_YEAR}`
-    : `Проект Vladimir Sokolov ${START_YEAR} - ${currentYear}`;
+    ? `project by Vladimir Sokolov ${START_YEAR}`
+    : `project by Vladimir Sokolov ${START_YEAR} - ${currentYear}`;
 
 export default function Layout() {
   const [menuOpen, setMenuOpen] = useState(false);
