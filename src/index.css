@@ -8,9 +8,35 @@ body { margin: 0; font-family: system-ui, sans-serif; }
 .layout {
   position: relative;
   min-height: 100vh;
-  padding-bottom: 90px; /* место под bottom nav */
+  padding-top: 56px;   /* место под top-bar */
+  padding-bottom: 70px; /* место под bottom nav */
+  padding-bottom: calc(70px + env(safe-area-inset-bottom));
 }
 
+/* ---------- Верхняя панель приложения ---------- */
+.top-bar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 56px;
+  padding-top: env(safe-area-inset-top);
+  background: #ffffff;
+  border-bottom: 1px solid var(--border, #e5e7eb);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 16px;
+  z-index: 60;
+}
+
+.app-title {
+  font-size: 18px;
+  font-weight: 800;
+  color: #111827;
+}
+
+/* ---------- Нижняя панель — только название страницы ---------- */
 .bottom-nav {
   position: fixed;
   bottom: 0;
@@ -18,7 +44,7 @@ body { margin: 0; font-family: system-ui, sans-serif; }
   right: 0;
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: center;
   padding: 10px 16px;
   background: #ffffff;
   border-top: 1px solid var(--border, #e5e7eb);
@@ -26,35 +52,10 @@ body { margin: 0; font-family: system-ui, sans-serif; }
   padding-bottom: calc(10px + env(safe-area-inset-bottom));
 }
 
-.menu-btn {
-  width: 52px;
-  height: 52px;
-  border-radius: 16px;
-  border: 1px solid var(--border, #e5e7eb);
-  background: #f9fafb;
-  font-size: 26px;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
-}
-
-.menu-btn[aria-expanded="true"] {
-  background: #e5edff;
-  border-color: var(--accent, #007aff);
-}
-
 .current-label {
   font-size: 15px;
   font-weight: 700;
   color: #111827;
-  flex: 1;
-  text-align: center;
-}
-
-.menu-spacer {
-  width: 52px;
 }
 
 /* ---------- Выезжающее меню ---------- */

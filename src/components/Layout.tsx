@@ -18,10 +18,9 @@ export default function Layout() {
 
   return (
     <div className="layout">
-      <main className="content"><Outlet /></main>
-
-      {/* Нижняя навигация PWA-стиль (кнопка меню + текущая страница) */}
-      <nav className="bottom-nav">
+      {/* Верхняя панель приложения */}
+      <header className="top-bar">
+        <span className="app-title">MoneyScope</span>
         <button
           className="menu-btn"
           onClick={() => setMenuOpen(!menuOpen)}
@@ -30,8 +29,13 @@ export default function Layout() {
         >
           ☰
         </button>
+      </header>
+
+      <main className="content"><Outlet /></main>
+
+      {/* Нижняя панель — только название текущей страницы */}
+      <nav className="bottom-nav">
         <span className="current-label">{current ? current.label : ''}</span>
-        <span className="menu-spacer" aria-hidden="true" />
       </nav>
 
       {/* Выезжающее меню поверх всего */}
