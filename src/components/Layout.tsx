@@ -51,8 +51,8 @@ export default function Layout() {
           <div className="menu-panel" onClick={(e) => e.stopPropagation()}>
             <div className="menu-header">
               <h2>Меню</h2>
-              <button className="menu-close" onClick={() => setMenuOpen(false)}>
-                Закрыть
+              <button className="menu-close" onClick={() => setMenuOpen(false)} aria-label="Закрыть меню">
+                ×
               </button>
             </div>
             <ul className="menu-list">
