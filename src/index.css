@@ -74,7 +74,7 @@ body { margin: 0; font-family: system-ui, sans-serif; }
   color: #005bb5;
 }
 
-/* ---------- Выезжающее меню ---------- */
+/* ---------- Всплывающее меню по центру экрана (мобильное приложение) ---------- */
 .menu-overlay {
   position: fixed;
   inset: 0;
@@ -82,27 +82,27 @@ body { margin: 0; font-family: system-ui, sans-serif; }
   backdrop-filter: blur(6px);
   z-index: 100;
   display: flex;
-  align-items: flex-end;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
   animation: fadeIn 0.2s ease;
 }
 
 .menu-panel {
   position: relative;
   width: 100%;
-  max-width: 440px;
+  max-width: 360px;
   background: #ffffff;
-  border-top-left-radius: 24px;
-  border-top-right-radius: 24px;
-  box-shadow: 0 -12px 48px rgba(0, 0, 0, 0.16);
-  transform: translateY(100%);
-  animation: slideUp 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-  margin-bottom: env(safe-area-inset-bottom);
+  border-radius: 24px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.25);
+  transform: scale(0.9) translateY(20px);
+  animation: scaleUp 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
   max-height: 85vh;
   overflow-y: auto;
 }
 
-@keyframes slideUp {
-  to { transform: translateY(0); }
+@keyframes scaleUp {
+  to { transform: scale(1) translateY(0); }
 }
 
 .menu-header {
