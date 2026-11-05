@@ -21,17 +21,22 @@ export const BudgetTable = ({
   onAdd,
   onRemove,
 }: Props) => {
-  const [newName, setNewName] = useState('');
-  const [newAmount, setNewAmount] = useState('');
-
   const groupItems = items.filter((it) => it.group === group);
+  const [showAddRow, setShowAddRow] = useState(false);
+  const [nameForAdd, setNameForAdd] = useState('');
+  const [amountForAdd, setAmountForAdd] = useState('');
 
   const handleAdd = () => {
-    const amountNum = Number(newAmount.replace(/[^\d.,-]/g, '').replace(',', '.')) || 0;
-    if (!newName.trim()) return;
-    onAdd(group, newName.trim(), amountNum);
-    setNewName('');
-    setNewAmount('');
+    const amountNum = Number(
+      amountForAdd
+        .replace(/[^\d.,-]/g, '')
+        .replace(',', '.')
+    ) || 0;
+    if (!nameForAdd.trim()) return;
+    onAdd(group, nameForAdd.trim(), amountNum);
+    setNameForAdd('');
+    setAmountForAdd('');
+    setShowAddRow(false);
   };
 
   return (
@@ -39,26 +44,41 @@ export const BudgetTable = ({
       <div className="budget-card-header">
         <h2 className="budget-card-title">{title}</h2>
         <div className="budget-card-actions">
-          <div className="add-row">
-            <input
-              className="budget-input budget-input-sm"
-              value={newName}
-              onChange={(e) => setNewName(e.target.value)}
-              placeholder="Новая строка"
-            />
-            <div className="input-group input-group-sm">
-              <input
-                className="budget-input budget-input-amount budget-input-sm"
-                value={newAmount}
-                onChange={(e) => setNewAmount(e.target.value)}
-                placeholder="0"
-              />
-              <span className="input-suffix">₽</span>
-            </div>
-            <button className="btn-add" onClick={handleAdd} aria-label="Добавить строку">
+          {!showAddRow ? (
+            <button
+              className="btn-add"
+              onClick={() => setShowAddRow(true)}
+              aria-label="Добавить строку"
+            >
               +
             </button>
-          </div>
+          ) : (
+            <div className="add-row">
+              <input
+                className="budget-input budget-input-sm"
+                value={nameForAdd}
+                onChange={(e) => setNameForAdd(e.target.value)}
+                placeholder="Новая строка"
+                autoFocus
+              />
+              <div className="input-group input-group-sm">
+                <input
+                  className="budget-input budget-input-amount budget-input-sm"
+                  value={amountForAdd}
+                  onChange={(e) => setAmountForAdd(e.target.value)}
+                  placeholder="0"
+                />
+                <span className="input-suffix">₽</span>
+              </div>
+              <button
+                className="btn-add"
+                onClick={handleAdd}
+                aria-label="Добавить строку"
+              >
+                +
+              </button>
+            </div>
+          )}
         </div>
       </div>
 
