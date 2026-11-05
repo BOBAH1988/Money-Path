@@ -1,6 +1,6 @@
 {
-  "name": "MoneyScope",
-  "short_name": "MoneyScope",
+  "name": "Денежный путь",
+  "short_name": "Денежный путь",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",

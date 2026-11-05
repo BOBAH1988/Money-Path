@@ -1,4 +1,4 @@
-# Data Model — MoneyScope
+# Data Model — Денежный путь
 
 ## Entities
 

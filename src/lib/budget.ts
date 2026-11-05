@@ -1,6 +1,6 @@
 import type { BudgetPlan, BudgetPlanItem, BudgetGroup } from '../types';
 
-const STORAGE_KEY = 'moneyscope_budget_plan';
+const STORAGE_KEY = 'denegnyj_put_budget_plan';
 
 const now = () => new Date().toISOString();
 
