@@ -21,9 +21,7 @@ export default function Budget() {
     <div className="page page-budget">
       <div className="budget-page-header">
         <h1>Планирование бюджета</h1>
-        <p className="budget-page-subtitle">
-          Ежемесячный план расходов. Данные сохраняются автоматически в браузере.
-        </p>
+
         <div className="budget-page-actions">
           <button className="btn-reset" onClick={reset}>
             Сбросить к стандартному
