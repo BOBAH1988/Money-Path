@@ -1,5 +1,8 @@
 import { useState } from 'react';
 import { NavLink, Outlet } from 'react-router-dom';
+import packageJson from '../../package.json';
+
+const pkgVersion = packageJson.version;
 
 const items = [
   { to: '/', label: 'Дашборд', icon: '📊' },
@@ -43,6 +46,7 @@ export default function Layout() {
         <a className="footer-link" href="mailto:79042044926@ya.ru">
           Обратная связь
         </a>
+        <span className="footer-version">v{pkgVersion}</span>
       </nav>
 
       {/* Выезжающее меню поверх всего */}
