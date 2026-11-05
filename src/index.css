@@ -155,29 +155,45 @@ body { margin: 0; font-family: system-ui, sans-serif; }
 .menu-item {
   display: flex;
   align-items: center;
-  padding: 20px 24px;
-  font-size: 18px;
+  padding: 14px 20px;
+  margin: 4px 12px;
+  font-size: 17px;
   font-weight: 600;
   color: #111827;
   text-decoration: none;
-  border-bottom: 1px solid #f3f4f6;
+  border-radius: 14px;
+  background: #f9fafb;
+  border: 1px solid var(--border, #e5e7eb);
   touch-action: manipulation;
+  transition: background 0.15s, transform 0.1s, box-shadow 0.15s;
 }
 
 .menu-item.active {
   background: #f0f9ff;
   color: var(--accent, #007aff);
+  border-color: var(--accent, #007aff);
 }
 
 .menu-item .menu-icon {
-  font-size: 24px;
-  margin-right: 16px;
-  width: 40px;
+  font-size: 22px;
+  margin-right: 12px;
+  width: 32px;
   text-align: center;
 }
 
 .menu-item:active {
   background: #eef2f7;
+  transform: scale(0.97);
+}
+
+.menu-item:hover {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+.menu-list {
+  list-style: none;
+  padding: 12px 0;
+  margin: 0;
 }
 
 @media (min-width: 768px) {
