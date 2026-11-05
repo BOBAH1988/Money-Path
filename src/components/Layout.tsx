@@ -1,15 +1,16 @@
 import { useState } from 'react';
 import { NavLink, Outlet } from 'react-router-dom';
 import packageJson from '../../package.json';
+import { useBudget } from '../hooks/useBudget';
 
 const pkgVersion = packageJson.version;
 
 const items = [
   { to: '/', label: 'Дашборд', icon: '📊' },
-  { to: '/transactions', label: 'Транзакции', icon: '💳' },
-  { to: '/categories', label: 'Категории', icon: '📁' },
   { to: '/budget', label: 'Бюджет', icon: '💰' },
   { to: '/liabilities', label: 'Пассивы', icon: '🏦' },
+  { to: '/categories', label: 'Категории', icon: '📁' },
+  { to: '/transactions', label: 'Транзакции', icon: '💳' },
   { to: '/import', label: 'Импорт', icon: '📥' },
 ];
 
@@ -22,6 +23,7 @@ const footerText =
 
 export default function Layout() {
   const [menuOpen, setMenuOpen] = useState(false);
+  const { reset } = useBudget();
 
   return (
     <div className="layout">
@@ -72,6 +74,18 @@ export default function Layout() {
                   </NavLink>
                 </li>
               ))}
+              <li>
+                <button
+                  className="menu-item menu-reset-btn"
+                  onClick={() => {
+                    reset();
+                    setMenuOpen(false);
+                  }}
+                >
+                  <span className="menu-icon">🔄</span>
+                  Сброс на стандартные
+                </button>
+              </li>
             </ul>
           </div>
         </div>
