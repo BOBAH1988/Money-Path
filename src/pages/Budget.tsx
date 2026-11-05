@@ -3,7 +3,7 @@ import { useBudget } from '../hooks/useBudget';
 import { BudgetTable } from '../components/budget/BudgetTable';
 
 export default function Budget() {
-  const { items, updateItem, addItem, removeItem, reset, groupTotal } = useBudget();
+  const { items, updateItem, addItem, removeItem, groupTotal } = useBudget();
 
   const monthlyItems = useMemo(
     () => items.filter((it) => it.group === 'monthly'),
@@ -22,11 +22,7 @@ export default function Budget() {
       <div className="budget-page-header">
         <h1>Планирование бюджета</h1>
 
-        <div className="budget-page-actions">
-          <button className="btn-reset" onClick={reset}>
-            Сбросить к стандартному
-          </button>
-        </div>
+
       </div>
 
       <div className="budget-grid">

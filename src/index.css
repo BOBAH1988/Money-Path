@@ -193,6 +193,25 @@ body { margin: 0; font-family: system-ui, sans-serif; }
   transform: scale(0.97);
 }
 
+.menu-reset-btn {
+  width: 100%;
+  text-align: left;
+  font-family: inherit;
+  cursor: pointer;
+  border: 1px solid #fecaca !important;
+  background: #fef2f2 !important;
+  color: #ef4444 !important;
+}
+
+.menu-reset-btn:hover {
+  background: #fee2e2 !important;
+  box-shadow: 0 2px 8px rgba(239, 68, 68, 0.12);
+}
+
+.menu-reset-btn .menu-icon {
+  color: #ef4444;
+}
+
 .menu-item:hover {
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
 }
