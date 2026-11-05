@@ -39,6 +39,7 @@ export const BudgetRow = ({ item, onUpdate, onRemove }: Props) => {
         </td>
         <td className="budget-cell budget-cell-amount">
           <span className="row-amount">{amountFormatter(item.amount)}</span>
+          <span className="row-currency">₽</span>
         </td>
         <td className="budget-cell budget-cell-actions" />
       </tr>

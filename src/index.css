@@ -145,6 +145,7 @@ body { margin: 0; font-family: system-ui, sans-serif; }
 .row-name { font-weight: 500; }
 .row-hint { display: block; font-size: 11px; color: #9ca3af; margin-top: 2px; }
 .row-amount { font-weight: 600; color: #111827; }
+.row-currency { margin-left: 6px; font-size: 12px; color: #6b7280; }
 
 .budget-row-editing .budget-cell { background: #fef3c7; }
 
@@ -165,7 +166,12 @@ body { margin: 0; font-family: system-ui, sans-serif; }
   box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.12);
 }
 
-.budget-input-amount { width: 90px; text-align: right; font-variant-numeric: tabular-nums; }
+.budget-input-amount {
+  width: 100px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  padding-right: 28px; /* место под знак ₽ */
+}
 
 .input-group { position: relative; display: inline-flex; align-items: center; }
 
@@ -177,7 +183,10 @@ body { margin: 0; font-family: system-ui, sans-serif; }
   pointer-events: none;
 }
 
-.input-group-sm .budget-input-amount { width: 80px; }
+.input-group-sm .budget-input-amount {
+  width: 90px;
+  padding-right: 28px; /* место под знак ₽ */
+}
 
 .btn-add,
 .btn-delete {
