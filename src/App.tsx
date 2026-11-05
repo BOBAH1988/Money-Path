@@ -9,7 +9,7 @@ import Liabilities from './pages/Liabilities';
 
 export default function App() {
   return (
-    <BrowserRouter>
+    <BrowserRouter basename="/Money-Path/">
       <Routes>
         <Route element={<Layout />}>
           <Route path="/" element={<Dashboard />} />
