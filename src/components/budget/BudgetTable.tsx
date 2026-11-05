@@ -38,6 +38,11 @@ export const BudgetTable = ({
     setShowAddRow(false);
   };
 
+  // Разделяем элементы на обычные, subtotal и total для правильного порядка
+  const regularItems = groupItems.filter((it) => it.type === 'item');
+  const subtotalItem = groupItems.find((it) => it.type === 'subtotal');
+  const totalItem = groupItems.find((it) => it.type === 'total');
+
   return (
     <section className="budget-card">
       <div className="budget-card-header">
@@ -64,7 +69,7 @@ export const BudgetTable = ({
               </tr>
             </thead>
             <tbody>
-              {groupItems.map((item) => (
+              {regularItems.map((item) => (
                 <BudgetRow
                   key={item.id}
                   item={item}
@@ -114,15 +119,33 @@ export const BudgetTable = ({
                 </tr>
               )}
 
-              <tr className="budget-row total">
-                <td className="budget-cell budget-cell-name" colSpan={2}>
-                  <span className="footer-label">Итого:</span>
-                </td>
-                <td className="budget-cell budget-cell-amount">
-                  {total.toLocaleString('ru-RU')} ₽
-                </td>
-                <td className="budget-cell budget-cell-actions" />
-              </tr>
+              {subtotalItem && (
+                <BudgetRow
+                  key={subtotalItem.id}
+                  item={subtotalItem}
+                  onUpdate={onUpdate}
+                  onRemove={onRemove}
+                />
+              )}
+
+              {totalItem ? (
+                <BudgetRow
+                  key={totalItem.id}
+                  item={totalItem}
+                  onUpdate={onUpdate}
+                  onRemove={onRemove}
+                />
+              ) : (
+                <tr className="budget-row total">
+                  <td className="budget-cell budget-cell-name" colSpan={2}>
+                    <span className="footer-label">Итого:</span>
+                  </td>
+                  <td className="budget-cell budget-cell-amount">
+                    {total.toLocaleString('ru-RU')} ₽
+                  </td>
+                  <td className="budget-cell budget-cell-actions" />
+                </tr>
+              )}
             </tbody>
           </table>
         </div>
