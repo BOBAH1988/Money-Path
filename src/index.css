@@ -36,7 +36,7 @@ body { margin: 0; font-family: system-ui, sans-serif; }
   color: #111827;
 }
 
-/* ---------- Нижняя панель — только название страницы ---------- */
+/* ---------- Нижняя панель — copyright строка ---------- */
 .bottom-nav {
   position: fixed;
   bottom: 0;
@@ -52,10 +52,10 @@ body { margin: 0; font-family: system-ui, sans-serif; }
   padding-bottom: calc(10px + env(safe-area-inset-bottom));
 }
 
-.current-label {
-  font-size: 15px;
-  font-weight: 700;
-  color: #111827;
+.footer-text {
+  font-size: 13px;
+  font-weight: 500;
+  color: #6b7280;
 }
 
 /* ---------- Выезжающее меню ---------- */

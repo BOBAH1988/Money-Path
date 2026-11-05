@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { NavLink, Outlet, useLocation } from 'react-router-dom';
+import { NavLink, Outlet } from 'react-router-dom';
 
 const items = [
   { to: '/', label: 'Дашборд', icon: '📊' },
@@ -10,11 +10,15 @@ const items = [
   { to: '/import', label: 'Импорт', icon: '📥' },
 ];
 
+const START_YEAR = 2026;
+const currentYear = new Date().getFullYear();
+const footerText =
+  currentYear === START_YEAR
+    ? `Проект Vladimir Sokolov ${START_YEAR}`
+    : `Проект Vladimir Sokolov ${START_YEAR} - ${currentYear}`;
+
 export default function Layout() {
   const [menuOpen, setMenuOpen] = useState(false);
-  const location = useLocation();
-
-  const current = items.find((i) => i.to === location.pathname);
 
   return (
     <div className="layout">
@@ -33,9 +37,9 @@ export default function Layout() {
 
       <main className="content"><Outlet /></main>
 
-      {/* Нижняя панель — только название текущей страницы */}
+      {/* Нижняя панель — copyright строка */}
       <nav className="bottom-nav">
-        <span className="current-label">{current ? current.label : ''}</span>
+        <span className="footer-text">{footerText}</span>
       </nav>
 
       {/* Выезжающее меню поверх всего */}
