@@ -23,20 +23,19 @@ export const BudgetTable = ({
 }: Props) => {
   const groupItems = items.filter((it) => it.group === group);
   const [showAddRow, setShowAddRow] = useState(false);
-  const [nameForAdd, setNameForAdd] = useState('');
-  const [amountForAdd, setAmountForAdd] = useState('');
+  const [inputName, setInputName] = useState('');
+  const [inputAmount, setInputAmount] = useState('');
 
   const handleAdd = () => {
     const amountNum = Number(
-      amountForAdd
-        .replace(/[^\d.,-]/g, '')
-        .replace(',', '.')
+      inputAmount.replace(/[^\d.,-]/g, '').replace(',', '.')
     ) || 0;
-    if (!nameForAdd.trim()) return;
-    onAdd(group, nameForAdd.trim(), amountNum);
-    setNameForAdd('');
-    setAmountForAdd('');
-    setShowAddRow(false);
+    const trimmed = inputName.trim();
+    if (!trimmed) return;
+    onAdd(group, trimmed, amountNum);
+    setInputName('');
+    setInputAmount('');
+    setShowAddRow(true);
   };
 
   return (
@@ -44,64 +43,79 @@ export const BudgetTable = ({
       <div className="budget-card-header">
         <h2 className="budget-card-title">{title}</h2>
         <div className="budget-card-actions">
-          {!showAddRow ? (
-            <button
-              className="btn-add"
-              onClick={() => setShowAddRow(true)}
-              aria-label="Добавить строку"
-            >
-              +
-            </button>
-          ) : (
-            <div className="add-row">
-              <input
-                className="budget-input budget-input-sm"
-                value={nameForAdd}
-                onChange={(e) => setNameForAdd(e.target.value)}
-                placeholder="Новая строка"
-                autoFocus
-              />
-              <div className="input-group input-group-sm">
-                <input
-                  className="budget-input budget-input-amount budget-input-sm"
-                  value={amountForAdd}
-                  onChange={(e) => setAmountForAdd(e.target.value)}
-                  placeholder="0"
-                />
-                <span className="input-suffix">₽</span>
-              </div>
-              <button
-                className="btn-add"
-                onClick={handleAdd}
-                aria-label="Добавить строку"
-              >
-                +
-              </button>
-            </div>
-          )}
+          <button
+            className="btn-add"
+            onClick={() => setShowAddRow(true)}
+            aria-label="Добавить строку"
+          >
+            +
+          </button>
         </div>
       </div>
 
-      <div className="budget-table-wrap">
-        <table className="budget-table">
-          <thead>
-            <tr>
-              <th className="budget-head budget-head-name">Наименование</th>
-              <th className="budget-head budget-head-amount">Сумма</th>
-              <th className="budget-head budget-head-actions" />
-            </tr>
-          </thead>
-          <tbody>
-            {groupItems.map((item) => (
-              <BudgetRow
-                key={item.id}
-                item={item}
-                onUpdate={onUpdate}
-                onRemove={onRemove}
-              />
-            ))}
-          </tbody>
-        </table>
+      <div className="budget-card-body">
+        <div className="budget-table-wrap">
+          <table className="budget-table">
+            <thead>
+              <tr>
+                <th className="budget-head budget-head-name">Наименование</th>
+                <th className="budget-head budget-head-amount">Сумма</th>
+                <th className="budget-head budget-head-actions" />
+              </tr>
+            </thead>
+            <tbody>
+              {groupItems.map((item) => (
+                <BudgetRow
+                  key={item.id}
+                  item={item}
+                  onUpdate={onUpdate}
+                  onRemove={onRemove}
+                />
+              ))}
+
+              {showAddRow && (
+                <tr className="budget-row budget-row-editing">
+                  <td className="budget-cell budget-cell-name">
+                    <input
+                      className="budget-input"
+                      value={inputName}
+                      onChange={(e) => setInputName(e.target.value)}
+                      placeholder="Новая строка"
+                      autoFocus
+                    />
+                  </td>
+                  <td className="budget-cell budget-cell-amount">
+                    <div className="input-group">
+                      <input
+                        className="budget-input budget-input-amount"
+                        value={inputAmount}
+                        onChange={(e) => setInputAmount(e.target.value)}
+                        placeholder="0"
+                      />
+                      <span className="input-suffix">₽</span>
+                    </div>
+                  </td>
+                  <td className="budget-cell budget-cell-actions">
+                    <button
+                      className="btn-add"
+                      onClick={handleAdd}
+                      aria-label="Добавить строку"
+                    >
+                      +
+                    </button>
+                    <button
+                      className="btn-delete"
+                      onClick={() => setShowAddRow(false)}
+                      aria-label="Отмена"
+                    >
+                      ×
+                    </button>
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
 
       <div className="budget-card-footer">
