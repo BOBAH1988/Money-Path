@@ -128,11 +128,13 @@ export const AccountMenu = ({ onClose, onAnalytics }: { onClose: () => void; onA
         <div className="account-info">
           <span className="account-icon">👤</span>
           <span className="account-email">{user?.email}</span>
-          {isAdmin && <span className="account-badge">Администратор</span>}
+          {isAdmin && (
+            <span className="account-badge">Администратор</span>
+          )}
         </div>
         <div className="account-actions">
           <button className="account-action-btn" onClick={handleLogout}>
-            <span>🚪</span> Выйти
+            <span>👋</span> Выйти
           </button>
           {isAdmin && (
             <button className="account-action-btn" onClick={handleAnalytics}>
