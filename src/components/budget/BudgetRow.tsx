@@ -46,7 +46,6 @@ export const BudgetRow = ({ item, onUpdate, onRemove }: Props) => {
         </td>
         <td className="budget-cell budget-cell-amount">
           <span className="row-amount">{amountFormatter(item.amount)}</span>
-          <span className="row-currency">₽</span>
         </td>
         <td className="budget-cell budget-cell-plan" />
         <td className="budget-cell budget-cell-actions" />
@@ -76,7 +75,6 @@ export const BudgetRow = ({ item, onUpdate, onRemove }: Props) => {
             onBlur={handleSave}
             placeholder="0"
           />
-          <span className="input-suffix">₽</span>
         </div>
       </td>
       <td className="budget-cell budget-cell-plan">
@@ -89,7 +87,6 @@ export const BudgetRow = ({ item, onUpdate, onRemove }: Props) => {
             onBlur={handleSave}
             placeholder="0"
           />
-          <span className="input-suffix">₽</span>
         </div>
       </td>
       <td className="budget-cell budget-cell-actions">

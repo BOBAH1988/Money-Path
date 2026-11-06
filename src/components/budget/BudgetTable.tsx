@@ -60,8 +60,8 @@ export const BudgetTable = ({
             <thead>
               <tr>
                 <th className="budget-head budget-head-name">Наименование</th>
-                <th className="budget-head budget-head-amount">Сумма (факт)</th>
-                <th className="budget-head budget-head-plan">План</th>
+                <th className="budget-head budget-head-amount">Сумма р</th>
+                <th className="budget-head budget-head-plan">План р</th>
                 <th className="budget-head budget-head-actions">
                   <button
                     className="btn-add btn-add-header"
@@ -104,7 +104,6 @@ export const BudgetTable = ({
                         onKeyDown={(e) => e.key === 'Enter' && handleAdd()}
                         placeholder="0"
                       />
-                      <span className="input-suffix">₽</span>
                     </div>
                   </td>
                   <td className="budget-cell budget-cell-plan">
@@ -116,7 +115,6 @@ export const BudgetTable = ({
                         onKeyDown={(e) => e.key === 'Enter' && handleAdd()}
                         placeholder="0"
                       />
-                      <span className="input-suffix">₽</span>
                     </div>
                   </td>
                   <td className="budget-cell budget-cell-actions">
@@ -153,7 +151,7 @@ export const BudgetTable = ({
                     <span className="footer-label">Итого:</span>
                   </td>
                   <td className="budget-cell budget-cell-amount">
-                    {total.toLocaleString('ru-RU')} ₽
+                    {total.toLocaleString('ru-RU')}
                   </td>
                   <td className="budget-cell budget-cell-plan" />
                   <td className="budget-cell budget-cell-actions" />
