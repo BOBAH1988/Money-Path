@@ -87,16 +87,26 @@ export const applyComputedFields = (items: BudgetPlanItem[]): BudgetPlan => {
   const totals = computeTotals(items);
   const updatedItems = items.map((it) => {
     if (it.type === 'subtotal' && it.linkedGroup) {
-      return { ...it, amount: totals[it.linkedGroup], plan: totals[it.linkedGroup] };
+      const linkedPlan = items
+        .filter((i) => i.group === it.linkedGroup && i.type === 'item')
+        .reduce((sum, i) => sum + i.plan, 0);
+      return { ...it, amount: totals[it.linkedGroup], plan: linkedPlan };
     }
     if (it.type === 'total') {
-      const own = items
+      const ownAmount = items
         .filter((i) => i.group === it.group && i.type === 'item')
         .reduce((sum, i) => sum + i.amount, 0);
+      const ownPlan = items
+        .filter((i) => i.group === it.group && i.type === 'item')
+        .reduce((sum, i) => sum + i.plan, 0);
       const subtotal = items.find(
         (i) => i.group === it.group && i.type === 'subtotal'
-      )?.amount ?? 0;
-      return { ...it, amount: own + subtotal, plan: own + subtotal };
+      );
+      return {
+        ...it,
+        amount: ownAmount + (subtotal?.amount ?? 0),
+        plan: ownPlan + (subtotal?.plan ?? 0),
+      };
     }
     return it;
   });
