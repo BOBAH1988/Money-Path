@@ -73,10 +73,10 @@ export const useBudget = () => {
           .filter((it) => it.type === 'item')
           .reduce((sum, it) => sum + it.amount, 0);
       }
-      // planned: сумма plan по planned item
+      // planned: итог запланированных расходов — сумма amount по planned item
       return plan.items
         .filter((it) => it.group === 'planned' && it.type === 'item')
-        .reduce((sum, it) => sum + it.plan, 0);
+        .reduce((sum, it) => sum + it.amount, 0);
     },
     [plan.items]
   );
