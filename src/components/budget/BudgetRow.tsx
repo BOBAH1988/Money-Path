@@ -6,9 +6,10 @@ interface Props {
   onUpdate: (id: string, patch: { name?: string; amount?: number; plan?: number }) => void;
   onRemove: (id: string) => void;
   onToggle?: (group: 'planned') => void;
+  isPlannedCollapsed?: boolean;
 }
 
-export const BudgetRow = ({ item, onUpdate, onRemove, onToggle }: Props) => {
+export const BudgetRow = ({ item, onUpdate, onRemove, onToggle, isPlannedCollapsed }: Props) => {
   const [editing, setEditing] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [name, setName] = useState(item.name);
@@ -57,7 +58,6 @@ export const BudgetRow = ({ item, onUpdate, onRemove, onToggle }: Props) => {
     if (!isSubtotal || !onToggle) return;
     onToggle('planned');
   };
-
   const format = (value: number) => value.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
 
   if (confirmDelete) {
@@ -90,15 +90,15 @@ export const BudgetRow = ({ item, onUpdate, onRemove, onToggle }: Props) => {
           <span className="row-currency">₽</span>
         </td>
         <td className="budget-cell budget-cell-actions">
-          {isSubtotal && (
-            <button
-              className="btn-toggle"
-              onClick={(e) => { e.stopPropagation(); togglePlanned(); }}
-              aria-label="Свернуть/развернуть запланированные расходы"
-            >
-              ▼
-            </button>
-          )}
+        {isSubtotal && (
+          <button
+            className="btn-edit"
+            onClick={(e) => { e.stopPropagation(); togglePlanned(); }}
+            aria-label={isPlannedCollapsed ? "Развернуть запланированные расходы" : "Свернуть запланированные расходы"}
+          >
+            {isPlannedCollapsed ? "▶" : "▼"}
+          </button>
+        )}
           {!isSubtotal && !isTotal && (
             <button
               className="btn-edit"

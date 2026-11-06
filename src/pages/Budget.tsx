@@ -23,7 +23,36 @@ export default function Budget() {
   const totalMonthly = groupTotal('monthly');
   const totalPlanned = groupTotal('planned');
 
-  const [plannedVisible, setPlannedVisible] = useState(true);
+  const [plannedVisible, setPlannedVisible] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem('denegnyj_put_planned_visible') ?? 'false');
+    } catch {
+      return false;
+    }
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('denegnyj_put_planned_visible', JSON.stringify(plannedVisible));
+    } catch {
+      // ignore quota errors
+    }
+  }, [plannedVisible]);
+
+  const handleTogglePlanned = () => {
+    const next = !plannedVisible;
+    setPlannedVisible(next);
+    if (!next) {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    } else {
+      setTimeout(() => {
+        const el = document.getElementById('planned-table');
+        if (el) {
+          el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      }, 50);
+    }
+  };
 
   return (
     <div className="page page-budget">
@@ -36,10 +65,12 @@ export default function Budget() {
           onUpdate={updateItem}
           onAdd={(group, name, amount, plan) => addItem(group, name, amount, plan)}
           onRemove={removeItem}
-          onToggle={() => setPlannedVisible((v) => !v)}
+          onToggle={handleTogglePlanned}
+          isPlannedCollapsed={!plannedVisible}
         />
         {plannedVisible && (
           <BudgetTable
+            id="planned-table"
             group="planned"
             title="Запланированные расходы"
             items={plannedItems}

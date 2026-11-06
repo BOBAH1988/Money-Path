@@ -3,6 +3,7 @@ import type { BudgetPlanItem, BudgetGroup } from '../../types';
 import { BudgetRow } from './BudgetRow';
 
 interface Props {
+  id?: string;
   group: BudgetGroup;
   title: string;
   items: BudgetPlanItem[];
@@ -11,9 +12,11 @@ interface Props {
   onAdd: (group: BudgetGroup, name: string, amount: number, plan: number) => void;
   onRemove: (id: string) => void;
   onToggle?: (group: 'planned') => void;
+  isPlannedCollapsed?: boolean;
 }
 
 export const BudgetTable = ({
+  id,
   group,
   title,
   items,
@@ -22,6 +25,7 @@ export const BudgetTable = ({
   onAdd,
   onRemove,
   onToggle,
+  isPlannedCollapsed,
 }: Props) => {
   const groupItems = items.filter((it) => it.group === group);
   const [showAddRow, setShowAddRow] = useState(false);
@@ -51,7 +55,7 @@ export const BudgetTable = ({
   const totalItem = groupItems.find((it) => it.type === 'total');
 
   return (
-    <section className="budget-card">
+    <section className="budget-card" id={id}>
       <div className="budget-card-header">
         <h2 className="budget-card-title">{title}</h2>
       </div>
@@ -138,6 +142,7 @@ export const BudgetTable = ({
                   onUpdate={onUpdate}
                   onRemove={onRemove}
                   onToggle={onToggle}
+                  isPlannedCollapsed={isPlannedCollapsed}
                 />
               )}
 
