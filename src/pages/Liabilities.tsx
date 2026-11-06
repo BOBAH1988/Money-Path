@@ -63,7 +63,7 @@ export default function Liabilities() {
               headers={{
                 name: 'Пассивы',
                 amount: 'Сумма',
-                plan: '- % в мес.',
+                plan: '% в мес.',
               }}
         onUpdate={(id, patch) => {
           setItems((prev) =>
