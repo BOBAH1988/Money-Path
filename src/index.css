@@ -419,10 +419,10 @@ body { margin: 0; font-family: system-ui, sans-serif; }
 .budget-row:last-child { border-bottom: none; }
 .budget-row:not(.budget-row-editing):hover { background: #f1f5f9; }
 
-.budget-cell { display: table-cell; padding: 6px 8px; vertical-align: middle; }
+.budget-cell { display: table-cell; padding: 4px 4px; vertical-align: middle; }
 .budget-cell-name { font-size: 14px; color: var(--bp-text, #0f172a); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.budget-cell-amount { text-align: left; font-variant-numeric: tabular-nums; width: 95px; padding-left: 4px; padding-right: 4px; }
-.budget-cell-plan { text-align: left; font-variant-numeric: tabular-nums; width: 95px; padding-left: 4px; padding-right: 4px; }
+.budget-cell-amount { text-align: left; font-variant-numeric: tabular-nums; width: 90px; padding-left: 2px; padding-right: 2px; }
+.budget-cell-plan { text-align: left; font-variant-numeric: tabular-nums; width: 90px; padding-left: 2px; padding-right: 2px; }
 .budget-cell-actions { text-align: center; width: 28px; }
 
 .row-name { font-weight: 500; }
