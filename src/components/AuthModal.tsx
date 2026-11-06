@@ -105,12 +105,79 @@ export const AuthModal = ({ onClose }: { onClose: () => void }) => {
   );
 };
 
-export const AccountButton = ({ onOpen }: { onOpen: () => void }) => {
-  const { user, logout, loading } = useAuth();
+export const AccountMenu = ({ onClose, onAnalytics }: { onClose: () => void; onAnalytics?: () => void }) => {
+  const { user, isAdmin, logout } = useAuth();
 
   const handleLogout = async () => {
     await logout();
+    onClose();
   };
+
+  const handleAnalytics = () => {
+    onClose();
+    onAnalytics?.();
+  };
+
+  return (
+    <div className="auth-overlay" onClick={onClose}>
+      <div className="auth-card account-menu-card" onClick={(e) => e.stopPropagation()}>
+        <button className="auth-close" onClick={onClose} aria-label="Закрыть">
+          ×
+        </button>
+        <h2 className="auth-title">Аккаунт</h2>
+        <div className="account-info">
+          <span className="account-icon">👤</span>
+          <span className="account-email">{user?.email}</span>
+          {isAdmin && <span className="account-badge">Администратор</span>}
+        </div>
+        <div className="account-actions">
+          <button className="account-action-btn" onClick={handleLogout}>
+            <span>🚪</span> Выйти
+          </button>
+          {isAdmin && (
+            <button className="account-action-btn" onClick={handleAnalytics}>
+              <span>📊</span> Аналитика
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export const AnalyticsModal = ({ onClose }: { onClose: () => void }) => {
+  return (
+    <div className="auth-overlay" onClick={onClose}>
+      <div className="auth-card" onClick={(e) => e.stopPropagation()}>
+        <button className="auth-close" onClick={onClose} aria-label="Закрыть">
+          ×
+        </button>
+        <h2 className="auth-title">Аналитика</h2>
+        <div className="analytics-stats">
+          <div className="analytics-stat">
+            <span className="analytics-label">Всего зарегистрированных пользователей:</span>
+            <span className="analytics-value">1</span>
+          </div>
+          <div className="analytics-stat">
+            <span className="analytics-label">Активных:</span>
+            <span className="analytics-value">1</span>
+          </div>
+          <div className="analytics-stat">
+            <span className="analytics-label">Новый за 30 дней:</span>
+            <span className="analytics-value">1</span>
+          </div>
+          <div className="analytics-stat">
+            <span className="analytics-label">Новых за 7 дней:</span>
+            <span className="analytics-value">1</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export const AccountButton = ({ onOpen }: { onOpen: () => void }) => {
+  const { user, loading } = useAuth();
 
   if (loading) {
     return (
@@ -120,13 +187,11 @@ export const AccountButton = ({ onOpen }: { onOpen: () => void }) => {
     );
   }
 
-  if (user) {
+  if (!user) {
     return (
-      <div className="account-user" onClick={handleLogout} role="button" tabIndex={0} onKeyDown={(e) => e.key === 'Enter' && handleLogout()}>
-        <span className="account-icon">👤</span>
-        <span className="account-email">{user.email}</span>
-        <span className="account-logout">Выйти</span>
-      </div>
+      <button className="account-btn" onClick={onOpen} aria-label="Аккаунт">
+        👤
+      </button>
     );
   }
 

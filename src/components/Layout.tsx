@@ -4,7 +4,7 @@ import packageJson from '../../package.json';
 import { useBudget } from '../hooks/useBudget';
 import { saveToFirestore, COLLECTIONS } from '../lib/firestore';
 import { AppIcon } from './AppIcon';
-import { AuthModal, AccountButton } from './AuthModal';
+import { AuthModal, AccountButton, AccountMenu, AnalyticsModal } from './AuthModal';
 import { useAuth } from '../context/AuthContext';
 
 const pkgVersion = packageJson.version;
@@ -38,6 +38,8 @@ export default function Layout() {
   const [pageTitle, setPageTitle] = useState('');
   const [confirmReset, setConfirmReset] = useState(false);
   const [authModalOpen, setAuthModalOpen] = useState(false);
+  const [accountMenuOpen, setAccountMenuOpen] = useState(false);
+  const [analyticsOpen, setAnalyticsOpen] = useState(false);
   const { reset } = useBudget();
   const { user } = useAuth();
   const userId = user?.uid ?? undefined;
@@ -57,7 +59,7 @@ export default function Layout() {
             </div>
           </div>
           <div className="top-bar-right">
-            <AccountButton onOpen={() => setAuthModalOpen(true)} />
+            <AccountButton onOpen={() => setAccountMenuOpen(true)} />
             <button
               className="menu-btn"
               onClick={() => setMenuOpen(!menuOpen)}
@@ -149,6 +151,14 @@ export default function Layout() {
 
       {authModalOpen && (
         <AuthModal onClose={() => setAuthModalOpen(false)} />
+      )}
+
+      {accountMenuOpen && (
+        <AccountMenu onClose={() => setAccountMenuOpen(false)} onAnalytics={() => setAnalyticsOpen(true)} />
+      )}
+
+      {analyticsOpen && (
+        <AnalyticsModal onClose={() => setAnalyticsOpen(false)} />
       )}
     </div>
       </PageTitleContext.Provider>

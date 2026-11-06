@@ -526,3 +526,99 @@ body { margin: 0; font-family: system-ui, sans-serif; }
     max-width: 420px;
   }
 }
+
+/* ---------- Меню аккаунта ---------- */
+.account-menu-card {
+  max-width: 320px;
+  padding: 24px;
+  text-align: center;
+}
+
+.account-info {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin-bottom: 20px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--border, #e5e7eb);
+}
+
+.account-icon {
+  font-size: 24px;
+}
+
+.account-email {
+  font-size: 14px;
+  font-weight: 600;
+  color: #111827;
+}
+
+.account-badge {
+  font-size: 11px;
+  font-weight: 700;
+  background: #fef3c7;
+  color: #92400e;
+  padding: 2px 8px;
+  border-radius: 12px;
+}
+
+.account-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.account-action-btn {
+  width: 100%;
+  padding: 10px 16px;
+  border: 1px solid var(--border, #e5e7eb);
+  border-radius: 8px;
+  background: #fff;
+  color: #111827;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: background 0.15s;
+}
+
+.account-action-btn:hover {
+  background: #f3f4f6;
+}
+
+.account-action-btn:active {
+  transform: scale(0.98);
+}
+
+/* ---------- Модальное окно аналитики ---------- */
+.analytics-stats {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.analytics-stat {
+  display: flex;
+  justify-content: space-between;
+  padding: 10px 14px;
+  background: #f9fafb;
+  border: 1px solid var(--border, #e5e7eb);
+  border-radius: 8px;
+}
+
+.analytics-label {
+  font-size: 14px;
+  color: #374151;
+}
+
+.analytics-value {
+  font-size: 14px;
+  font-weight: 700;
+  color: #111827;
+  font-variant-numeric: tabular-nums;
+}
