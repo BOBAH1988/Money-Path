@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import type { BudgetPlanItem, BudgetGroup } from '../../types';
-import { BudgetRow } from './BudgetRow';
+import { BudgetRow, format } from './BudgetRow';
 
 interface Props {
   id?: string;
@@ -62,10 +62,11 @@ export const BudgetTable = ({
     setEditingId(null);
   };
 
-  // Разделяем элементы на обычные, subtotal и total для правильного порядка
   const regularItems = groupItems.filter((it) => it.type === 'item');
   const subtotalItem = groupItems.find((it) => it.type === 'subtotal');
   const totalItem = groupItems.find((it) => it.type === 'total');
+
+  const collapsed = isPlannedCollapsed ?? false;
 
   return (
     <section className="budget-card" id={id}>
@@ -110,7 +111,7 @@ export const BudgetTable = ({
                   onUpdate={onUpdate}
                   onRemove={onRemove}
                   onToggle={onToggle}
-                  isPlannedCollapsed={isPlannedCollapsed}
+                  isPlannedCollapsed={collapsed}
                   isEditing={editingId === item.id}
                   onStartEdit={(editId) => setEditingId(editId)}
                   onFinishEdit={finishEdit}
@@ -163,17 +164,47 @@ export const BudgetTable = ({
                 </tr>
               )}
 
-              {subtotalItem && (
+              {subtotalItem && group === 'monthly' && (
                 <BudgetRow
                   key={subtotalItem.id}
                   item={subtotalItem}
                   onUpdate={onUpdate}
                   onRemove={onRemove}
                   onToggle={onToggle}
-                  isPlannedCollapsed={isPlannedCollapsed}
+                  isPlannedCollapsed={collapsed}
                   isEditing={editingId === subtotalItem.id}
                   onFinishEdit={finishEdit}
                 />
+              )}
+
+              {group === 'monthly' && !subtotalItem && (
+                <tr
+                  className="budget-row subtotal"
+                  onClick={() => onToggle && onToggle('planned')}
+                  style={{ cursor: 'pointer' }}
+                >
+                  <td className="budget-cell budget-cell-name">
+                    <span className="row-name">Дополнительные расходы</span>
+                    <span className="row-hint">сумма дополнительных расходов</span>
+                  </td>
+                  <td className="budget-cell budget-cell-amount">
+                    <span className="row-amount">{format(0)}</span>
+                    <span className="row-currency">₽</span>
+                  </td>
+                  <td className="budget-cell budget-cell-plan">
+                    <span className="row-amount">{format(totalPlan ?? 0)}</span>
+                    <span className="row-currency">₽</span>
+                  </td>
+                  <td className="budget-cell budget-cell-actions">
+                    <button
+                      className="btn-edit"
+                      onClick={(e) => { e.stopPropagation(); onToggle && onToggle('planned'); }}
+                      aria-label={collapsed ? "Развернуть дополнительные расходы" : "Свернуть дополнительные расходы"}
+                    >
+                      {collapsed ? "▶" : "▼"}
+                    </button>
+                  </td>
+                </tr>
               )}
 
               {totalItem ? (
@@ -191,15 +222,13 @@ export const BudgetTable = ({
                     <span className="footer-label">Итого:</span>
                   </td>
                   <td className="budget-cell budget-cell-amount" style={{ whiteSpace: 'nowrap' }}>
-                    {total.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ')}<span className="row-currency">₽</span>
+                    {format(total)}<span className="row-currency">₽</span>
                   </td>
                   <td className="budget-cell budget-cell-plan" style={{ whiteSpace: 'nowrap' }}>
-                    {totalPlan !== undefined ? (
-                      <>
-                        {totalPlan.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ')}
-                        <span className="row-currency">₽</span>
-                      </>
-                    ) : null}
+                    <>
+                      {format(totalPlan ?? 0)}
+                      <span className="row-currency">₽</span>
+                    </>
                   </td>
                   <td className="budget-cell budget-cell-actions" />
                 </tr>

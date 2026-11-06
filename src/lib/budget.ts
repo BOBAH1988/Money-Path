@@ -38,7 +38,7 @@ const saveBudgetPlanToLocalStorage = (plan: BudgetPlan, userId?: string): void =
 
 export const loadBudgetPlan = async (userId?: string): Promise<BudgetPlan> => {
   if (!userId) {
-    return loadBudgetPlanFromLocalStorage(undefined);
+    return emptyBudgetPlan;
   }
   if (!db) {
     return loadBudgetPlanFromLocalStorage(userId);
@@ -65,10 +65,7 @@ export const loadBudgetPlan = async (userId?: string): Promise<BudgetPlan> => {
 };
 
 export const saveBudgetPlan = async (plan: BudgetPlan, userId?: string): Promise<void> => {
-  if (!userId) {
-    saveBudgetPlanToLocalStorage(plan, undefined);
-    return;
-  }
+  if (!userId) return;
   saveBudgetPlanToLocalStorage(plan, userId);
   if (!db) return;
   try {
@@ -82,10 +79,14 @@ export const saveBudgetPlan = async (plan: BudgetPlan, userId?: string): Promise
 };
 
 export const resetBudgetPlan = async (_empty = false, userId?: string): Promise<BudgetPlan> => {
-  if (!userId) {
-    saveBudgetPlanToLocalStorage(emptyBudgetPlan, undefined);
-    return emptyBudgetPlan;
+  // Чистим и пользовательский, и общий ключ бюджета в localStorage
+  try {
+    localStorage.removeItem(BUDGET_STORAGE_KEY(userId));
+    localStorage.removeItem(BUDGET_STORAGE_KEY(undefined));
+  } catch {
+    // ignore
   }
+  if (!userId) return emptyBudgetPlan;
   saveBudgetPlanToLocalStorage(emptyBudgetPlan, userId);
   if (!db) return emptyBudgetPlan;
   try {
@@ -99,6 +100,17 @@ export const resetBudgetPlan = async (_empty = false, userId?: string): Promise<
   return emptyBudgetPlan;
 };
 
+export interface BudgetPageTotals {
+  totalMonthly: number;
+  totalPlanned: number;
+  totalAll: number;
+  totalMonthlyPlan: number;
+  totalPlannedPlan: number;
+  regularTotal: number;
+}
+
+export const safeNegate = (value: number): number => (-value) || 0;
+
 export const computeTotals = (items: BudgetPlanItem[]): Record<BudgetGroup, number> => {
   const totals: Record<BudgetGroup, number> = { monthly: 0, planned: 0 };
   items.forEach((it) => {
@@ -107,6 +119,23 @@ export const computeTotals = (items: BudgetPlanItem[]): Record<BudgetGroup, numb
     }
   });
   return totals;
+};
+
+export const computeBudgetPageTotals = (items: BudgetPlanItem[]): BudgetPageTotals => {
+  const monthlyItems = items.filter((it) => it.group === 'monthly' && it.type === 'item');
+  const plannedItems = items.filter((it) => it.group === 'planned' && it.type === 'item');
+  const totalMonthly = monthlyItems.reduce((sum, it) => sum + (it.amount ?? 0), 0);
+  const totalPlanned = plannedItems.reduce((sum, it) => sum + (it.amount ?? 0), 0);
+  const totalMonthlyPlan = monthlyItems.reduce((sum, it) => sum + (it.plan ?? 0), 0);
+  const totalPlannedPlan = plannedItems.reduce((sum, it) => sum + (it.plan ?? 0), 0);
+  return {
+    totalMonthly,
+    totalPlanned,
+    totalAll: totalMonthly + totalPlanned,
+    totalMonthlyPlan,
+    totalPlannedPlan,
+    regularTotal: totalMonthlyPlan - totalPlannedPlan,
+  };
 };
 
 export const applyComputedFields = (items: BudgetPlanItem[]): BudgetPlan => {

@@ -6,7 +6,7 @@ export default function Dashboard() {
   const { setPageTitle } = useContext(PageTitleContext)!;
 
   useEffect(() => {
-    setPageTitle('Дашборд');
+    setPageTitle('Главная');
   }, [setPageTitle]);
 
   return <div className="page"><h1>Dashboard</h1><p>Заглушка</p></div>;

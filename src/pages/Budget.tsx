@@ -2,6 +2,7 @@ import { useMemo, useEffect, useContext, useState } from 'react';
 import { useBudget } from '../hooks/useBudget';
 import { BudgetTable } from '../components/budget/BudgetTable';
 import { PageTitleContext } from '../components/Layout';
+import { computeBudgetPageTotals } from '../lib/budget';
 
 export default function Budget() {
   const { items, updateItem, addItem, removeItem, loading, error } = useBudget();
@@ -20,54 +21,16 @@ export default function Budget() {
     [items]
   );
 
-  const totalMonthly = useMemo(
-    () =>
-      items
-        .filter((it) => it.group === 'monthly' && it.type === 'item')
-        .reduce((sum, it) => sum + it.amount, 0),
-    [items]
-  );
-  const totalPlanned = useMemo(
-    () =>
-      items
-        .filter((it) => it.group === 'planned' && it.type === 'item')
-        .reduce((sum, it) => sum + it.amount, 0),
-    [items]
-  );
-  const totalAll = useMemo(
-    () => totalMonthly + totalPlanned,
-    [totalMonthly, totalPlanned]
-  );
+  const totals = useMemo(() => computeBudgetPageTotals(items), [items]);
+  const totalPlanned = totals.totalPlanned;
+  const totalAll = totals.totalAll;
+  const totalMonthlyPlan = totals.totalMonthlyPlan;
+  const totalPlannedPlan = totals.totalPlannedPlan;
 
-  const [plannedVisible, setPlannedVisible] = useState(() => {
-    try {
-      return JSON.parse(localStorage.getItem('denegnyj_put_planned_visible') ?? 'false');
-    } catch {
-      return false;
-    }
-  });
-
-  useEffect(() => {
-    try {
-      localStorage.setItem('denegnyj_put_planned_visible', JSON.stringify(plannedVisible));
-    } catch {
-      // ignore quota errors
-    }
-  }, [plannedVisible]);
+  const [plannedVisible, setPlannedVisible] = useState(false);
 
   const handleTogglePlanned = () => {
-    const next = !plannedVisible;
-    setPlannedVisible(next);
-    if (!next) {
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    } else {
-      setTimeout(() => {
-        const el = document.getElementById('planned-table');
-        if (el) {
-          el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        }
-      }, 50);
-    }
+    setPlannedVisible((prev) => !prev);
   };
 
   if (loading) {
@@ -116,12 +79,8 @@ export default function Budget() {
           <span className="summary-value">{totalAll.toLocaleString('ru-RU')} ₽</span>
         </div>
         <div className="summary-item">
-          <span className="summary-label">Ежемесячные</span>
-          <span className="summary-value">{totalMonthly.toLocaleString('ru-RU')} ₽</span>
-        </div>
-        <div className="summary-item">
-          <span className="summary-label">Запланированные</span>
-          <span className="summary-value">{totalPlanned.toLocaleString('ru-RU')} ₽</span>
+          <span className="summary-label">Регулярные</span>
+          <span className="summary-value">{(totalMonthlyPlan - totalPlannedPlan).toLocaleString('ru-RU')} ₽</span>
         </div>
       </div>
 
@@ -130,7 +89,8 @@ export default function Budget() {
           group="monthly"
           title="Ежемесячные расходы"
           items={monthlyItems}
-          total={totalMonthly}
+          total={totalAll}
+          totalPlan={totalPlanned}
           onUpdate={updateItem}
           onAdd={(group, name, amount, plan) => addItem(group, name, amount, plan)}
           onRemove={removeItem}
@@ -144,6 +104,7 @@ export default function Budget() {
             title="Запланированные расходы"
             items={plannedItems}
             total={totalPlanned}
+            totalPlan={totalPlannedPlan}
             onUpdate={updateItem}
             onAdd={(group, name, amount, plan) => addItem(group, name, amount, plan)}
             onRemove={removeItem}

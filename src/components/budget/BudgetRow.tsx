@@ -12,6 +12,12 @@ interface Props {
   onFinishEdit?: () => void;
 }
 
+export const format = (value: number | undefined | null) => {
+  const v = value ?? 0;
+  if (Object.is(v, -0)) return '0';
+  return v.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+};
+
 export const BudgetRow = ({ item, onUpdate, onRemove, onToggle, isPlannedCollapsed, isEditing = false, onStartEdit, onFinishEdit }: Props) => {
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [name, setName] = useState(item.name);
@@ -83,7 +89,6 @@ export const BudgetRow = ({ item, onUpdate, onRemove, onToggle, isPlannedCollaps
     if (!isSubtotal || !onToggle) return;
     onToggle('planned');
   };
-  const format = (value: number) => value.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
 
   if (confirmDelete) {
     return (
@@ -147,14 +152,14 @@ export const BudgetRow = ({ item, onUpdate, onRemove, onToggle, isPlannedCollaps
     <tr className={`budget-row ${item.type}`} onClick={isSubtotal ? togglePlanned : undefined}>
       <td className="budget-cell budget-cell-name">
         <span className="row-name">{item.name}</span>
-        {isSubtotal && <span className="row-hint">сумма запланированных расходов</span>}
+        {isSubtotal && <span className="row-hint">сумма дополнительных расходов</span>}
       </td>
-      <td className="budget-cell budget-cell-amount">
-        <span className="row-amount">{format(item.amount)}</span>
+        <td className="budget-cell budget-cell-amount">
+        <span className="row-amount">{format(item.amount ?? 0)}</span>
         <span className="row-currency">₽</span>
       </td>
       <td className="budget-cell budget-cell-plan">
-        <span className="row-amount">{format(item.plan)}</span>
+        <span className="row-amount">{format(item.plan ?? 0)}</span>
         <span className="row-currency">₽</span>
       </td>
       <td className="budget-cell budget-cell-actions">
@@ -162,7 +167,7 @@ export const BudgetRow = ({ item, onUpdate, onRemove, onToggle, isPlannedCollaps
         <button
           className="btn-edit"
           onClick={(e) => { e.stopPropagation(); togglePlanned(); }}
-          aria-label={isPlannedCollapsed ? "Развернуть запланированные расходы" : "Свернуть запланированные расходы"}
+          aria-label={isPlannedCollapsed ? "Развернуть дополнительные расходы" : "Свернуть дополнительные расходы"}
         >
           {isPlannedCollapsed ? "▶" : "▼"}
         </button>

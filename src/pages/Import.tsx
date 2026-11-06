@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useContext } from 'react';
 import { PageTitleContext } from '../components/Layout';
 import { useAuth } from '../context/AuthContext';
@@ -19,7 +19,7 @@ export default function Import() {
     setPageTitle('Импорт / Экспорт');
   }, [setPageTitle]);
 
-  const handleDownload = async () => {
+  const handleDownload = useCallback(async () => {
     if (!userId) {
       setError('Нужно войти в аккаунт');
       return;
@@ -62,7 +62,13 @@ export default function Import() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [userId, user?.email, setLoading, setError]);
+
+  useEffect(() => {
+    if (userId) {
+      handleDownload();
+    }
+  }, [userId, handleDownload]);
 
   return (
     <div className="page page-budget">

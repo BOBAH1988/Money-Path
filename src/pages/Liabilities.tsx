@@ -5,6 +5,7 @@ import { BudgetTable } from '../components/budget/BudgetTable';
 import type { BudgetGroup } from '../types';
 import { saveToFirestore, loadFromFirestore, COLLECTIONS } from '../lib/firestore';
 import { useAuth } from '../context/AuthContext';
+import { safeNegate } from '../lib/budget';
 
 interface LiabilityRow {
   id: string;
@@ -62,8 +63,8 @@ export default function Liabilities() {
     [items]
   );
 
-  const totalAmount = -items.reduce((sum, it) => sum + it.amount, 0);
-  const totalMonthly = -items.reduce((sum, it) => sum + it.monthly, 0);
+  const totalAmount = safeNegate(items.reduce((sum, it) => sum + it.amount, 0));
+  const totalMonthly = safeNegate(items.reduce((sum, it) => sum + it.monthly, 0));
 
   const handleRemove = (id: string) => {
     if (items.length <= 1) {

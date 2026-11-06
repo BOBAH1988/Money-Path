@@ -56,8 +56,9 @@ export const saveToFirestore = async <T extends { id: string }>(
   items: T[],
   userId?: string
 ) => {
+  if (!userId) return;
   saveToLocalStorage(collectionName, items, userId);
-  if (!firestoreDb || !userId) return;
+  if (!firestoreDb) return;
   try {
     const colRef = collection(firestoreDb, colPath(collectionName, userId));
     const batch = items.map((item) =>
@@ -73,9 +74,9 @@ export const loadFromFirestore = async <T extends { id: string } = { id: string 
   collectionName: string,
   userId?: string
 ): Promise<T[]> => {
-  // Без авторизации — загружаем из локального localStorage (без userId)
+  // Без авторизации — данные недоступны, возвращаем пустой массив
   if (!userId) {
-    return loadFromLocalStorage<T>(collectionName, undefined);
+    return [];
   }
   if (!firestoreDb) {
     return loadFromLocalStorage<T>(collectionName, userId);
@@ -137,6 +138,7 @@ export const deleteFromFirestore = async (
   id: string,
   userId?: string
 ) => {
+  if (!userId) return;
   try {
     const raw = localStorage.getItem(storageKey(collectionName, userId));
     if (raw) {
@@ -152,6 +154,29 @@ export const deleteFromFirestore = async (
     await deleteDoc(doc(firestoreDb, colPath(collectionName, userId), id));
   } catch {
     // ignore
+  }
+};
+
+export const clearCollectionData = async (
+  collectionName: string,
+  userId?: string
+): Promise<void> => {
+  // Чистим и пользовательский, и общий (un-scoped) ключ локального хранилища синхронно
+  try {
+    localStorage.removeItem(storageKey(collectionName, userId));
+    localStorage.removeItem(storageKey(collectionName, undefined));
+  } catch {
+    // ignore
+  }
+  // Чистим Firestore — await'ится в Layout, чтобы перезагрузка шла после очистки
+  if (firestoreDb && userId) {
+    try {
+      const colRef = collection(firestoreDb, colPath(collectionName, userId));
+      const snapshot = await getDocs(colRef);
+      await Promise.all(snapshot.docs.map((docSnap) => deleteDoc(docSnap.ref)));
+    } catch {
+      // ignore — локальное хранилище уже очищено
+    }
   }
 };
 

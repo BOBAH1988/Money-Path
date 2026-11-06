@@ -2,7 +2,7 @@ import { useState, createContext } from 'react';
 import { NavLink, Outlet } from 'react-router-dom';
 import packageJson from '../../package.json';
 import { useBudget } from '../hooks/useBudget';
-import { saveToFirestore, COLLECTIONS } from '../lib/firestore';
+import { clearCollectionData, COLLECTIONS } from '../lib/firestore';
 import { AppIcon } from './AppIcon';
 import { AuthModal, AccountButton, AccountMenu, AnalyticsModal } from './AuthModal';
 import { ImportModal } from './ImportModal';
@@ -18,7 +18,7 @@ interface PageTitleContextValue {
 export const PageTitleContext = createContext<PageTitleContextValue | undefined>(undefined);
 
 const items = [
-  { to: '/', label: 'Дашборд', icon: '📊' },
+  { to: '/', label: 'Главная', icon: '📊' },
   { to: '/budget', label: 'Бюджет', icon: '💰' },
   { to: '/assets', label: 'Активы', icon: '📈' },
   { to: '/liabilities', label: 'Пассивы', icon: '🏦' },
@@ -44,7 +44,7 @@ export default function Layout() {
   const [importModalOpen, setImportModalOpen] = useState(false);
   const { reset } = useBudget();
   const { user, isAuthenticated } = useAuth();
-  const userId = user?.uid ?? undefined;
+  const userId = isAuthenticated ? user?.uid ?? undefined : undefined;
 
   const ctxValue = { pageTitle, setPageTitle };
 
@@ -149,13 +149,20 @@ export default function Layout() {
                     <button
                       className="btn-delete-confirm"
                       onClick={async () => {
-                        await reset(true);
-                        const emptyRow = [{ id: crypto.randomUUID(), name: 'Введите название', amount: 0, monthly: 0 }];
-                        await saveToFirestore(COLLECTIONS.assets, emptyRow, userId);
-                        await saveToFirestore(COLLECTIONS.liabilities, emptyRow, userId);
-                        await saveToFirestore(COLLECTIONS.income, emptyRow, userId);
-                        await saveToFirestore(COLLECTIONS.incomeArchive, emptyRow, userId);
-                        setConfirmReset(false);
+                        try {
+                          await reset(true);
+                          await Promise.all([
+                            clearCollectionData(COLLECTIONS.assets, userId),
+                            clearCollectionData(COLLECTIONS.liabilities, userId),
+                            clearCollectionData(COLLECTIONS.income, userId),
+                            clearCollectionData(COLLECTIONS.incomeArchive, userId),
+                          ]);
+                          setConfirmReset(false);
+                          window.location.reload();
+                        } catch (err) {
+                          alert(err instanceof Error ? err.message : 'Ошибка сброса данных');
+                          setConfirmReset(false);
+                        }
                       }}
                     >
                       Да
