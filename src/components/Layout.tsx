@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { NavLink, Outlet } from 'react-router-dom';
 import packageJson from '../../package.json';
 import { useBudget } from '../hooks/useBudget';
+import { AppIcon } from './AppIcon';
 
 const pkgVersion = packageJson.version;
 
@@ -29,7 +30,7 @@ export default function Layout() {
     <div className="layout">
       {/* Верхняя панель приложения */}
       <header className="top-bar">
-        <img className="app-icon" src="/app-icon.svg" alt="" />
+        <AppIcon />
         <span className="app-title">Денежный путь</span>
         <button
           className="menu-btn"
