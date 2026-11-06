@@ -134,7 +134,11 @@ export default function Liabilities() {
                           </div>
                         </td>
                         <td className="budget-cell budget-cell-actions">
-                          <button className="btn-delete" onClick={() => setEditingId(null)} aria-label="Отмена">
+                          <button
+                            className="btn-delete"
+                            onClick={(e) => { e.stopPropagation(); handleRemove(item.id); }}
+                            aria-label="Удалить строку"
+                          >
                             ×
                           </button>
                         </td>
@@ -165,13 +169,6 @@ export default function Liabilities() {
                             aria-label="Редактировать строку"
                           >
                             ✎
-                          </button>
-                          <button
-                            className="btn-delete"
-                            onClick={(e) => { e.stopPropagation(); handleRemove(item.id); }}
-                            aria-label="Удалить строку"
-                          >
-                            ×
                           </button>
                         </td>
                       </>
