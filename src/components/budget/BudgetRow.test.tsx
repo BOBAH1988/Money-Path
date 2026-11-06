@@ -59,6 +59,103 @@ describe('BudgetRow', () => {
     expect(container.querySelector('.btn-delete')).toBeNull();
   });
 
+  it('shows delete button in edit mode', () => {
+    const { container } = renderRow(
+      {
+        id: '1',
+        name: 'Ипотека',
+        amount: 12500,
+        plan: 12500,
+        group: 'monthly',
+        type: 'item',
+      },
+      vi.fn(),
+      vi.fn(),
+      true
+    );
+    expect(container.querySelector('.btn-delete')).toBeInTheDocument();
+    expect(container.querySelector('.btn-cancel')).toBeInTheDocument();
+  });
+
+  it('calls onRemove when confirm delete button clicked in edit mode', () => {
+    const onRemove = vi.fn();
+    const { container } = renderRow(
+      {
+        id: '1',
+        name: 'Ипотека',
+        amount: 12500,
+        plan: 12500,
+        group: 'monthly',
+        type: 'item',
+      },
+      vi.fn(),
+      onRemove,
+      true
+    );
+    fireEvent.click(container.querySelector('.btn-delete')!);
+    fireEvent.click(container.querySelector('.btn-delete-confirm')!);
+    expect(onRemove).toHaveBeenCalledWith('1');
+  });
+
+  it('shows confirmation dialog after clicking delete in edit mode', () => {
+    const { container } = renderRow(
+      {
+        id: '1',
+        name: 'Ипотека',
+        amount: 12500,
+        plan: 12500,
+        group: 'monthly',
+        type: 'item',
+      },
+      vi.fn(),
+      vi.fn(),
+      true
+    );
+    fireEvent.click(container.querySelector('.btn-delete')!);
+    expect(container.querySelector('.confirm-overlay')).toBeInTheDocument();
+    expect(container.textContent).toContain('Удалить строку "Ипотека"?');
+  });
+
+  it('calls onRemove when confirm delete button clicked', () => {
+    const onRemove = vi.fn();
+    const { container } = renderRow(
+      {
+        id: '1',
+        name: 'Ипотека',
+        amount: 12500,
+        plan: 12500,
+        group: 'monthly',
+        type: 'item',
+      },
+      vi.fn(),
+      onRemove,
+      true
+    );
+    fireEvent.click(container.querySelector('.btn-delete')!);
+    fireEvent.click(container.querySelector('.btn-delete-confirm')!);
+    expect(onRemove).toHaveBeenCalledWith('1');
+  });
+
+  it('does not call onRemove when cancel delete clicked', () => {
+    const onRemove = vi.fn();
+    const { container } = renderRow(
+      {
+        id: '1',
+        name: 'Ипотека',
+        amount: 12500,
+        plan: 12500,
+        group: 'monthly',
+        type: 'item',
+      },
+      vi.fn(),
+      onRemove,
+      true
+    );
+    fireEvent.click(container.querySelector('.btn-delete')!);
+    fireEvent.click(container.querySelector('.btn-cancel')!);
+    expect(onRemove).not.toHaveBeenCalled();
+  });
+
   it('shows inputs when in edit mode', () => {
     renderRow(
       {
