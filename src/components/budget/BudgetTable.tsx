@@ -60,8 +60,8 @@ export const BudgetTable = ({
             <thead>
               <tr>
                 <th className="budget-head budget-head-name">Наименование</th>
-                <th className="budget-head budget-head-amount">Сумма р</th>
-                <th className="budget-head budget-head-plan">План р</th>
+                <th className="budget-head budget-head-amount">Сумма ₽</th>
+                <th className="budget-head budget-head-plan">План ₽</th>
                 <th className="budget-head budget-head-actions">
                   <button
                     className="btn-add btn-add-header"
