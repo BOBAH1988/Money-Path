@@ -14,11 +14,18 @@ let app: FirebaseApp | null = null;
 let firestoreDb: Firestore | null = null;
 let firebaseError: Error | null = null;
 
-try {
-  app = initializeApp(firebaseConfig);
-  firestoreDb = getFirestore(app);
-} catch (err) {
-  firebaseError = err instanceof Error ? err : new Error(String(err));
+const isTestEnv =
+  typeof import.meta.env !== 'undefined' && import.meta.env.MODE === 'test';
+
+if (!isTestEnv) {
+  try {
+    app = initializeApp(firebaseConfig);
+    firestoreDb = getFirestore(app);
+  } catch (err) {
+    firebaseError = err instanceof Error ? err : new Error(String(err));
+  }
+} else {
+  firebaseError = new Error('Firebase disabled in test mode');
 }
 
 export { app, firestoreDb, firebaseError };

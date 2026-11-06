@@ -2,7 +2,6 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
 import { useBudget } from './useBudget';
 
-// Мокаем localStorage
 const localStorageMock = (() => {
   let store: Record<string, string> = {};
   return {
@@ -30,14 +29,16 @@ describe('useBudget', () => {
     vi.clearAllMocks();
   });
 
-  it('loads default plan when localStorage is empty', () => {
+  it('loads default plan when localStorage is empty', async () => {
     const { result } = renderHook(() => useBudget());
+    await new Promise((r) => setTimeout(r, 100));
     expect(result.current.items.length).toBeGreaterThan(0);
     expect(result.current.items.some((i) => i.name === 'Ипотека')).toBe(true);
   });
 
-  it('updates item amount and saves to localStorage', () => {
+  it('updates item amount and saves to localStorage', async () => {
     const { result } = renderHook(() => useBudget());
+    await new Promise((r) => setTimeout(r, 100));
     const item = result.current.items.find((i) => i.name === 'Ипотека')!;
 
     act(() => {
@@ -49,8 +50,9 @@ describe('useBudget', () => {
     expect(localStorageMock.setItem).toHaveBeenCalled();
   });
 
-  it('adds new item', () => {
+  it('adds new item', async () => {
     const { result } = renderHook(() => useBudget());
+    await new Promise((r) => setTimeout(r, 100));
     const beforeCount = result.current.items.length;
 
     act(() => {
@@ -63,8 +65,9 @@ describe('useBudget', () => {
     expect(added.plan).toBe(123);
   });
 
-  it('updates item plan', () => {
+  it('updates item plan', async () => {
     const { result } = renderHook(() => useBudget());
+    await new Promise((r) => setTimeout(r, 100));
     const item = result.current.items.find((i) => i.name === 'Ипотека')!;
 
     act(() => {
@@ -77,8 +80,9 @@ describe('useBudget', () => {
     expect(localStorageMock.setItem).toHaveBeenCalled();
   });
 
-  it('removes item', () => {
+  it('removes item', async () => {
     const { result } = renderHook(() => useBudget());
+    await new Promise((r) => setTimeout(r, 100));
     const item = result.current.items.find((i) => i.name === 'Ипотека')!;
 
     act(() => {
