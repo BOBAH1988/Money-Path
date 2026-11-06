@@ -21,6 +21,13 @@ interface LiabilityRow {
   monthly: number;
 }
 
+interface IncomeRow {
+  id: string;
+  name: string;
+  amount: number;
+  monthly: number;
+}
+
 export default function Dashboard() {
   const { setPageTitle } = useContext(PageTitleContext)!;
   const { items } = useBudget();
@@ -30,6 +37,7 @@ export default function Dashboard() {
 
   const [assets, setAssets] = useState<AssetRow[]>([]);
   const [liabilities, setLiabilities] = useState<LiabilityRow[]>([]);
+  const [income, setIncome] = useState<IncomeRow[]>([]);
 
   useEffect(() => {
     setPageTitle('Главная');
@@ -39,23 +47,27 @@ export default function Dashboard() {
     if (!userId) {
       setAssets([]);
       setLiabilities([]);
+      setIncome([]);
       return;
     }
     let cancelled = false;
     (async () => {
       try {
-        const [a, l] = await Promise.all([
+        const [a, l, i] = await Promise.all([
           loadFromFirestore<AssetRow>(COLLECTIONS.assets, userId),
           loadFromFirestore<LiabilityRow>(COLLECTIONS.liabilities, userId),
+          loadFromFirestore<IncomeRow>(COLLECTIONS.income, userId),
         ]);
         if (!cancelled) {
           setAssets(a);
           setLiabilities(l);
+          setIncome(i);
         }
       } catch {
         if (!cancelled) {
           setAssets([]);
           setLiabilities([]);
+          setIncome([]);
         }
       }
     })();
@@ -67,8 +79,29 @@ export default function Dashboard() {
   const totalAssets = useMemo(() => assets.reduce((sum, it) => sum + (it.amount ?? 0), 0), [assets]);
   const totalLiabilities = useMemo(() => safeNegate(liabilities.reduce((sum, it) => sum + (it.amount ?? 0), 0)), [liabilities]);
 
+  const incomeAmount = useMemo(() => income.reduce((sum, it) => sum + (it.amount ?? 0), 0), [income]);
+  const incomeMonthly = useMemo(() => income.reduce((sum, it) => sum + (it.monthly ?? 0), 0), [income]);
+
   return (
     <div className="page">
+      <div className="budget-card" style={{ margin: '0 4px' }}>
+        <div className="budget-card-header">
+          <h2 className="budget-card-title">Доходы</h2>
+        </div>
+        <div className="budget-card-body">
+          <div className="budget-summary" style={{ padding: '0 4px' }}>
+            <div className="summary-item summary-item-total">
+              <span className="summary-label">Средний доход</span>
+              <span className="summary-value">{incomeAmount.toLocaleString('ru-RU')} ₽</span>
+            </div>
+            <div className="summary-item">
+              <span className="summary-label">Планируемый доход</span>
+              <span className="summary-value">{incomeMonthly.toLocaleString('ru-RU')} ₽</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <div className="budget-card" style={{ margin: '0 4px' }}>
         <div className="budget-card-header">
           <h2 className="budget-card-title">Расходы</h2>
