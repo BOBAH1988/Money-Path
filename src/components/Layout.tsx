@@ -16,6 +16,7 @@ export const PageTitleContext = createContext<PageTitleContextValue | undefined>
 const items = [
   { to: '/', label: 'Дашборд', icon: '📊' },
   { to: '/budget', label: 'Бюджет', icon: '💰' },
+  { to: '/assets', label: 'Активы', icon: '📈' },
   { to: '/liabilities', label: 'Пассивы', icon: '🏦' },
   { to: '/categories', label: 'Категории', icon: '📁' },
   { to: '/transactions', label: 'Транзакции', icon: '💳' },

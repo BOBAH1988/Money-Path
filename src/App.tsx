@@ -6,6 +6,7 @@ import Transactions from './pages/Transactions';
 import Categories from './pages/Categories';
 import Budget from './pages/Budget';
 import Liabilities from './pages/Liabilities';
+import Assets from './pages/Assets';
 
 export default function App() {
   return (
@@ -17,6 +18,7 @@ export default function App() {
           <Route path="/transactions" element={<Transactions />} />
           <Route path="/categories" element={<Categories />} />
           <Route path="/budget" element={<Budget />} />
+          <Route path="/assets" element={<Assets />} />
           <Route path="/liabilities" element={<Liabilities />} />
         </Route>
       </Routes>
