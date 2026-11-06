@@ -9,6 +9,7 @@ interface Props {
 
 export const BudgetRow = ({ item, onUpdate, onRemove }: Props) => {
   const [editing, setEditing] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
   const [name, setName] = useState(item.name);
   const [amount, setAmount] = useState(String(item.amount ?? 0));
   const [plan, setPlan] = useState(String(item.plan ?? 0));
@@ -45,7 +46,27 @@ export const BudgetRow = ({ item, onUpdate, onRemove }: Props) => {
     setPlan(String(item.plan));
   };
 
+  const handleDelete = () => {
+    if (!window.confirm(`Удалить строку "${item.name}"?`)) return;
+    onRemove(item.id);
+    setEditing(false);
+  };
+
   const format = (value: number) => value.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+
+  if (confirmDelete) {
+    return (
+      <div className="confirm-overlay" onClick={(e) => e.stopPropagation()}>
+        <div className="confirm-card">
+          <p>Удалить строку "{item.name}"?</p>
+          <div className="confirm-actions">
+            <button className="btn-cancel" onClick={() => setConfirmDelete(false)}>Отмена</button>
+            <button className="btn-delete-confirm" onClick={() => { onRemove(item.id); setEditing(false); setConfirmDelete(false); }}>Удалить</button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (!editing) {
     return (
@@ -62,22 +83,13 @@ export const BudgetRow = ({ item, onUpdate, onRemove }: Props) => {
         </td>
         <td className="budget-cell budget-cell-actions">
           {!isTotal && (
-            <>
-              <button
-                className="btn-edit"
-                onClick={startEdit}
-                aria-label="Редактировать строку"
-              >
-                ✏️
-              </button>
-              <button
-                className="btn-delete"
-                onClick={() => onRemove(item.id)}
-                aria-label="Удалить строку"
-              >
-                ×
-              </button>
-            </>
+            <button
+              className="btn-edit"
+              onClick={startEdit}
+              aria-label="Редактировать строку"
+            >
+              ✏️
+            </button>
           )}
         </td>
       </tr>
@@ -121,13 +133,15 @@ export const BudgetRow = ({ item, onUpdate, onRemove }: Props) => {
         </div>
       </td>
       <td className="budget-cell budget-cell-actions">
-        <button
-          className="btn-delete"
-          onClick={() => setEditing(false)}
-          aria-label="Отмена"
-        >
-          ×
-        </button>
+        {!isTotal && (
+          <button
+            className="btn-delete"
+            onClick={handleDelete}
+            aria-label="Удалить строку"
+          >
+            ×
+          </button>
+        )}
       </td>
     </tr>
   );

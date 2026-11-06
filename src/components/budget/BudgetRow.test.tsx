@@ -1,6 +1,8 @@
-import { describe, it, expect, vi } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { describe, it, expect, vi, afterEach } from 'vitest';
+import { render, screen, fireEvent, cleanup } from '@testing-library/react';
 import { BudgetRow } from './BudgetRow';
+
+afterEach(() => cleanup());
 
 const renderRow = (item: any, onUpdate = vi.fn(), onRemove = vi.fn()) =>
   render(
@@ -28,7 +30,7 @@ describe('BudgetRow', () => {
     expect(screen.queryAllByRole('textbox')).toHaveLength(0);
   });
 
-  it('renders edit and delete buttons in actions cell', () => {
+  it('renders only edit button in actions cell by default', () => {
     const { container } = renderRow({
       id: '1',
       name: 'Ипотека',
@@ -38,7 +40,7 @@ describe('BudgetRow', () => {
       type: 'item',
     });
     expect(container.querySelector('.btn-edit')).toBeInTheDocument();
-    expect(container.querySelector('.btn-delete')).toBeInTheDocument();
+    expect(container.querySelector('.btn-delete')).toBeNull();
   });
 
   it('shows inputs after clicking edit button', () => {
@@ -59,8 +61,23 @@ describe('BudgetRow', () => {
     expect(planInput).toHaveValue('12500');
   });
 
-  it('calls onRemove when delete button clicked', () => {
+  it('shows delete button only in edit mode', () => {
+    const { container } = renderRow({
+      id: '1',
+      name: 'Ипотека',
+      amount: 12500,
+      plan: 12500,
+      group: 'monthly',
+      type: 'item',
+    });
+    expect(container.querySelector('.btn-delete')).toBeNull();
+    fireEvent.click(container.querySelector('.btn-edit')!);
+    expect(container.querySelector('.btn-delete')).toBeInTheDocument();
+  });
+
+  it('calls onRemove when delete confirmed in edit mode', () => {
     const onRemove = vi.fn();
+    vi.spyOn(window, 'confirm').mockReturnValue(true);
     const { container } = renderRow(
       {
         id: '1',
@@ -73,7 +90,44 @@ describe('BudgetRow', () => {
       vi.fn(),
       onRemove
     );
+    fireEvent.click(container.querySelector('.btn-edit')!);
     fireEvent.click(container.querySelector('.btn-delete')!);
+    expect(window.confirm).toHaveBeenCalledWith('Удалить строку "Ипотека"?');
     expect(onRemove).toHaveBeenCalledWith('1');
+    (window.confirm as any).mockRestore();
+  });
+
+  it('does not call onRemove when delete cancelled', () => {
+    const onRemove = vi.fn();
+    vi.spyOn(window, 'confirm').mockReturnValue(false);
+    const { container } = renderRow(
+      {
+        id: '1',
+        name: 'Ипотека',
+        amount: 12500,
+        plan: 12500,
+        group: 'monthly',
+        type: 'item',
+      },
+      vi.fn(),
+      onRemove
+    );
+    fireEvent.click(container.querySelector('.btn-edit')!);
+    fireEvent.click(container.querySelector('.btn-delete')!);
+    expect(onRemove).not.toHaveBeenCalled();
+    (window.confirm as any).mockRestore();
+  });
+
+  it('does not enter edit mode when clicking the row', () => {
+    const { container } = renderRow({
+      id: '1',
+      name: 'Ипотека',
+      amount: 12500,
+      plan: 12500,
+      group: 'monthly',
+      type: 'item',
+    });
+    fireEvent.click(container.querySelector('tr')!);
+    expect(screen.queryAllByRole('textbox')).toHaveLength(0);
   });
 });
