@@ -43,7 +43,7 @@ export default function Layout() {
   const [analyticsOpen, setAnalyticsOpen] = useState(false);
   const [importModalOpen, setImportModalOpen] = useState(false);
   const { reset } = useBudget();
-  const { user } = useAuth();
+  const { user, isAuthenticated } = useAuth();
   const userId = user?.uid ?? undefined;
 
   const ctxValue = { pageTitle, setPageTitle };
@@ -61,7 +61,15 @@ export default function Layout() {
             </div>
           </div>
           <div className="top-bar-right">
-            <AccountButton onOpen={() => setAccountMenuOpen(true)} />
+            <AccountButton
+              onOpen={() => {
+                if (isAuthenticated) {
+                  setAccountMenuOpen(true);
+                } else {
+                  setAuthModalOpen(true);
+                }
+              }}
+            />
             <button
               className="menu-btn"
               onClick={() => setMenuOpen(!menuOpen)}
