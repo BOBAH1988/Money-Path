@@ -97,27 +97,20 @@ export default function Layout() {
             <ul className="menu-list">
               {items.map((i) => (
                 <li key={i.to}>
-                  {i.label === 'Импорт' ? (
-                    <button
-                      className="menu-item"
-                      onClick={() => {
-                        setMenuOpen(false);
+                  <NavLink
+                    to={i.to}
+                    className={({ isActive }) => isActive ? 'menu-item active' : 'menu-item'}
+                    onClick={(e) => {
+                      if (i.label === 'Импорт') {
+                        e.preventDefault();
                         setImportModalOpen(true);
-                      }}
-                    >
-                      <span className="menu-icon">{i.icon}</span>
-                      {i.label}
-                    </button>
-                  ) : (
-                    <NavLink
-                      to={i.to}
-                      className={({ isActive }) => isActive ? 'menu-item active' : 'menu-item'}
-                      onClick={() => setMenuOpen(false)}
-                    >
-                      <span className="menu-icon">{i.icon}</span>
-                      {i.label}
-                    </NavLink>
-                  )}
+                      }
+                      setMenuOpen(false);
+                    }}
+                  >
+                    <span className="menu-icon">{i.icon}</span>
+                    {i.label}
+                  </NavLink>
                 </li>
               ))}
               <li>
