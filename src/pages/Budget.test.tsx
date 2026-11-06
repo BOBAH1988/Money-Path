@@ -16,10 +16,9 @@ describe('Budget page', () => {
     );
     await new Promise((r) => setTimeout(r, 100));
     expect(screen.getByText('Ежемесячные расходы')).toBeInTheDocument();
-    expect(screen.getAllByText('Запланированные расходы').length).toBeGreaterThanOrEqual(1);
   });
 
-  it('shows default totals', async () => {
+  it('shows empty totals without auth', async () => {
     render(
       <AuthProvider>
         <PageTitleContext.Provider value={{ pageTitle: '', setPageTitle: () => {} }}>
@@ -28,7 +27,7 @@ describe('Budget page', () => {
       </AuthProvider>
     );
     await new Promise((r) => setTimeout(r, 100));
-    const totals = screen.getAllByText('144 240');
+    const totals = screen.getAllByText('0 ₽');
     expect(totals.length).toBeGreaterThanOrEqual(1);
   });
 });

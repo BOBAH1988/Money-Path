@@ -71,6 +71,13 @@ const saveBudgetPlanToLocalStorage = (plan: BudgetPlan, userId?: string): void =
 };
 
 export const loadBudgetPlan = async (userId?: string): Promise<BudgetPlan> => {
+  // Без авторизации — пустой план, локальные данные не показываем
+  if (!userId) {
+    return {
+      updatedAt: now(),
+      items: [],
+    };
+  }
   if (!db) {
     return loadBudgetPlanFromLocalStorage(userId);
   }
@@ -96,10 +103,11 @@ export const loadBudgetPlan = async (userId?: string): Promise<BudgetPlan> => {
 };
 
 export const saveBudgetPlan = async (plan: BudgetPlan, userId?: string): Promise<void> => {
+  if (!userId) return;
   saveBudgetPlanToLocalStorage(plan, userId);
   if (!db) return;
   try {
-    await setDoc(doc(db, COLLECTIONS.budgetPlan, userId ? `users/${userId}/budget_plan` : 'budget_plan'), {
+    await setDoc(doc(db, COLLECTIONS.budgetPlan, `users/${userId}/budget_plan`), {
       ...plan,
       userId,
     });
@@ -109,6 +117,12 @@ export const saveBudgetPlan = async (plan: BudgetPlan, userId?: string): Promise
 };
 
 export const resetBudgetPlan = async (empty = false, userId?: string): Promise<BudgetPlan> => {
+  if (!userId) {
+    return {
+      updatedAt: now(),
+      items: [],
+    };
+  }
   if (empty) {
     const emptyPlan: BudgetPlan = {
       updatedAt: now(),
@@ -119,7 +133,7 @@ export const resetBudgetPlan = async (empty = false, userId?: string): Promise<B
     saveBudgetPlanToLocalStorage(emptyPlan, userId);
     if (!db) return emptyPlan;
     try {
-      await setDoc(doc(db, COLLECTIONS.budgetPlan, userId ? `users/${userId}/budget_plan` : 'budget_plan'), {
+      await setDoc(doc(db, COLLECTIONS.budgetPlan, `users/${userId}/budget_plan`), {
         ...emptyPlan,
         userId,
       });
@@ -131,7 +145,7 @@ export const resetBudgetPlan = async (empty = false, userId?: string): Promise<B
   saveBudgetPlanToLocalStorage(defaultBudgetPlan, userId);
   if (!db) return defaultBudgetPlan;
   try {
-    await setDoc(doc(db, COLLECTIONS.budgetPlan, userId ? `users/${userId}/budget_plan` : 'budget_plan'), {
+    await setDoc(doc(db, COLLECTIONS.budgetPlan, `users/${userId}/budget_plan`), {
       ...defaultBudgetPlan,
       userId,
     });

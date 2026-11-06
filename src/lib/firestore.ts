@@ -57,7 +57,7 @@ export const saveToFirestore = async <T extends { id: string }>(
   userId?: string
 ) => {
   saveToLocalStorage(collectionName, items, userId);
-  if (!firestoreDb) return;
+  if (!firestoreDb || !userId) return;
   try {
     const colRef = collection(firestoreDb, colPath(collectionName, userId));
     const batch = items.map((item) =>
@@ -73,6 +73,8 @@ export const loadFromFirestore = async <T extends { id: string } = { id: string 
   collectionName: string,
   userId?: string
 ): Promise<T[]> => {
+  // Без авторизации — пусто, локальные данные не показываем
+  if (!userId) return [];
   if (!firestoreDb) {
     return loadFromLocalStorage<T>(collectionName, userId);
   }
@@ -83,10 +85,48 @@ export const loadFromFirestore = async <T extends { id: string } = { id: string 
     const data = snapshot.docs.map(
       (docSnap) => docSnap.data() as unknown as T
     );
-    saveToLocalStorage(collectionName, data, userId);
-    return data;
+    if (data.length > 0) {
+      saveToLocalStorage(collectionName, data, userId);
+      return data;
+    }
+    // Firestore пуст — проверяем локальное хранилище (мигрированные данные)
+    const localData = loadFromLocalStorage<T>(collectionName, userId);
+    if (localData.length > 0) {
+      return localData;
+    }
+    return [];
   } catch {
     return loadFromLocalStorage<T>(collectionName, userId);
+  }
+};
+
+/**
+ * Переносит старые локальные данные (без userId) в пользовательское хранилище
+ * и загружает в Firestore под данным пользователем.
+ */
+export const migrateCollectionToUser = async (
+  collectionName: string,
+  userId: string
+): Promise<void> => {
+  const oldData = loadFromLocalStorage<{ id: string }>(
+    collectionName,
+    undefined
+  );
+  if (!oldData || oldData.length === 0) return;
+
+  // Сохраняем в пользовательский localStorage
+  saveToLocalStorage(collectionName, oldData, userId);
+
+  // Загружаем в Firestore
+  if (!firestoreDb) return;
+  try {
+    const colRef = collection(firestoreDb, colPath(collectionName, userId));
+    const batch = oldData.map((item) =>
+      setDoc(doc(colRef, item.id), { ...item, userId } as Record<string, unknown>)
+    );
+    await Promise.all(batch);
+  } catch {
+    // Firestore недоступен, localStorage уже сохранён
   }
 };
 
@@ -105,7 +145,7 @@ export const deleteFromFirestore = async (
   } catch {
     // ignore
   }
-  if (!firestoreDb) return;
+  if (!firestoreDb || !userId) return;
   try {
     await deleteDoc(doc(firestoreDb, colPath(collectionName, userId), id));
   } catch {

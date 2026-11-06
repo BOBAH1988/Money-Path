@@ -34,66 +34,64 @@ describe('useBudget', () => {
     vi.clearAllMocks();
   });
 
-  it('loads default plan when localStorage is empty', async () => {
+  it('returns empty plan without auth', async () => {
     const { result } = renderHook(() => useBudget(), { wrapper: wrap });
     await new Promise((r) => setTimeout(r, 100));
-    expect(result.current.items.length).toBeGreaterThan(0);
-    expect(result.current.items.some((i) => i.name === 'Ипотека')).toBe(true);
+    expect(result.current.items.length).toBe(0);
+    expect(result.current.loading).toBe(false);
   });
 
-  it('updates item amount and saves to localStorage', async () => {
+  it('adds new item without auth (in-memory)', async () => {
     const { result } = renderHook(() => useBudget(), { wrapper: wrap });
     await new Promise((r) => setTimeout(r, 100));
-    const item = result.current.items.find((i) => i.name === 'Ипотека')!;
 
+    act(() => {
+      result.current.addItem('monthly', 'Тестовая строка', 123);
+    });
+
+    expect(result.current.items.length).toBe(1);
+    expect(result.current.items.some((i) => i.name === 'Тестовая строка')).toBe(true);
+  });
+
+  it('updates item amount without auth (in-memory)', async () => {
+    const { result } = renderHook(() => useBudget(), { wrapper: wrap });
+    await new Promise((r) => setTimeout(r, 100));
+
+    act(() => {
+      result.current.addItem('monthly', 'Тест', 100);
+    });
+
+    const item = result.current.items[0];
     act(() => {
       result.current.updateItem(item.id, { amount: 9999 });
     });
 
     const updated = result.current.items.find((i) => i.id === item.id);
     expect(updated?.amount).toBe(9999);
-    expect(localStorageMock.setItem).toHaveBeenCalled();
   });
 
-  it('adds new item', async () => {
+  it('removes item without auth (in-memory)', async () => {
     const { result } = renderHook(() => useBudget(), { wrapper: wrap });
     await new Promise((r) => setTimeout(r, 100));
-    const beforeCount = result.current.items.length;
 
     act(() => {
-      result.current.addItem('monthly', 'Тестовая строка', 123);
+      result.current.addItem('monthly', 'Тест', 100);
     });
 
-    expect(result.current.items.length).toBe(beforeCount + 1);
-    expect(result.current.items.some((i) => i.name === 'Тестовая строка')).toBe(true);
-    const added = result.current.items.find((i) => i.name === 'Тестовая строка')!;
-    expect(added.plan).toBe(123);
-  });
-
-  it('updates item plan', async () => {
-    const { result } = renderHook(() => useBudget(), { wrapper: wrap });
-    await new Promise((r) => setTimeout(r, 100));
-    const item = result.current.items.find((i) => i.name === 'Ипотека')!;
-
-    act(() => {
-      result.current.updateItem(item.id, { plan: 5555 });
-    });
-
-    const updated = result.current.items.find((i) => i.id === item.id);
-    expect(updated?.plan).toBe(5555);
-    expect(updated?.amount).toBe(12500);
-    expect(localStorageMock.setItem).toHaveBeenCalled();
-  });
-
-  it('removes item', async () => {
-    const { result } = renderHook(() => useBudget(), { wrapper: wrap });
-    await new Promise((r) => setTimeout(r, 100));
-    const item = result.current.items.find((i) => i.name === 'Ипотека')!;
-
+    const item = result.current.items[0];
     act(() => {
       result.current.removeItem(item.id);
     });
 
     expect(result.current.items.some((i) => i.id === item.id)).toBe(false);
+  });
+
+  it('reset returns empty without auth', async () => {
+    const { result } = renderHook(() => useBudget(), { wrapper: wrap });
+    await new Promise((r) => setTimeout(r, 100));
+
+    await result.current.reset();
+
+    expect(result.current.items.length).toBe(0);
   });
 });

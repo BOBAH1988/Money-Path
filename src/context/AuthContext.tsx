@@ -7,9 +7,13 @@ import {
   type User,
 } from 'firebase/auth';
 import { auth } from '../lib/firebase';
+import { COLLECTIONS, migrateCollectionToUser } from '../lib/firestore';
+
+const ADMIN_EMAIL = '79042044926@ya.ru';
 
 interface AuthContextValue {
   user: User | null;
+  isAdmin: boolean;
   loading: boolean;
   login: (email: string, password: string) => Promise<void>;
   register: (email: string, password: string) => Promise<void>;
@@ -28,14 +32,30 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
+  const isAdmin = user ? user.email === ADMIN_EMAIL : false;
+
+  const migrateAllToUser = async (userId: string) => {
+    for (const collection of Object.values(COLLECTIONS)) {
+      try {
+        await migrateCollectionToUser(collection, userId);
+      } catch {
+        // ignore per-collection errors
+      }
+    }
+  };
+
   useEffect(() => {
     if (!auth) {
       setLoading(false);
       return;
     }
-    const unsub = onAuthStateChanged(auth, (u) => {
+    const unsub = onAuthStateChanged(auth, async (u) => {
       setUser(u);
       setLoading(false);
+
+      if (u) {
+        await migrateAllToUser(u.uid);
+      }
     });
     return () => unsub();
   }, []);
@@ -55,7 +75,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     await signOut(auth);
   };
 
-  const value = { user, loading, login, register, logout };
+  const value = { user, isAdmin, loading, login, register, logout };
 
   return (
     <AuthContext.Provider value={value}>
