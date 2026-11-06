@@ -101,7 +101,7 @@ describe('BudgetRow', () => {
     expect(onStartEdit).toHaveBeenCalledWith('1');
   });
 
-  it('shows delete button only in edit mode', () => {
+  it('shows cancel button only in edit mode', () => {
     const { container } = renderRow(
       {
         id: '1',
@@ -115,47 +115,7 @@ describe('BudgetRow', () => {
       vi.fn(),
       true
     );
-    expect(container.querySelector('.btn-delete')).toBeInTheDocument();
-  });
-
-  it('calls onRemove when delete confirmed in edit mode', () => {
-    const onRemove = vi.fn();
-    vi.spyOn(window, 'confirm').mockReturnValue(true);
-    const { container } = renderRow(
-      {
-        id: '1',
-        name: 'Ипотека',
-        amount: 12500,
-        plan: 12500,
-        group: 'monthly',
-        type: 'item',
-      },
-      vi.fn(),
-      onRemove,
-      true
-    );
-    fireEvent.click(container.querySelector('.btn-delete')!);
-    expect(onRemove).toHaveBeenCalledWith('1');
-  });
-
-  it('does not call onRemove when delete cancelled', () => {
-    const onRemove = vi.fn();
-    vi.spyOn(window, 'confirm').mockReturnValue(false);
-    const { container } = renderRow(
-      {
-        id: '1',
-        name: 'Ипотека',
-        amount: 12500,
-        plan: 12500,
-        group: 'monthly',
-        type: 'item',
-      },
-      vi.fn(),
-      onRemove,
-      true
-    );
-    fireEvent.click(container.querySelector('.btn-delete')!);
-    expect(onRemove).not.toHaveBeenCalled();
+    expect(container.querySelector('.btn-cancel')).toBeInTheDocument();
   });
 
   it('does not enter edit mode when clicking the row', () => {

@@ -79,11 +79,6 @@ export const BudgetRow = ({ item, onUpdate, onRemove, onToggle, isPlannedCollaps
     }
   };
 
-  const handleDelete = () => {
-    if (!window.confirm(`Удалить строку "${item.name}"?`)) return;
-    onRemove(item.id);
-  };
-
   const togglePlanned = () => {
     if (!isSubtotal || !onToggle) return;
     onToggle('planned');
@@ -143,15 +138,6 @@ export const BudgetRow = ({ item, onUpdate, onRemove, onToggle, isPlannedCollaps
           </div>
         </td>
         <td className="budget-cell budget-cell-actions">
-          {!isTotal && (
-            <button
-              className="btn-delete"
-              onClick={handleDelete}
-              aria-label="Удалить строку"
-            >
-              ×
-            </button>
-          )}
           <button className="btn-cancel" onClick={() => { if (onFinishEdit) onFinishEdit(); }} aria-label="Отмена">
             ×
           </button>
