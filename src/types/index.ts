@@ -63,7 +63,8 @@ export type BudgetRowType = 'item' | 'subtotal' | 'total';
 export interface BudgetPlanItem {
   id: string;
   name: string;
-  amount: number;
+  amount: number; // по факту (текущий месяц)
+  plan: number; // план на следующий месяц
   group: BudgetGroup;
   type: BudgetRowType;
   linkedGroup?: BudgetGroup; // для subtotal: ссылка на группу, чей итог отображается

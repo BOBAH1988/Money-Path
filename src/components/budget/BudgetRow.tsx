@@ -3,7 +3,7 @@ import type { BudgetPlanItem } from '../../types';
 
 interface Props {
   item: BudgetPlanItem;
-  onUpdate: (id: string, patch: { name?: string; amount?: number }) => void;
+  onUpdate: (id: string, patch: { name?: string; amount?: number; plan?: number }) => void;
   onRemove: (id: string) => void;
 }
 
@@ -11,13 +11,19 @@ export const BudgetRow = ({ item, onUpdate, onRemove }: Props) => {
   const [editing, setEditing] = useState(item.type === 'item');
   const [name, setName] = useState(item.name);
   const [amount, setAmount] = useState(String(item.amount));
+  const [plan, setPlan] = useState(String(item.plan));
 
   const isSubtotal = item.type === 'subtotal';
   const isTotal = item.type === 'total';
 
   const handleSave = () => {
     const amountNum = Number(amount.replace(/[^\d.,-]/g, '').replace(',', '.')) || 0;
-    onUpdate(item.id, { name: name.trim() || item.name, amount: amountNum });
+    const planNum = Number(plan.replace(/[^\d.,-]/g, '').replace(',', '.')) || 0;
+    onUpdate(item.id, {
+      name: name.trim() || item.name,
+      amount: amountNum,
+      plan: planNum,
+    });
     setEditing(false);
   };
 
@@ -26,6 +32,7 @@ export const BudgetRow = ({ item, onUpdate, onRemove }: Props) => {
     if (e.key === 'Escape') {
       setName(item.name);
       setAmount(String(item.amount));
+      setPlan(String(item.plan));
       setEditing(false);
     }
   };
@@ -41,6 +48,7 @@ export const BudgetRow = ({ item, onUpdate, onRemove }: Props) => {
           <span className="row-amount">{amountFormatter(item.amount)}</span>
           <span className="row-currency">₽</span>
         </td>
+        <td className="budget-cell budget-cell-plan" />
         <td className="budget-cell budget-cell-actions" />
       </tr>
     );
@@ -64,6 +72,19 @@ export const BudgetRow = ({ item, onUpdate, onRemove }: Props) => {
             className="budget-input budget-input-amount"
             value={amount}
             onChange={(e) => setAmount(e.target.value)}
+            onKeyDown={handleKeyDown}
+            onBlur={handleSave}
+            placeholder="0"
+          />
+          <span className="input-suffix">₽</span>
+        </div>
+      </td>
+      <td className="budget-cell budget-cell-plan">
+        <div className="input-group">
+          <input
+            className="budget-input budget-input-amount"
+            value={plan}
+            onChange={(e) => setPlan(e.target.value)}
             onKeyDown={handleKeyDown}
             onBlur={handleSave}
             placeholder="0"

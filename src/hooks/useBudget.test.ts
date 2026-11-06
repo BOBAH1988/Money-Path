@@ -59,6 +59,22 @@ describe('useBudget', () => {
 
     expect(result.current.items.length).toBe(beforeCount + 1);
     expect(result.current.items.some((i) => i.name === 'Тестовая строка')).toBe(true);
+    const added = result.current.items.find((i) => i.name === 'Тестовая строка')!;
+    expect(added.plan).toBe(123);
+  });
+
+  it('updates item plan', () => {
+    const { result } = renderHook(() => useBudget());
+    const item = result.current.items.find((i) => i.name === 'Ипотека')!;
+
+    act(() => {
+      result.current.updateItem(item.id, { plan: 5555 });
+    });
+
+    const updated = result.current.items.find((i) => i.id === item.id);
+    expect(updated?.plan).toBe(5555);
+    expect(updated?.amount).toBe(12500);
+    expect(localStorageMock.setItem).toHaveBeenCalled();
   });
 
   it('removes item', () => {

@@ -32,7 +32,7 @@ export default function Budget() {
           items={monthlyItems}
           total={totalMonthly}
           onUpdate={updateItem}
-          onAdd={(group, name, amount) => addItem(group, name, amount)}
+          onAdd={(group, name, amount, plan) => addItem(group, name, amount, plan)}
           onRemove={removeItem}
         />
         <BudgetTable
@@ -41,7 +41,7 @@ export default function Budget() {
           items={plannedItems}
           total={totalPlanned}
           onUpdate={updateItem}
-          onAdd={(group, name, amount) => addItem(group, name, amount)}
+          onAdd={(group, name, amount, plan) => addItem(group, name, amount, plan)}
           onRemove={removeItem}
         />
       </div>

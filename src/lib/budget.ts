@@ -10,35 +10,36 @@ export const defaultBudgetPlan: BudgetPlan = {
   updatedAt: now(),
   items: [
     // Ежемесячные расходы
-    { id: uid(), name: 'Налоги, обслуживание карт', amount: 5300, group: 'monthly', type: 'item' },
-    { id: uid(), name: 'Ипотека', amount: 12500, group: 'monthly', type: 'item' },
-    { id: uid(), name: 'Продукты', amount: 20000, group: 'monthly', type: 'item' },
-    { id: uid(), name: 'Коммунальные расходы', amount: 10000, group: 'monthly', type: 'item' },
-    { id: uid(), name: 'Стрижка', amount: 600, group: 'monthly', type: 'item' },
-    { id: uid(), name: 'Бензин, обслуживание авто', amount: 10000, group: 'monthly', type: 'item' },
-    { id: uid(), name: 'Абонемент в спортзал', amount: 3500, group: 'monthly', type: 'item' },
-    { id: uid(), name: 'Ксюше на кружки', amount: 3500, group: 'monthly', type: 'item' },
+    { id: uid(), name: 'Налоги, обслуживание карт', amount: 5300, plan: 5300, group: 'monthly', type: 'item' },
+    { id: uid(), name: 'Ипотека', amount: 12500, plan: 12500, group: 'monthly', type: 'item' },
+    { id: uid(), name: 'Продукты', amount: 20000, plan: 20000, group: 'monthly', type: 'item' },
+    { id: uid(), name: 'Коммунальные расходы', amount: 10000, plan: 10000, group: 'monthly', type: 'item' },
+    { id: uid(), name: 'Стрижка', amount: 600, plan: 600, group: 'monthly', type: 'item' },
+    { id: uid(), name: 'Бензин, обслуживание авто', amount: 10000, plan: 10000, group: 'monthly', type: 'item' },
+    { id: uid(), name: 'Абонемент в спортзал', amount: 3500, plan: 3500, group: 'monthly', type: 'item' },
+    { id: uid(), name: 'Ксюше на кружки', amount: 3500, plan: 3500, group: 'monthly', type: 'item' },
     {
       id: uid(),
       name: 'Запланированные расходы',
       amount: 78840,
+      plan: 78840,
       group: 'monthly',
       type: 'subtotal',
       linkedGroup: 'planned',
     },
-    { id: uid(), name: 'Итого:', amount: 144240, group: 'monthly', type: 'total' },
+    { id: uid(), name: 'Итого:', amount: 144240, plan: 144240, group: 'monthly', type: 'total' },
 
     // Запланированные расходы
-    { id: uid(), name: 'Развлечения', amount: 2000, group: 'planned', type: 'item' },
-    { id: uid(), name: 'Пополнение буфера', amount: 10000, group: 'planned', type: 'item' },
-    { id: uid(), name: 'Деду', amount: 10000, group: 'planned', type: 'item' },
-    { id: uid(), name: 'Аванс', amount: 15000, group: 'planned', type: 'item' },
-    { id: uid(), name: 'Заказы', amount: 1140, group: 'planned', type: 'item' },
-    { id: uid(), name: 'Сход развал', amount: 3200, group: 'planned', type: 'item' },
-    { id: uid(), name: 'Подписка PS', amount: 5500, group: 'planned', type: 'item' },
-    { id: uid(), name: 'ДР Юры', amount: 2000, group: 'planned', type: 'item' },
-    { id: uid(), name: 'Кредитка', amount: 30000, group: 'planned', type: 'item' },
-    { id: uid(), name: 'Итого:', amount: 78840, group: 'planned', type: 'total' },
+    { id: uid(), name: 'Развлечения', amount: 2000, plan: 2000, group: 'planned', type: 'item' },
+    { id: uid(), name: 'Пополнение буфера', amount: 10000, plan: 10000, group: 'planned', type: 'item' },
+    { id: uid(), name: 'Деду', amount: 10000, plan: 10000, group: 'planned', type: 'item' },
+    { id: uid(), name: 'Аванс', amount: 15000, plan: 15000, group: 'planned', type: 'item' },
+    { id: uid(), name: 'Заказы', amount: 1140, plan: 1140, group: 'planned', type: 'item' },
+    { id: uid(), name: 'Сход развал', amount: 3200, plan: 3200, group: 'planned', type: 'item' },
+    { id: uid(), name: 'Подписка PS', amount: 5500, plan: 5500, group: 'planned', type: 'item' },
+    { id: uid(), name: 'ДР Юры', amount: 2000, plan: 2000, group: 'planned', type: 'item' },
+    { id: uid(), name: 'Кредитка', amount: 30000, plan: 30000, group: 'planned', type: 'item' },
+    { id: uid(), name: 'Итого:', amount: 78840, plan: 78840, group: 'planned', type: 'total' },
   ],
 };
 
@@ -48,7 +49,12 @@ export const loadBudgetPlan = (): BudgetPlan => {
     if (!raw) return defaultBudgetPlan;
     const parsed = JSON.parse(raw) as BudgetPlan;
     if (!parsed || !Array.isArray(parsed.items)) return defaultBudgetPlan;
-    return parsed;
+    // Миграция старых записей без поля plan
+    const migrated = parsed.items.map((it) => ({
+      ...it,
+      plan: typeof it.plan === 'number' ? it.plan : it.amount,
+    }));
+    return { ...parsed, items: migrated };
   } catch {
     return defaultBudgetPlan;
   }

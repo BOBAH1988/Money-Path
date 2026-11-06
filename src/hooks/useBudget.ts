@@ -23,7 +23,7 @@ export const useBudget = () => {
   }, []);
 
   const updateItem = useCallback(
-    (id: string, patch: Partial<Pick<BudgetPlanItem, 'name' | 'amount'>>) => {
+    (id: string, patch: Partial<Pick<BudgetPlanItem, 'name' | 'amount' | 'plan'>>) => {
       persist({
         ...plan,
         items: plan.items.map((it) => (it.id === id ? { ...it, ...patch } : it)),
@@ -33,11 +33,12 @@ export const useBudget = () => {
   );
 
   const addItem = useCallback(
-    (group: BudgetGroup, name = 'Новая строка', amount = 0) => {
+    (group: BudgetGroup, name = 'Новая строка', amount = 0, planAmount = amount) => {
       const item: BudgetPlanItem = {
         id: crypto.randomUUID(),
         name,
         amount,
+        plan: planAmount,
         group,
         type: 'item',
       };

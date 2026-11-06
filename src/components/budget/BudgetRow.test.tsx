@@ -17,6 +17,7 @@ describe('BudgetRow', () => {
       id: '1',
       name: 'Ипотека',
       amount: 12500,
+      plan: 12500,
       group: 'monthly',
       type: 'item',
     });
@@ -24,6 +25,8 @@ describe('BudgetRow', () => {
     expect(nameInput).toHaveValue('Ипотека');
     const amountInput = screen.getAllByRole('textbox')[1];
     expect(amountInput).toHaveValue('12500');
+    const planInput = screen.getAllByRole('textbox')[2];
+    expect(planInput).toHaveValue('12500');
   });
 
   it('calls onRemove when delete button clicked', () => {
@@ -33,6 +36,7 @@ describe('BudgetRow', () => {
         id: '1',
         name: 'Ипотека',
         amount: 12500,
+        plan: 12500,
         group: 'monthly',
         type: 'item',
       },
