@@ -25,17 +25,21 @@ body { margin: 0; font-family: system-ui, sans-serif; }
   border-bottom: 1px solid var(--border, #e5e7eb);
   display: flex;
   align-items: center;
-  justify-content: flex-start;
-  gap: 10px;
+  justify-content: space-between;
   padding: 0 16px;
   z-index: 60;
+}
+
+.top-bar-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
 
 .app-title {
   font-size: 18px;
   font-weight: 800;
   color: #111827;
-  vertical-align: middle;
 }
 
 .app-icon {

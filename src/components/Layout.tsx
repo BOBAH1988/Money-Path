@@ -30,8 +30,10 @@ export default function Layout() {
     <div className="layout">
       {/* Верхняя панель приложения */}
       <header className="top-bar">
-        <AppIcon />
-        <span className="app-title">Денежный путь</span>
+        <div className="top-bar-left">
+          <AppIcon />
+          <span className="app-title">Денежный путь</span>
+        </div>
         <button
           className="menu-btn"
           onClick={() => setMenuOpen(!menuOpen)}
