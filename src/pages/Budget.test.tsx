@@ -27,8 +27,8 @@ describe('Budget page', () => {
       </AuthProvider>
     );
     await new Promise((r) => setTimeout(r, 100));
-    // defaultBudgetPlan monthly total = 65400, planned total = 78840
-    const monthlyTotal = screen.getAllByText('65 400 ₽');
-    expect(monthlyTotal.length).toBeGreaterThanOrEqual(1);
+    // defaultBudgetPlan: monthly total = 65 400, planned total = 78 840, total all = 144 240
+    const totalAll = screen.getAllByText('144 240 ₽');
+    expect(totalAll.length).toBeGreaterThanOrEqual(1);
   });
 });

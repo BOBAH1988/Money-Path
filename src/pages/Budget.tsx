@@ -34,6 +34,10 @@ export default function Budget() {
         .reduce((sum, it) => sum + it.amount, 0),
     [items]
   );
+  const totalAll = useMemo(
+    () => totalMonthly + totalPlanned,
+    [totalMonthly, totalPlanned]
+  );
 
   const [plannedVisible, setPlannedVisible] = useState(() => {
     try {
@@ -108,11 +112,15 @@ export default function Budget() {
     <div className="page page-budget">
       <div className="budget-summary">
         <div className="summary-item summary-item-total">
-          <span className="summary-label">Итого</span>
+          <span className="summary-label">Общее итого</span>
+          <span className="summary-value">{totalAll.toLocaleString('ru-RU')} ₽</span>
+        </div>
+        <div className="summary-item">
+          <span className="summary-label">Ежемесячные</span>
           <span className="summary-value">{totalMonthly.toLocaleString('ru-RU')} ₽</span>
         </div>
         <div className="summary-item">
-          <span className="summary-label">Запланированные расходы</span>
+          <span className="summary-label">Запланированные</span>
           <span className="summary-value">{totalPlanned.toLocaleString('ru-RU')} ₽</span>
         </div>
       </div>
