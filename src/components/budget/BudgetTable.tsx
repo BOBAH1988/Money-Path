@@ -52,15 +52,6 @@ export const BudgetTable = ({
     <section className="budget-card">
       <div className="budget-card-header">
         <h2 className="budget-card-title">{title}</h2>
-        <div className="budget-card-actions">
-          <button
-            className="btn-add"
-            onClick={() => setShowAddRow(true)}
-            aria-label="Добавить строку"
-          >
-            +
-          </button>
-        </div>
       </div>
 
       <div className="budget-card-body">
@@ -71,7 +62,15 @@ export const BudgetTable = ({
                 <th className="budget-head budget-head-name">Наименование</th>
                 <th className="budget-head budget-head-amount">Сумма (факт)</th>
                 <th className="budget-head budget-head-plan">План</th>
-                <th className="budget-head budget-head-actions" />
+                <th className="budget-head budget-head-actions">
+                  <button
+                    className="btn-add btn-add-header"
+                    onClick={() => setShowAddRow(true)}
+                    aria-label="Добавить строку"
+                  >
+                    +
+                  </button>
+                </th>
               </tr>
             </thead>
             <tbody>
