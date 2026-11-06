@@ -37,17 +37,29 @@ export const BudgetRow = ({ item, onUpdate, onRemove }: Props) => {
     }
   };
 
-  if (!editing && (isSubtotal || isTotal)) {
+  const toggleEdit = () => {
+    if (isTotal) return;
+    setEditing(true);
+    setName(item.name);
+    setAmount(String(item.amount));
+    setPlan(String(item.plan));
+  };
+
+  const format = (value: number) => value.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+
+  if (!editing && (isSubtotal || isTotal || !isSubtotal && !isTotal)) {
     return (
-      <tr className={`budget-row ${item.type}`}>
+      <tr className={`budget-row ${item.type}`} onClick={toggleEdit}>
         <td className="budget-cell budget-cell-name">
           <span className="row-name">{item.name}</span>
           {isSubtotal && <span className="row-hint">из запланированных расходов</span>}
         </td>
         <td className="budget-cell budget-cell-amount">
-          <span className="row-amount">{amountFormatter(item.amount)}</span>
+          <span className="row-amount">{format(item.amount)}</span>
         </td>
-        <td className="budget-cell budget-cell-plan" />
+        <td className="budget-cell budget-cell-plan">
+          <span className="row-amount">{format(item.plan)}</span>
+        </td>
         <td className="budget-cell budget-cell-actions" />
       </tr>
     );
@@ -102,8 +114,4 @@ export const BudgetRow = ({ item, onUpdate, onRemove }: Props) => {
       </td>
     </tr>
   );
-};
-
-const amountFormatter = (value: number) => {
-  return value.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
 };
