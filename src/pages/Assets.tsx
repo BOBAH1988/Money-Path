@@ -43,7 +43,6 @@ export default function Assets() {
   const totalMonthly = items.reduce((sum, it) => sum + it.monthly, 0);
 
   const handleRemove = (id: string) => {
-    if (!window.confirm('Удалить строку?')) return;
     if (items.length <= 1) {
       setItems(items.map((it) => (it.id === id ? { ...it, name: '', amount: 0, monthly: 0 } : it)));
     } else {
