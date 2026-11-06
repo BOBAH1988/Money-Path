@@ -151,7 +151,7 @@ export const BudgetTable = ({
                     <span className="footer-label">Итого:</span>
                   </td>
                   <td className="budget-cell budget-cell-amount">
-                    {total.toLocaleString('ru-RU')}
+                    {total.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ')}
                   </td>
                   <td className="budget-cell budget-cell-plan" />
                   <td className="budget-cell budget-cell-actions" />

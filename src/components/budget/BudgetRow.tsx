@@ -105,8 +105,5 @@ export const BudgetRow = ({ item, onUpdate, onRemove }: Props) => {
 };
 
 const amountFormatter = (value: number) => {
-  return value.toLocaleString('ru-RU', {
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  });
+  return value.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
 };
