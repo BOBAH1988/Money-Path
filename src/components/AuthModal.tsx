@@ -269,7 +269,7 @@ export const AccountMenu = ({ onClose, onAnalytics }: { onClose: () => void; onA
           </button>
           {isAdmin && (
             <button className="account-action-btn" onClick={handleAnalytics}>
-              <span>📊</span> Аналитика
+              Аналитика
             </button>
           )}
         </div>
