@@ -86,9 +86,9 @@ export const BudgetTable = ({
                     <button
                       className="btn-done btn-done-header"
                       onClick={finishEdit}
-                      aria-label="Готово"
+                      aria-label="ОК"
                     >
-                      Готово
+                      ОК
                     </button>
                   ) : (
                     <button
