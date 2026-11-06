@@ -39,8 +39,8 @@ export const validatePassword = (password: string): string[] => {
 
 interface AuthContextValue {
   user: User | null;
+  isAuthenticated: boolean;
   isAdmin: boolean;
-  loading: boolean;
   login: (email: string, password: string) => Promise<void>;
   register: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
@@ -58,8 +58,9 @@ export const useAuth = () => {
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
 
-  const isAdmin = user ? user.email === ADMIN_EMAIL : false;
+  const isAdmin = isAuthenticated && user ? user.email === ADMIN_EMAIL : false;
 
   const migrateAllToUser = async (userId: string) => {
     for (const collection of Object.values(COLLECTIONS)) {
@@ -77,6 +78,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
     const unsub = onAuthStateChanged(auth, async (u) => {
       setUser(u);
+      // Не помечаем как аутентифицированного автоматически — только после явного входа
       if (u) {
         await migrateAllToUser(u.uid);
       }
@@ -87,6 +89,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const login = async (email: string, password: string) => {
     if (!auth) throw new Error('Firebase Auth не инициализирован');
     await signInWithEmailAndPassword(auth, email, password);
+    setIsAuthenticated(true);
   };
 
   const register = async (email: string, password: string) => {
@@ -97,11 +100,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     } catch {
       // ignore
     }
+    setIsAuthenticated(true);
   };
 
   const logout = async () => {
     if (!auth) throw new Error('Firebase Auth не инициализирован');
     await signOut(auth);
+    setUser(null);
+    setIsAuthenticated(false);
   };
 
   const sendPasswordReset = async (email: string) => {
@@ -114,7 +120,16 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     await sendEmailVerification(user);
   };
 
-  const value = { user, isAdmin, loading: false, login, register, logout, sendPasswordReset, resendVerification };
+  const value = {
+    user,
+    isAuthenticated,
+    isAdmin,
+    login,
+    register,
+    logout,
+    sendPasswordReset,
+    resendVerification,
+  };
 
   return (
     <AuthContext.Provider value={value}>

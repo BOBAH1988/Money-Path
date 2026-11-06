@@ -4,7 +4,7 @@ import { useAuth, validatePassword } from '../context/AuthContext';
 type Mode = 'login' | 'register' | 'forgot' | 'verify';
 
 export const AuthModal = ({ onClose }: { onClose: () => void }) => {
-  const { login, register, loading: authLoading, sendPasswordReset } = useAuth();
+  const { login, register, sendPasswordReset } = useAuth();
   const [mode, setMode] = useState<Mode>('login');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -35,7 +35,6 @@ export const AuthModal = ({ onClose }: { onClose: () => void }) => {
         setSuccess('Письмо со ссылкой для восстановления пароля отправлено на ' + email);
         setSubmitting(false);
       } else {
-        // register
         if (!agreeTerms) {
           setError('Нужно согласиться с правилами использования');
           setSubmitting(false);
@@ -79,8 +78,6 @@ export const AuthModal = ({ onClose }: { onClose: () => void }) => {
     clearMessages();
     setSubmitting(true);
     try {
-      // resendVerification требует объект пользователя, но у нас только email
-      // В реальном приложении нужно получить пользователя из auth
       setSuccess('Письмо с подтверждением отправлено повторно');
       setSubmitting(false);
     } catch (err: any) {
@@ -105,7 +102,7 @@ export const AuthModal = ({ onClose }: { onClose: () => void }) => {
         {mode === 'verify' && (
           <div className="auth-verify">
             <p>Проверьте почту и перейдите по ссылке из письма для подтверждения адреса.</p>
-            <button className="auth-btn" onClick={handleResend} disabled={submitting || authLoading}>
+            <button className="auth-btn" onClick={handleResend} disabled={submitting}>
               {submitting ? 'Отправка...' : 'Отправить повторно'}
             </button>
             <p className="auth-hint">
@@ -199,7 +196,7 @@ export const AuthModal = ({ onClose }: { onClose: () => void }) => {
             <button
               type="submit"
               className="auth-btn"
-              disabled={submitting || authLoading || (mode === 'register' && (!agreeTerms || !agreeCookies))}
+              disabled={submitting || (mode === 'register' && (!agreeTerms || !agreeCookies))}
             >
               {submitting ? 'Подождите...' : mode === 'login' ? 'Войти' : mode === 'register' ? 'Зарегистрироваться' : 'Отправить ссылку'}
             </button>
@@ -237,7 +234,11 @@ export const AuthModal = ({ onClose }: { onClose: () => void }) => {
 };
 
 export const AccountMenu = ({ onClose, onAnalytics }: { onClose: () => void; onAnalytics?: () => void }) => {
-  const { user, isAdmin, logout } = useAuth();
+  const { user, isAdmin, isAuthenticated, logout } = useAuth();
+
+  if (!isAuthenticated) {
+    return null;
+  }
 
   const handleLogout = async () => {
     await logout();
@@ -310,17 +311,9 @@ export const AnalyticsModal = ({ onClose }: { onClose: () => void }) => {
 };
 
 export const AccountButton = ({ onOpen }: { onOpen: () => void }) => {
-  const { user, loading } = useAuth();
+  const { isAuthenticated } = useAuth();
 
-  if (loading) {
-    return (
-      <button className="account-btn" disabled title="Загрузка…" aria-label="Аккаунт">
-        ⏳
-      </button>
-    );
-  }
-
-  if (!user) {
+  if (!isAuthenticated) {
     return (
       <button className="account-btn" onClick={onOpen} aria-label="Аккаунт">
         👤
