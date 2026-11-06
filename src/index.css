@@ -499,6 +499,10 @@ body { margin: 0; font-family: system-ui, sans-serif; }
 .btn-edit:hover { background: #e2e8f0; color: #0f172a; }
 .btn-edit:active { transform: scale(0.92); }
 
+.btn-toggle { background: #f1f5f9; color: #64748b; }
+.btn-toggle:hover { background: #e2e8f0; color: #0f172a; }
+.btn-toggle:active { transform: scale(0.92); }
+
 .confirm-overlay {
   position: fixed;
   inset: 0;

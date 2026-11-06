@@ -10,6 +10,7 @@ interface Props {
   onUpdate: (id: string, patch: { name?: string; amount?: number; plan?: number }) => void;
   onAdd: (group: BudgetGroup, name: string, amount: number, plan: number) => void;
   onRemove: (id: string) => void;
+  onToggle?: (group: 'planned') => void;
 }
 
 export const BudgetTable = ({
@@ -20,6 +21,7 @@ export const BudgetTable = ({
   onUpdate,
   onAdd,
   onRemove,
+  onToggle,
 }: Props) => {
   const groupItems = items.filter((it) => it.group === group);
   const [showAddRow, setShowAddRow] = useState(false);
@@ -135,6 +137,7 @@ export const BudgetTable = ({
                   item={subtotalItem}
                   onUpdate={onUpdate}
                   onRemove={onRemove}
+                  onToggle={onToggle}
                 />
               )}
 

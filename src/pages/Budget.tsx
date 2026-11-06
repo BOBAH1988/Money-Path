@@ -1,4 +1,4 @@
-import { useMemo, useEffect, useContext } from 'react';
+import { useMemo, useEffect, useContext, useState } from 'react';
 import { useBudget } from '../hooks/useBudget';
 import { BudgetTable } from '../components/budget/BudgetTable';
 import { PageTitleContext } from '../components/Layout';
@@ -23,6 +23,8 @@ export default function Budget() {
   const totalMonthly = groupTotal('monthly');
   const totalPlanned = groupTotal('planned');
 
+  const [plannedVisible, setPlannedVisible] = useState(true);
+
   return (
     <div className="page page-budget">
       <div className="budget-grid">
@@ -34,16 +36,19 @@ export default function Budget() {
           onUpdate={updateItem}
           onAdd={(group, name, amount, plan) => addItem(group, name, amount, plan)}
           onRemove={removeItem}
+          onToggle={() => setPlannedVisible((v) => !v)}
         />
-        <BudgetTable
-          group="planned"
-          title="Запланированные расходы"
-          items={plannedItems}
-          total={totalPlanned}
-          onUpdate={updateItem}
-          onAdd={(group, name, amount, plan) => addItem(group, name, amount, plan)}
-          onRemove={removeItem}
-        />
+        {plannedVisible && (
+          <BudgetTable
+            group="planned"
+            title="Запланированные расходы"
+            items={plannedItems}
+            total={totalPlanned}
+            onUpdate={updateItem}
+            onAdd={(group, name, amount, plan) => addItem(group, name, amount, plan)}
+            onRemove={removeItem}
+          />
+        )}
       </div>
 
       <div className="budget-summary">

@@ -5,9 +5,10 @@ interface Props {
   item: BudgetPlanItem;
   onUpdate: (id: string, patch: { name?: string; amount?: number; plan?: number }) => void;
   onRemove: (id: string) => void;
+  onToggle?: (group: 'planned') => void;
 }
 
-export const BudgetRow = ({ item, onUpdate, onRemove }: Props) => {
+export const BudgetRow = ({ item, onUpdate, onRemove, onToggle }: Props) => {
   const [editing, setEditing] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [name, setName] = useState(item.name);
@@ -39,7 +40,7 @@ export const BudgetRow = ({ item, onUpdate, onRemove }: Props) => {
   };
 
   const startEdit = () => {
-    if (isTotal) return;
+    if (isTotal || isSubtotal) return;
     setEditing(true);
     setName(item.name);
     setAmount(String(item.amount));
@@ -50,6 +51,11 @@ export const BudgetRow = ({ item, onUpdate, onRemove }: Props) => {
     if (!window.confirm(`Удалить строку "${item.name}"?`)) return;
     onRemove(item.id);
     setEditing(false);
+  };
+
+  const togglePlanned = () => {
+    if (!isSubtotal || !onToggle) return;
+    onToggle('planned');
   };
 
   const format = (value: number) => value.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
@@ -70,10 +76,10 @@ export const BudgetRow = ({ item, onUpdate, onRemove }: Props) => {
 
   if (!editing) {
     return (
-      <tr className={`budget-row ${item.type}`}>
+      <tr className={`budget-row ${item.type}`} onClick={isSubtotal ? togglePlanned : undefined}>
         <td className="budget-cell budget-cell-name">
           <span className="row-name">{item.name}</span>
-          {isSubtotal && <span className="row-hint">- сумма запланированных расходов</span>}
+          {isSubtotal && <span className="row-hint">сумма запланированных расходов</span>}
         </td>
         <td className="budget-cell budget-cell-amount">
           <span className="row-amount">{format(item.amount)}</span>
@@ -84,7 +90,16 @@ export const BudgetRow = ({ item, onUpdate, onRemove }: Props) => {
           <span className="row-currency">₽</span>
         </td>
         <td className="budget-cell budget-cell-actions">
-          {!isTotal && (
+          {isSubtotal && (
+            <button
+              className="btn-toggle"
+              onClick={(e) => { e.stopPropagation(); togglePlanned(); }}
+              aria-label="Свернуть/развернуть запланированные расходы"
+            >
+              ▼
+            </button>
+          )}
+          {!isSubtotal && !isTotal && (
             <button
               className="btn-edit"
               onClick={startEdit}
