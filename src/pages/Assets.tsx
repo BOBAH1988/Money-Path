@@ -83,6 +83,17 @@ export default function Assets() {
         }}
         onRemove={handleRemove}
       />
+
+      <div className="budget-summary">
+        <div className="summary-item summary-item-total">
+          <span className="summary-label">Итого</span>
+          <span className="summary-value">{totalAmount.toLocaleString('ru-RU')} ₽</span>
+        </div>
+        <div className="summary-item">
+          <span className="summary-label">% в месяц</span>
+          <span className="summary-value">{totalMonthly.toLocaleString('ru-RU')} ₽</span>
+        </div>
+      </div>
     </div>
   );
 }
