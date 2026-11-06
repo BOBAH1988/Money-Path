@@ -13,12 +13,6 @@ interface IncomeRow {
   monthly: number;
 }
 
-const initialData: IncomeRow[] = [
-  { id: '1', name: 'Зарплата', amount: 150_000, monthly: 150_000 },
-  { id: '2', name: 'Дивиденды', amount: 30_000, monthly: 0 },
-  { id: '3', name: 'Аренда', amount: 20_000, monthly: 20_000 },
-];
-
 export default function Income() {
   const { setPageTitle } = useContext(PageTitleContext)!;
   const { user } = useAuth();
@@ -28,7 +22,7 @@ export default function Income() {
     setPageTitle('Доходы');
   }, [setPageTitle]);
 
-  const [items, setItems] = useState<IncomeRow[]>(initialData);
+  const [items, setItems] = useState<IncomeRow[]>([]);
   const [loaded, setLoaded] = useState(false);
   const [error, setError] = useState<string | null>(null);
 

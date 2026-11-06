@@ -13,12 +13,6 @@ interface LiabilityRow {
   monthly: number;
 }
 
-const initialData: LiabilityRow[] = [
-  { id: '1', name: 'Ипотека', amount: 1_131_000, monthly: 11_000 },
-  { id: '2', name: 'Деду', amount: 150_000, monthly: 0 },
-  { id: '3', name: 'Кредитка', amount: 30_000, monthly: 0 },
-];
-
 export default function Liabilities() {
   const { setPageTitle } = useContext(PageTitleContext)!;
   const { user } = useAuth();
@@ -28,7 +22,7 @@ export default function Liabilities() {
     setPageTitle('Пассивы');
   }, [setPageTitle]);
 
-  const [items, setItems] = useState<LiabilityRow[]>(initialData);
+  const [items, setItems] = useState<LiabilityRow[]>([]);
   const [loaded, setLoaded] = useState(false);
   const [error, setError] = useState<string | null>(null);
 

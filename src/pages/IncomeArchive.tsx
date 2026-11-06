@@ -13,12 +13,6 @@ interface IncomeArchiveRow {
   monthly: number;
 }
 
-const initialData: IncomeArchiveRow[] = [
-  { id: '1', name: 'Премия 2025', amount: 50_000, monthly: 0 },
-  { id: '2', name: 'Возврат налога', amount: 13_000, monthly: 0 },
-  { id: '3', name: 'Продажа авто', amount: 200_000, monthly: 0 },
-];
-
 export default function IncomeArchive() {
   const { setPageTitle } = useContext(PageTitleContext)!;
   const { user } = useAuth();
@@ -28,7 +22,7 @@ export default function IncomeArchive() {
     setPageTitle('Доходы архив');
   }, [setPageTitle]);
 
-  const [items, setItems] = useState<IncomeArchiveRow[]>(initialData);
+  const [items, setItems] = useState<IncomeArchiveRow[]>([]);
   const [loaded, setLoaded] = useState(false);
   const [error, setError] = useState<string | null>(null);
 

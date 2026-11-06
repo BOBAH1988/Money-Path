@@ -4,61 +4,27 @@ import { doc, getDoc, setDoc } from 'firebase/firestore';
 
 const now = () => new Date().toISOString();
 
-const uid = () => crypto.randomUUID();
-
-export const defaultBudgetPlan: BudgetPlan = {
-  updatedAt: now(),
-  items: [
-    // Ежемесячные расходы
-    { id: uid(), name: 'Налоги, обслуживание карт', amount: 5300, plan: 5300, group: 'monthly', type: 'item' },
-    { id: uid(), name: 'Ипотека', amount: 12500, plan: 12500, group: 'monthly', type: 'item' },
-    { id: uid(), name: 'Продукты', amount: 20000, plan: 20000, group: 'monthly', type: 'item' },
-    { id: uid(), name: 'Коммунальные расходы', amount: 10000, plan: 10000, group: 'monthly', type: 'item' },
-    { id: uid(), name: 'Стрижка', amount: 600, plan: 600, group: 'monthly', type: 'item' },
-    { id: uid(), name: 'Бензин, обслуживание авто', amount: 10000, plan: 10000, group: 'monthly', type: 'item' },
-    { id: uid(), name: 'Абонемент в спортзал', amount: 3500, plan: 3500, group: 'monthly', type: 'item' },
-    { id: uid(), name: 'Ксюше на кружки', amount: 3500, plan: 3500, group: 'monthly', type: 'item' },
-    {
-      id: uid(),
-      name: 'Запланированные расходы',
-      amount: 78840,
-      plan: 78840,
-      group: 'monthly',
-      type: 'subtotal',
-      linkedGroup: 'planned',
-    },
-    { id: uid(), name: 'Итого:', amount: 144240, plan: 144240, group: 'monthly', type: 'total' },
-
-    // Запланированные расходы
-    { id: uid(), name: 'Развлечения', amount: 2000, plan: 2000, group: 'planned', type: 'item' },
-    { id: uid(), name: 'Пополнение буфера', amount: 10000, plan: 10000, group: 'planned', type: 'item' },
-    { id: uid(), name: 'Деду', amount: 10000, plan: 10000, group: 'planned', type: 'item' },
-    { id: uid(), name: 'Аванс', amount: 15000, plan: 15000, group: 'planned', type: 'item' },
-    { id: uid(), name: 'Заказы', amount: 1140, plan: 1140, group: 'planned', type: 'item' },
-    { id: uid(), name: 'Сход развал', amount: 3200, plan: 3200, group: 'planned', type: 'item' },
-    { id: uid(), name: 'Подписка PS', amount: 5500, plan: 5500, group: 'planned', type: 'item' },
-    { id: uid(), name: 'ДР Юры', amount: 2000, plan: 2000, group: 'planned', type: 'item' },
-    { id: uid(), name: 'Кредитка', amount: 30000, plan: 30000, group: 'planned', type: 'item' },
-    { id: uid(), name: 'Итого:', amount: 78840, plan: 78840, group: 'planned', type: 'total' },
-  ],
-};
-
 const BUDGET_STORAGE_KEY = (userId?: string) =>
   userId ? `denegnyj_put_budget_plan_${userId}` : 'denegnyj_put_budget_plan';
+
+const emptyBudgetPlan: BudgetPlan = {
+  updatedAt: now(),
+  items: [],
+};
 
 const loadBudgetPlanFromLocalStorage = (userId?: string): BudgetPlan => {
   try {
     const raw = localStorage.getItem(BUDGET_STORAGE_KEY(userId));
-    if (!raw) return defaultBudgetPlan;
+    if (!raw) return emptyBudgetPlan;
     const parsed = JSON.parse(raw) as BudgetPlan;
-    if (!parsed || !Array.isArray(parsed.items)) return defaultBudgetPlan;
+    if (!parsed || !Array.isArray(parsed.items)) return emptyBudgetPlan;
     const migrated = parsed.items.map((it) => ({
       ...it,
       plan: typeof it.plan === 'number' ? it.plan : it.amount,
     }));
     return { ...parsed, items: migrated };
   } catch {
-    return defaultBudgetPlan;
+    return emptyBudgetPlan;
   }
 };
 
@@ -71,7 +37,6 @@ const saveBudgetPlanToLocalStorage = (plan: BudgetPlan, userId?: string): void =
 };
 
 export const loadBudgetPlan = async (userId?: string): Promise<BudgetPlan> => {
-  // Без авторизации — загружаем из локального localStorage
   if (!userId) {
     return loadBudgetPlanFromLocalStorage(undefined);
   }
@@ -116,51 +81,22 @@ export const saveBudgetPlan = async (plan: BudgetPlan, userId?: string): Promise
   }
 };
 
-export const resetBudgetPlan = async (empty = false, userId?: string): Promise<BudgetPlan> => {
+export const resetBudgetPlan = async (_empty = false, userId?: string): Promise<BudgetPlan> => {
   if (!userId) {
-    if (empty) {
-      const emptyPlan: BudgetPlan = {
-        updatedAt: now(),
-        items: [
-          { id: uid(), name: 'Введите название', amount: 0, plan: 0, group: 'monthly', type: 'item' },
-        ],
-      };
-      saveBudgetPlanToLocalStorage(emptyPlan, undefined);
-      return emptyPlan;
-    }
-    saveBudgetPlanToLocalStorage(defaultBudgetPlan, undefined);
-    return defaultBudgetPlan;
+    saveBudgetPlanToLocalStorage(emptyBudgetPlan, undefined);
+    return emptyBudgetPlan;
   }
-  if (empty) {
-    const emptyPlan: BudgetPlan = {
-      updatedAt: now(),
-      items: [
-        { id: uid(), name: 'Введите название', amount: 0, plan: 0, group: 'monthly', type: 'item' },
-      ],
-    };
-    saveBudgetPlanToLocalStorage(emptyPlan, userId);
-    if (!db) return emptyPlan;
-    try {
-      await setDoc(doc(db, COLLECTIONS.budgetPlan, `users/${userId}/budget_plan`), {
-        ...emptyPlan,
-        userId,
-      });
-    } catch {
-      // ignore
-    }
-    return emptyPlan;
-  }
-  saveBudgetPlanToLocalStorage(defaultBudgetPlan, userId);
-  if (!db) return defaultBudgetPlan;
+  saveBudgetPlanToLocalStorage(emptyBudgetPlan, userId);
+  if (!db) return emptyBudgetPlan;
   try {
     await setDoc(doc(db, COLLECTIONS.budgetPlan, `users/${userId}/budget_plan`), {
-      ...defaultBudgetPlan,
+      ...emptyBudgetPlan,
       userId,
     });
   } catch {
     // ignore
   }
-  return defaultBudgetPlan;
+  return emptyBudgetPlan;
 };
 
 export const computeTotals = (items: BudgetPlanItem[]): Record<BudgetGroup, number> => {

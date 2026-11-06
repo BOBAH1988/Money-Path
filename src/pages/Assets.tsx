@@ -13,12 +13,6 @@ interface AssetRow {
   monthly: number;
 }
 
-const initialData: AssetRow[] = [
-  { id: '1', name: 'Накопления', amount: 500_000, monthly: 0 },
-  { id: '2', name: 'Инвестиции', amount: 200_000, monthly: 5_000 },
-  { id: '3', name: 'Деньги', amount: 80_000, monthly: 0 },
-];
-
 export default function Assets() {
   const { setPageTitle } = useContext(PageTitleContext)!;
   const { user } = useAuth();
@@ -28,7 +22,7 @@ export default function Assets() {
     setPageTitle('Активы');
   }, [setPageTitle]);
 
-  const [items, setItems] = useState<AssetRow[]>(initialData);
+  const [items, setItems] = useState<AssetRow[]>([]);
   const [loaded, setLoaded] = useState(false);
   const [error, setError] = useState<string | null>(null);
 

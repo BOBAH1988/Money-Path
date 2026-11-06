@@ -34,11 +34,10 @@ describe('useBudget', () => {
     vi.clearAllMocks();
   });
 
-  it('loads default plan without auth from localStorage', async () => {
+  it('returns empty plan without auth when localStorage is empty', async () => {
     const { result } = renderHook(() => useBudget(), { wrapper: wrap });
     await new Promise((r) => setTimeout(r, 100));
-    expect(result.current.items.length).toBeGreaterThan(0);
-    expect(result.current.items.some((i) => i.name === 'Ипотека')).toBe(true);
+    expect(result.current.items.length).toBe(0);
     expect(result.current.loading).toBe(false);
   });
 
@@ -50,7 +49,7 @@ describe('useBudget', () => {
       result.current.addItem('monthly', 'Тестовая строка', 123);
     });
 
-    expect(result.current.items.length).toBeGreaterThan(0);
+    expect(result.current.items.length).toBe(1);
     expect(result.current.items.some((i) => i.name === 'Тестовая строка')).toBe(true);
   });
 
@@ -87,12 +86,12 @@ describe('useBudget', () => {
     expect(result.current.items.some((i) => i.id === item.id)).toBe(false);
   });
 
-  it('reset returns default plan without auth', async () => {
+  it('reset returns empty plan without auth', async () => {
     const { result } = renderHook(() => useBudget(), { wrapper: wrap });
     await new Promise((r) => setTimeout(r, 100));
 
     await result.current.reset();
 
-    expect(result.current.items.length).toBeGreaterThan(0);
+    expect(result.current.items.length).toBe(0);
   });
 });
