@@ -12,7 +12,6 @@ export const useBudget = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Загрузка плана из Firestore при монтировании
   useEffect(() => {
     const load = async () => {
       try {
@@ -27,29 +26,13 @@ export const useBudget = () => {
     load();
   }, []);
 
-  // Вычисляемые поля — всегда вызывается, чтобы соблюсти порядок хуков
   const computed = useMemo(() => {
     if (!plan) return { items: [], updatedAt: '' };
     return applyComputedFields(plan.items);
   }, [plan]);
 
-  // Пока загружаем или ошибка — возвращаем stub-методы
-  if (loading || !plan) {
-    return {
-      items: [],
-      updatedAt: '',
-      loading,
-      error,
-      updateItem: () => {},
-      addItem: () => {},
-      removeItem: () => {},
-      reset: () => {},
-      groupTotal: () => 0,
-    };
-  }
-
-  // Сохранение в Firestore — внешняя синхронизация
   useEffect(() => {
+    if (!plan) return;
     const prevItems = plan.items;
     const currentItems = computed.items;
     const current = JSON.stringify(currentItems);
@@ -59,7 +42,7 @@ export const useBudget = () => {
         setError(err instanceof Error ? err.message : 'Ошибка сохранения');
       });
     }
-  }, [computed, plan.items]);
+  }, [computed, plan]);
 
   const persist = useCallback((updated: BudgetPlan) => {
     setPlan(updated);
@@ -67,6 +50,7 @@ export const useBudget = () => {
 
   const updateItem = useCallback(
     (id: string, patch: Partial<Pick<BudgetPlanItem, 'name' | 'amount' | 'plan'>>) => {
+      if (!plan) return;
       persist({
         ...plan,
         items: plan.items.map((it) => (it.id === id ? { ...it, ...patch } : it)),
@@ -77,6 +61,7 @@ export const useBudget = () => {
 
   const addItem = useCallback(
     (group: BudgetGroup, name = 'Новая строка', amount = 0, planAmount = amount) => {
+      if (!plan) return;
       const item: BudgetPlanItem = {
         id: crypto.randomUUID(),
         name,
@@ -95,6 +80,7 @@ export const useBudget = () => {
 
   const removeItem = useCallback(
     (id: string) => {
+      if (!plan) return;
       persist({
         ...plan,
         items: plan.items.filter((it) => it.id !== id),
@@ -114,6 +100,7 @@ export const useBudget = () => {
 
   const groupTotal = useCallback(
     (group: BudgetGroup) => {
+      if (!plan) return 0;
       if (group === 'monthly') {
         return plan.items
           .filter((it) => it.type === 'item')
@@ -123,8 +110,22 @@ export const useBudget = () => {
         .filter((it) => it.group === 'planned' && it.type === 'item')
         .reduce((sum, it) => sum + it.amount, 0);
     },
-    [plan.items]
+    [plan]
   );
+
+  if (loading || !plan) {
+    return {
+      items: [],
+      updatedAt: '',
+      loading,
+      error,
+      updateItem,
+      addItem,
+      removeItem,
+      reset,
+      groupTotal,
+    };
+  }
 
   return {
     items: computed.items,
