@@ -17,6 +17,7 @@ export const COLLECTIONS = {
   liabilities: 'liabilities',
   income: 'income',
   incomeArchive: 'income_archive',
+  budgetPlan: 'budget_plan',
 };
 
 export type FirestoreCollection = string;

@@ -1,6 +1,6 @@
 import type { BudgetPlan, BudgetPlanItem, BudgetGroup } from '../types';
-
-const STORAGE_KEY = 'denegnyj_put_budget_plan';
+import { db, COLLECTIONS } from './firestore';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
 
 const now = () => new Date().toISOString();
 
@@ -43,13 +43,13 @@ export const defaultBudgetPlan: BudgetPlan = {
   ],
 };
 
-export const loadBudgetPlan = (): BudgetPlan => {
+export const loadBudgetPlan = async (): Promise<BudgetPlan> => {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return defaultBudgetPlan;
-    const parsed = JSON.parse(raw) as BudgetPlan;
+    const docRef = doc(db, COLLECTIONS.budgetPlan, 'budget_plan');
+    const docSnap = await getDoc(docRef);
+    if (!docSnap.exists()) return defaultBudgetPlan;
+    const parsed = docSnap.data() as BudgetPlan;
     if (!parsed || !Array.isArray(parsed.items)) return defaultBudgetPlan;
-    // Миграция старых записей без поля plan
     const migrated = parsed.items.map((it) => ({
       ...it,
       plan: typeof it.plan === 'number' ? it.plan : it.amount,
@@ -60,15 +60,15 @@ export const loadBudgetPlan = (): BudgetPlan => {
   }
 };
 
-export const saveBudgetPlan = (plan: BudgetPlan): void => {
+export const saveBudgetPlan = async (plan: BudgetPlan): Promise<void> => {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(plan));
+    await setDoc(doc(db, COLLECTIONS.income, 'budget_plan'), plan);
   } catch {
     // ignore quota errors
   }
 };
 
-export const resetBudgetPlan = (empty = false): BudgetPlan => {
+export const resetBudgetPlan = async (empty = false): Promise<BudgetPlan> => {
   if (empty) {
     const emptyPlan: BudgetPlan = {
       updatedAt: now(),
@@ -76,10 +76,10 @@ export const resetBudgetPlan = (empty = false): BudgetPlan => {
         { id: uid(), name: 'Введите название', amount: 0, plan: 0, group: 'monthly', type: 'item' },
       ],
     };
-    saveBudgetPlan(emptyPlan);
+    await setDoc(doc(db, COLLECTIONS.budgetPlan, 'budget_plan'), emptyPlan);
     return emptyPlan;
   }
-  saveBudgetPlan(defaultBudgetPlan);
+    await setDoc(doc(db, COLLECTIONS.budgetPlan, 'budget_plan'), defaultBudgetPlan);
   return defaultBudgetPlan;
 };
 

@@ -2,6 +2,7 @@ import { useState, createContext } from 'react';
 import { NavLink, Outlet } from 'react-router-dom';
 import packageJson from '../../package.json';
 import { useBudget } from '../hooks/useBudget';
+import { saveToFirestore, COLLECTIONS } from '../lib/firestore';
 import { AppIcon } from './AppIcon';
 
 const pkgVersion = packageJson.version;
@@ -119,20 +120,20 @@ export default function Layout() {
               <button className="btn-cancel" onClick={() => setConfirmReset(false)}>
                 Нет
               </button>
-              <button
-                className="btn-delete-confirm"
-                onClick={() => {
-                  reset(true);
-                  const emptyRow = [{ id: crypto.randomUUID(), name: 'Введите название', amount: 0, monthly: 0 }];
-                  localStorage.setItem('denegnyj_put_assets', JSON.stringify(emptyRow));
-                  localStorage.setItem('denegnyj_put_liabilities', JSON.stringify(emptyRow));
-                  localStorage.setItem('denegnyj_put_income', JSON.stringify(emptyRow));
-                  localStorage.setItem('denegnyj_put_income_archive', JSON.stringify(emptyRow));
-                  setConfirmReset(false);
-                }}
-              >
-                Да
-              </button>
+                    <button
+                      className="btn-delete-confirm"
+                      onClick={() => {
+                        reset(true);
+                        const emptyRow = [{ id: crypto.randomUUID(), name: 'Введите название', amount: 0, monthly: 0 }];
+                        saveToFirestore(COLLECTIONS.assets, emptyRow);
+                        saveToFirestore(COLLECTIONS.liabilities, emptyRow);
+                        saveToFirestore(COLLECTIONS.income, emptyRow);
+                        saveToFirestore(COLLECTIONS.incomeArchive, emptyRow);
+                        setConfirmReset(false);
+                      }}
+                    >
+                      Да
+                    </button>
             </div>
           </div>
         </div>

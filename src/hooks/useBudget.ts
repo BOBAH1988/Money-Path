@@ -8,20 +8,44 @@ import {
 } from '../lib/budget';
 
 export const useBudget = () => {
-  const [plan, setPlan] = useState<BudgetPlan>(() => loadBudgetPlan());
+  const [plan, setPlan] = useState<BudgetPlan | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  // Загрузка плана из Firestore при монтировании
+  useEffect(() => {
+    const load = async () => {
+      const p = await loadBudgetPlan();
+      setPlan(p);
+      setLoading(false);
+    };
+    load();
+  }, []);
+
+  if (loading || !plan) {
+    return {
+      items: [],
+      updatedAt: '',
+      updateItem: () => {},
+      addItem: () => {},
+      removeItem: () => {},
+      reset: () => {},
+      groupTotal: () => 0,
+    };
+  }
 
   // Вычисляемые поля (суммы итогов и запланированных расходов) пересчитываются при рендере
   const computed = useMemo(() => applyComputedFields(plan.items), [plan.items]);
 
-  // Сохранение в локальное хранилище — внешняя синхронизация
+  // Сохранение в Firestore — внешняя синхронизация
   useEffect(() => {
-    const prev = loadBudgetPlan();
-    const current = JSON.stringify(computed.items);
-    const previous = JSON.stringify(prev.items);
+    const prevItems = plan.items;
+    const currentItems = computed.items;
+    const current = JSON.stringify(currentItems);
+    const previous = JSON.stringify(prevItems);
     if (current !== previous) {
       saveBudgetPlan(computed);
     }
-  }, [computed]);
+  }, [computed, plan.items]);
 
   const persist = useCallback((updated: BudgetPlan) => {
     setPlan(updated);
@@ -65,20 +89,18 @@ export const useBudget = () => {
     [plan, persist]
   );
 
-  const reset = useCallback((empty = false) => {
-    const def = resetBudgetPlan(empty);
+  const reset = useCallback(async (empty = false) => {
+    const def = await resetBudgetPlan(empty);
     setPlan(def);
   }, []);
 
   const groupTotal = useCallback(
     (group: BudgetGroup) => {
       if (group === 'monthly') {
-        // общая сумма всех расходов (amount по всем item)
         return plan.items
           .filter((it) => it.type === 'item')
           .reduce((sum, it) => sum + it.amount, 0);
       }
-      // planned: итог запланированных расходов — сумма amount по planned item
       return plan.items
         .filter((it) => it.group === 'planned' && it.type === 'item')
         .reduce((sum, it) => sum + it.amount, 0);
