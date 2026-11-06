@@ -56,6 +56,17 @@ export default function Budget() {
 
   return (
     <div className="page page-budget">
+      <div className="budget-summary">
+        <div className="summary-item summary-item-total">
+          <span className="summary-label">Итого</span>
+          <span className="summary-value">{totalMonthly.toLocaleString('ru-RU')} ₽</span>
+        </div>
+        <div className="summary-item">
+          <span className="summary-label">Запланированные расходы</span>
+          <span className="summary-value">{totalPlanned.toLocaleString('ru-RU')} ₽</span>
+        </div>
+      </div>
+
       <div className="budget-grid">
         <BudgetTable
           group="monthly"
@@ -80,17 +91,6 @@ export default function Budget() {
             onRemove={removeItem}
           />
         )}
-      </div>
-
-      <div className="budget-summary">
-        <div className="summary-item summary-item-total">
-          <span className="summary-label">Итого</span>
-          <span className="summary-value">{totalMonthly.toLocaleString('ru-RU')} ₽</span>
-        </div>
-        <div className="summary-item">
-          <span className="summary-label">Запланированные расходы</span>
-          <span className="summary-value">{totalPlanned.toLocaleString('ru-RU')} ₽</span>
-        </div>
       </div>
     </div>
   );
