@@ -60,11 +60,11 @@ export default function Liabilities() {
         items={budgetItems}
         total={totalAmount}
         totalPlan={totalMonthly}
-        headers={{
-          name: 'Пассивы',
-          amount: 'Сумма',
-          plan: '% в мес.',
-        }}
+              headers={{
+                name: 'Пассивы',
+                amount: 'Сумма',
+                plan: '- % в мес.',
+              }}
         onUpdate={(id, patch) => {
           setItems((prev) =>
             prev.map((it) => {
