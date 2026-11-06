@@ -122,13 +122,13 @@ export default function Layout() {
               </button>
                     <button
                       className="btn-delete-confirm"
-                      onClick={() => {
-                        reset(true);
+                      onClick={async () => {
+                        await reset(true);
                         const emptyRow = [{ id: crypto.randomUUID(), name: 'Введите название', amount: 0, monthly: 0 }];
-                        saveToFirestore(COLLECTIONS.assets, emptyRow);
-                        saveToFirestore(COLLECTIONS.liabilities, emptyRow);
-                        saveToFirestore(COLLECTIONS.income, emptyRow);
-                        saveToFirestore(COLLECTIONS.incomeArchive, emptyRow);
+                        await saveToFirestore(COLLECTIONS.assets, emptyRow);
+                        await saveToFirestore(COLLECTIONS.liabilities, emptyRow);
+                        await saveToFirestore(COLLECTIONS.income, emptyRow);
+                        await saveToFirestore(COLLECTIONS.incomeArchive, emptyRow);
                         setConfirmReset(false);
                       }}
                     >

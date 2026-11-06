@@ -21,6 +21,13 @@ export const useBudget = () => {
     load();
   }, []);
 
+  // Вычисляемые поля — всегда вызывается, чтобы соблюсти порядок хуков
+  const computed = useMemo(() => {
+    if (!plan) return { items: [], updatedAt: '' };
+    return applyComputedFields(plan.items);
+  }, [plan]);
+
+  // Пока загружаем — возвращаем пустые stub-методы
   if (loading || !plan) {
     return {
       items: [],
@@ -32,9 +39,6 @@ export const useBudget = () => {
       groupTotal: () => 0,
     };
   }
-
-  // Вычисляемые поля (суммы итогов и запланированных расходов) пересчитываются при рендере
-  const computed = useMemo(() => applyComputedFields(plan.items), [plan.items]);
 
   // Сохранение в Firestore — внешняя синхронизация
   useEffect(() => {
