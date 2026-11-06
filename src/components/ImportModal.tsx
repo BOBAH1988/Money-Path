@@ -106,7 +106,7 @@ export const ImportModal = ({ onClose }: { onClose: () => void }) => {
               className="auth-btn"
               style={{ width: 'fit-content', padding: '12px 24px' }}
             >
-              {loading ? 'Готовим файл…' : 'Скачать'}
+              {loading ? 'Готовим файл…' : 'Импорт данных'}
             </button>
           </div>
         )}
