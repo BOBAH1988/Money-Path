@@ -40,6 +40,7 @@ export const BudgetTable = ({
   const [inputName, setInputName] = useState('');
   const [inputAmount, setInputAmount] = useState('');
   const [inputPlan, setInputPlan] = useState('');
+  const [editingId, setEditingId] = useState<string | null>(null);
 
   const handleAdd = () => {
     const amountNum = Number(
@@ -57,6 +58,10 @@ export const BudgetTable = ({
     setShowAddRow(false);
   };
 
+  const finishEdit = () => {
+    setEditingId(null);
+  };
+
   // Разделяем элементы на обычные, subtotal и total для правильного порядка
   const regularItems = groupItems.filter((it) => it.type === 'item');
   const subtotalItem = groupItems.find((it) => it.type === 'subtotal');
@@ -66,6 +71,25 @@ export const BudgetTable = ({
     <section className="budget-card" id={id}>
       <div className="budget-card-header">
         <h2 className="budget-card-title">{title}</h2>
+        <div className="budget-card-actions">
+          {editingId ? (
+            <button
+              className="btn-done btn-done-header"
+              onClick={finishEdit}
+              aria-label="Готово"
+            >
+              Готово
+            </button>
+          ) : (
+            <button
+              className="btn-add btn-add-header"
+              onClick={() => setShowAddRow(true)}
+              aria-label="Добавить строку"
+            >
+              +
+            </button>
+          )}
+        </div>
       </div>
 
       <div className="budget-card-body">
@@ -76,15 +100,7 @@ export const BudgetTable = ({
                 <th className="budget-head budget-head-name">{headers?.name ?? 'Наименование'}</th>
                 <th className="budget-head budget-head-amount">{headers?.amount ?? 'Сумма'}</th>
                 <th className="budget-head budget-head-plan">{headers?.plan ?? 'План'}</th>
-                <th className="budget-head budget-head-actions">
-                  <button
-                    className="btn-add btn-add-header"
-                    onClick={() => setShowAddRow(true)}
-                    aria-label="Добавить строку"
-                  >
-                    +
-                  </button>
-                </th>
+                <th className="budget-head budget-head-actions" />
               </tr>
             </thead>
             <tbody>
@@ -94,6 +110,11 @@ export const BudgetTable = ({
                   item={item}
                   onUpdate={onUpdate}
                   onRemove={onRemove}
+                  onToggle={onToggle}
+                  isPlannedCollapsed={isPlannedCollapsed}
+                  isEditing={editingId === item.id}
+                  onStartEdit={(editId) => setEditingId(editId)}
+                  onFinishEdit={finishEdit}
                 />
               ))}
 
@@ -151,6 +172,8 @@ export const BudgetTable = ({
                   onRemove={onRemove}
                   onToggle={onToggle}
                   isPlannedCollapsed={isPlannedCollapsed}
+                  isEditing={editingId === subtotalItem.id}
+                  onFinishEdit={finishEdit}
                 />
               )}
 
@@ -160,6 +183,8 @@ export const BudgetTable = ({
                   item={totalItem}
                   onUpdate={onUpdate}
                   onRemove={onRemove}
+                  isEditing={editingId === totalItem.id}
+                  onFinishEdit={finishEdit}
                 />
               ) : (
                 <tr className="budget-row total">

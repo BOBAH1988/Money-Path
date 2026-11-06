@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import type { BudgetPlanItem } from '../../types';
 
 interface Props {
@@ -7,10 +7,12 @@ interface Props {
   onRemove: (id: string) => void;
   onToggle?: (group: 'planned') => void;
   isPlannedCollapsed?: boolean;
+  isEditing?: boolean;
+  onStartEdit?: (id: string) => void;
+  onFinishEdit?: () => void;
 }
 
-export const BudgetRow = ({ item, onUpdate, onRemove, onToggle, isPlannedCollapsed }: Props) => {
-  const [editing, setEditing] = useState(false);
+export const BudgetRow = ({ item, onUpdate, onRemove, onToggle, isPlannedCollapsed, isEditing = false, onStartEdit, onFinishEdit }: Props) => {
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [name, setName] = useState(item.name);
   const [amount, setAmount] = useState(String(item.amount ?? 0));
@@ -19,15 +21,39 @@ export const BudgetRow = ({ item, onUpdate, onRemove, onToggle, isPlannedCollaps
   const isSubtotal = item.type === 'subtotal';
   const isTotal = item.type === 'total';
 
+  // Initialize local state when entering edit mode
+  useEffect(() => {
+    if (isEditing) {
+      setName(item.name);
+      setAmount(String(item.amount ?? 0));
+      setPlan(String(item.plan ?? 0));
+    }
+  }, [isEditing, item]);
+
+  // Save when exiting edit mode via external trigger (Готово button)
+  useEffect(() => {
+    if (!isEditing) {
+      // Only save if we were editing before
+      const wasEditing = name !== item.name || amount !== String(item.amount ?? 0) || plan !== String(item.plan ?? 0);
+      if (wasEditing) {
+        onUpdate(item.id, {
+          name: name.trim() || item.name,
+          amount: Number(amount.replace(/[^\d.,-]/g, '').replace(',', '.')) || 0,
+          plan: Number(plan.replace(/[^\d.,-]/g, '').replace(',', '.')) || 0,
+        });
+      }
+    }
+  }, [isEditing]);
+
   const handleSave = () => {
-    const amountNum = Number(amount.replace(/[^\d.,-]/g, '').replace(',', '.')) || 0;
-    const planNum = Number(plan.replace(/[^\d.,-]/g, '').replace(',', '.')) || 0;
     onUpdate(item.id, {
       name: name.trim() || item.name,
-      amount: amountNum,
-      plan: planNum,
+      amount: Number(amount.replace(/[^\d.,-]/g, '').replace(',', '.')) || 0,
+      plan: Number(plan.replace(/[^\d.,-]/g, '').replace(',', '.')) || 0,
     });
-    setEditing(false);
+    if (onFinishEdit) {
+      onFinishEdit();
+    }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -36,20 +62,26 @@ export const BudgetRow = ({ item, onUpdate, onRemove, onToggle, isPlannedCollaps
       setName(item.name);
       setAmount(String(item.amount));
       setPlan(String(item.plan));
-      setEditing(false);
+      if (onFinishEdit) {
+        onFinishEdit();
+      }
     }
   };
 
   const startEdit = () => {
     if (isTotal || isSubtotal) return;
-    setEditing(true);
-    setName(item.name);
-    setAmount(String(item.amount));
-    setPlan(String(item.plan));
+    if (onStartEdit) {
+      onStartEdit(item.id);
+    } else {
+      setName(item.name);
+      setAmount(String(item.amount));
+      setPlan(String(item.plan));
+    }
   };
 
   const handleDelete = () => {
-    setConfirmDelete(true);
+    if (!window.confirm(`Удалить строку "${item.name}"?`)) return;
+    onRemove(item.id);
   };
 
   const togglePlanned = () => {
@@ -65,96 +97,100 @@ export const BudgetRow = ({ item, onUpdate, onRemove, onToggle, isPlannedCollaps
           <p>Удалить строку "{item.name}"?</p>
           <div className="confirm-actions">
             <button className="btn-cancel" onClick={() => setConfirmDelete(false)}>Отмена</button>
-            <button className="btn-delete-confirm" onClick={() => { onRemove(item.id); setEditing(false); setConfirmDelete(false); }}>Удалить</button>
+            <button className="btn-delete-confirm" onClick={() => { onRemove(item.id); setConfirmDelete(false); }}>Удалить</button>
           </div>
         </div>
       </div>
     );
   }
 
-  if (!editing) {
+  if (isEditing) {
     return (
-      <tr className={`budget-row ${item.type}`} onClick={isSubtotal ? togglePlanned : undefined}>
+      <tr className="budget-row budget-row-editing">
         <td className="budget-cell budget-cell-name">
-          <span className="row-name">{item.name}</span>
-          {isSubtotal && <span className="row-hint">сумма запланированных расходов</span>}
+          <input
+            className="budget-input"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            onKeyDown={handleKeyDown}
+            onBlur={handleSave}
+            placeholder="Название"
+            autoFocus
+          />
         </td>
         <td className="budget-cell budget-cell-amount">
-          <span className="row-amount">{format(item.amount)}</span>
-          <span className="row-currency">₽</span>
+          <div className="input-group">
+            <input
+              className="budget-input budget-input-amount"
+              value={amount}
+              onChange={(e) => setAmount(e.target.value)}
+              onKeyDown={handleKeyDown}
+              onBlur={handleSave}
+              placeholder="0"
+            />
+          </div>
         </td>
         <td className="budget-cell budget-cell-plan">
-          <span className="row-amount">{format(item.plan)}</span>
-          <span className="row-currency">₽</span>
+          <div className="input-group">
+            <input
+              className="budget-input budget-input-amount"
+              value={plan}
+              onChange={(e) => setPlan(e.target.value)}
+              onKeyDown={handleKeyDown}
+              onBlur={handleSave}
+              placeholder="0"
+            />
+          </div>
         </td>
         <td className="budget-cell budget-cell-actions">
-        {isSubtotal && (
-          <button
-            className="btn-edit"
-            onClick={(e) => { e.stopPropagation(); togglePlanned(); }}
-            aria-label={isPlannedCollapsed ? "Развернуть запланированные расходы" : "Свернуть запланированные расходы"}
-          >
-            {isPlannedCollapsed ? "▶" : "▼"}
-          </button>
-        )}
-          {!isSubtotal && !isTotal && (
+          {!isTotal && (
             <button
-              className="btn-edit"
-              onClick={startEdit}
-              aria-label="Редактировать строку"
+              className="btn-delete"
+              onClick={handleDelete}
+              aria-label="Удалить строку"
             >
-              ✎
+              ×
             </button>
           )}
+          <button className="btn-cancel" onClick={() => { if (onFinishEdit) onFinishEdit(); }} aria-label="Отмена">
+            ×
+          </button>
         </td>
       </tr>
     );
   }
 
   return (
-    <tr className="budget-row budget-row-editing">
+    <tr className={`budget-row ${item.type}`} onClick={isSubtotal ? togglePlanned : undefined}>
       <td className="budget-cell budget-cell-name">
-        <input
-          className="budget-input"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          onKeyDown={handleKeyDown}
-          onBlur={handleSave}
-          placeholder="Название"
-        />
+        <span className="row-name">{item.name}</span>
+        {isSubtotal && <span className="row-hint">сумма запланированных расходов</span>}
       </td>
       <td className="budget-cell budget-cell-amount">
-        <div className="input-group">
-          <input
-            className="budget-input budget-input-amount"
-            value={amount}
-            onChange={(e) => setAmount(e.target.value)}
-            onKeyDown={handleKeyDown}
-            onBlur={handleSave}
-            placeholder="0"
-          />
-        </div>
+        <span className="row-amount">{format(item.amount)}</span>
+        <span className="row-currency">₽</span>
       </td>
       <td className="budget-cell budget-cell-plan">
-        <div className="input-group">
-          <input
-            className="budget-input budget-input-amount"
-            value={plan}
-            onChange={(e) => setPlan(e.target.value)}
-            onKeyDown={handleKeyDown}
-            onBlur={handleSave}
-            placeholder="0"
-          />
-        </div>
+        <span className="row-amount">{format(item.plan)}</span>
+        <span className="row-currency">₽</span>
       </td>
       <td className="budget-cell budget-cell-actions">
-        {!isTotal && (
+      {isSubtotal && (
+        <button
+          className="btn-edit"
+          onClick={(e) => { e.stopPropagation(); togglePlanned(); }}
+          aria-label={isPlannedCollapsed ? "Развернуть запланированные расходы" : "Свернуть запланированные расходы"}
+        >
+          {isPlannedCollapsed ? "▶" : "▼"}
+        </button>
+      )}
+        {!isSubtotal && !isTotal && (
           <button
-            className="btn-delete"
-            onClick={handleDelete}
-            aria-label="Удалить строку"
+            className="btn-edit"
+            onClick={(e) => { e.stopPropagation(); startEdit(); }}
+            aria-label="Редактировать строку"
           >
-            ×
+            ✎
           </button>
         )}
       </td>

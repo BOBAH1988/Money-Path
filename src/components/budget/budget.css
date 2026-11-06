@@ -201,6 +201,10 @@
 .btn-add:hover { background: var(--bp-accent-hover, #047857); }
 .btn-add:active { transform: scale(0.92); }
 
+.btn-done { background: var(--bp-accent, #059669); color: #fff; }
+.btn-done:hover { background: var(--bp-accent-hover, #047857); }
+.btn-done:active { transform: scale(0.92); }
+
 .btn-delete { background: #f1f5f9; color: #94a3b8; }
 .btn-delete:hover { background: #fee2e2; color: #dc2626; }
 .btn-delete:active { transform: scale(0.92); }

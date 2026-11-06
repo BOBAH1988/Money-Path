@@ -3,12 +3,28 @@ import { render, screen, fireEvent, cleanup } from '@testing-library/react';
 import { BudgetRow } from './BudgetRow';
 
 afterEach(() => cleanup());
+afterEach(() => {
+  vi.restoreAllMocks();
+});
 
-const renderRow = (item: any, onUpdate = vi.fn(), onRemove = vi.fn()) =>
+const renderRow = (
+  item: any,
+  onUpdate = vi.fn(),
+  onRemove = vi.fn(),
+  isEditing = false,
+  onStartEdit = vi.fn()
+) =>
   render(
     <table>
       <tbody>
-        <BudgetRow item={item} onUpdate={onUpdate} onRemove={onRemove} />
+        <BudgetRow
+          item={item}
+          onUpdate={onUpdate}
+          onRemove={onRemove}
+          isEditing={isEditing}
+          onStartEdit={onStartEdit}
+          onFinishEdit={vi.fn()}
+        />
       </tbody>
     </table>
   );
@@ -43,16 +59,20 @@ describe('BudgetRow', () => {
     expect(container.querySelector('.btn-delete')).toBeNull();
   });
 
-  it('shows inputs after clicking edit button', () => {
-    const { container } = renderRow({
-      id: '1',
-      name: 'Ипотека',
-      amount: 12500,
-      plan: 12500,
-      group: 'monthly',
-      type: 'item',
-    });
-    fireEvent.click(container.querySelector('.btn-edit')!);
+  it('shows inputs when in edit mode', () => {
+    renderRow(
+      {
+        id: '1',
+        name: 'Ипотека',
+        amount: 12500,
+        plan: 12500,
+        group: 'monthly',
+        type: 'item',
+      },
+      vi.fn(),
+      vi.fn(),
+      true
+    );
     const nameInput = screen.getAllByRole('textbox')[0];
     expect(nameInput).toHaveValue('Ипотека');
     const amountInput = screen.getAllByRole('textbox')[1];
@@ -61,22 +81,46 @@ describe('BudgetRow', () => {
     expect(planInput).toHaveValue('12500');
   });
 
-  it('shows delete button only in edit mode', () => {
-    const { container } = renderRow({
-      id: '1',
-      name: 'Ипотека',
-      amount: 12500,
-      plan: 12500,
-      group: 'monthly',
-      type: 'item',
-    });
-    expect(container.querySelector('.btn-delete')).toBeNull();
+  it('calls onStartEdit when clicking edit button', () => {
+    const onStartEdit = vi.fn();
+    const { container } = renderRow(
+      {
+        id: '1',
+        name: 'Ипотека',
+        amount: 12500,
+        plan: 12500,
+        group: 'monthly',
+        type: 'item',
+      },
+      vi.fn(),
+      vi.fn(),
+      false,
+      onStartEdit
+    );
     fireEvent.click(container.querySelector('.btn-edit')!);
+    expect(onStartEdit).toHaveBeenCalledWith('1');
+  });
+
+  it('shows delete button only in edit mode', () => {
+    const { container } = renderRow(
+      {
+        id: '1',
+        name: 'Ипотека',
+        amount: 12500,
+        plan: 12500,
+        group: 'monthly',
+        type: 'item',
+      },
+      vi.fn(),
+      vi.fn(),
+      true
+    );
     expect(container.querySelector('.btn-delete')).toBeInTheDocument();
   });
 
   it('calls onRemove when delete confirmed in edit mode', () => {
     const onRemove = vi.fn();
+    vi.spyOn(window, 'confirm').mockReturnValue(true);
     const { container } = renderRow(
       {
         id: '1',
@@ -87,16 +131,16 @@ describe('BudgetRow', () => {
         type: 'item',
       },
       vi.fn(),
-      onRemove
+      onRemove,
+      true
     );
-    fireEvent.click(container.querySelector('.btn-edit')!);
     fireEvent.click(container.querySelector('.btn-delete')!);
-    fireEvent.click(container.querySelector('.btn-delete-confirm')!);
     expect(onRemove).toHaveBeenCalledWith('1');
   });
 
   it('does not call onRemove when delete cancelled', () => {
     const onRemove = vi.fn();
+    vi.spyOn(window, 'confirm').mockReturnValue(false);
     const { container } = renderRow(
       {
         id: '1',
@@ -107,11 +151,10 @@ describe('BudgetRow', () => {
         type: 'item',
       },
       vi.fn(),
-      onRemove
+      onRemove,
+      true
     );
-    fireEvent.click(container.querySelector('.btn-edit')!);
     fireEvent.click(container.querySelector('.btn-delete')!);
-    fireEvent.click(container.querySelector('.btn-cancel')!);
     expect(onRemove).not.toHaveBeenCalled();
   });
 
