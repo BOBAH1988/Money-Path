@@ -61,7 +61,7 @@ export default function Dashboard() {
               <span className="summary-value">{totals.totalAll.toLocaleString('ru-RU')} ₽</span>
             </div>
             <div className="summary-item">
-              <span className="summary-label">Регулярные</span>
+              <span className="summary-label">Регулярные расходы</span>
               <span className="summary-value">{totals.regularTotal.toLocaleString('ru-RU')} ₽</span>
             </div>
           </div>
