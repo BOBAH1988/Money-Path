@@ -36,6 +36,11 @@ body { margin: 0; font-family: system-ui, sans-serif; }
   color: #111827;
 }
 
+.app-icon {
+  font-size: 18px;
+  margin-right: 8px;
+}
+
 /* ---------- Нижняя панель — copyright строка ---------- */
 .bottom-nav {
   position: fixed;
