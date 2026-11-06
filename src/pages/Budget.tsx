@@ -61,7 +61,7 @@ export default function Budget() {
           <div className="budget-card-body">
             <div className="budget-table-wrap">
               <div style={{ padding: 40, textAlign: 'center', color: '#64748b' }}>
-                Загрузка данных из Firebase...
+                Загрузка данных
               </div>
             </div>
           </div>
