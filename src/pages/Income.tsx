@@ -4,6 +4,7 @@ import { PageTitleContext } from '../components/Layout';
 import { BudgetTable } from '../components/budget/BudgetTable';
 import type { BudgetGroup } from '../types';
 import { saveToFirestore, loadFromFirestore, COLLECTIONS } from '../lib/firestore';
+import { useAuth } from '../context/AuthContext';
 
 interface IncomeRow {
   id: string;
@@ -20,6 +21,8 @@ const initialData: IncomeRow[] = [
 
 export default function Income() {
   const { setPageTitle } = useContext(PageTitleContext)!;
+  const { user } = useAuth();
+  const userId = user?.uid ?? undefined;
 
   useEffect(() => {
     setPageTitle('Доход');
@@ -32,7 +35,7 @@ export default function Income() {
   useEffect(() => {
     const load = async () => {
       try {
-        const data = await loadFromFirestore<IncomeRow>(COLLECTIONS.income);
+        const data = await loadFromFirestore<IncomeRow>(COLLECTIONS.income, userId);
         if (data.length > 0) {
           setItems(data);
         }
@@ -43,14 +46,14 @@ export default function Income() {
       }
     };
     load();
-  }, []);
+  }, [userId]);
 
   useEffect(() => {
     if (!loaded) return;
-    saveToFirestore(COLLECTIONS.income, items).catch((err) => {
+    saveToFirestore(COLLECTIONS.income, items, userId).catch((err) => {
       setError(err instanceof Error ? err.message : 'Ошибка сохранения');
     });
-  }, [items, loaded]);
+  }, [items, loaded, userId]);
 
   const budgetItems = useMemo(
     () =>

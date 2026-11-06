@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
 import { useBudget } from './useBudget';
+import { AuthProvider } from '../context/AuthContext';
 
 const localStorageMock = (() => {
   let store: Record<string, string> = {};
@@ -23,6 +24,10 @@ Object.defineProperty(window, 'localStorage', {
   writable: true,
 });
 
+const wrap = ({ children }: { children: React.ReactNode }) => (
+  <AuthProvider>{children}</AuthProvider>
+);
+
 describe('useBudget', () => {
   beforeEach(() => {
     localStorageMock.clear();
@@ -30,14 +35,14 @@ describe('useBudget', () => {
   });
 
   it('loads default plan when localStorage is empty', async () => {
-    const { result } = renderHook(() => useBudget());
+    const { result } = renderHook(() => useBudget(), { wrapper: wrap });
     await new Promise((r) => setTimeout(r, 100));
     expect(result.current.items.length).toBeGreaterThan(0);
     expect(result.current.items.some((i) => i.name === 'Ипотека')).toBe(true);
   });
 
   it('updates item amount and saves to localStorage', async () => {
-    const { result } = renderHook(() => useBudget());
+    const { result } = renderHook(() => useBudget(), { wrapper: wrap });
     await new Promise((r) => setTimeout(r, 100));
     const item = result.current.items.find((i) => i.name === 'Ипотека')!;
 
@@ -51,7 +56,7 @@ describe('useBudget', () => {
   });
 
   it('adds new item', async () => {
-    const { result } = renderHook(() => useBudget());
+    const { result } = renderHook(() => useBudget(), { wrapper: wrap });
     await new Promise((r) => setTimeout(r, 100));
     const beforeCount = result.current.items.length;
 
@@ -66,7 +71,7 @@ describe('useBudget', () => {
   });
 
   it('updates item plan', async () => {
-    const { result } = renderHook(() => useBudget());
+    const { result } = renderHook(() => useBudget(), { wrapper: wrap });
     await new Promise((r) => setTimeout(r, 100));
     const item = result.current.items.find((i) => i.name === 'Ипотека')!;
 
@@ -81,7 +86,7 @@ describe('useBudget', () => {
   });
 
   it('removes item', async () => {
-    const { result } = renderHook(() => useBudget());
+    const { result } = renderHook(() => useBudget(), { wrapper: wrap });
     await new Promise((r) => setTimeout(r, 100));
     const item = result.current.items.find((i) => i.name === 'Ипотека')!;
 

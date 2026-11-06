@@ -4,6 +4,7 @@ import { PageTitleContext } from '../components/Layout';
 import { BudgetTable } from '../components/budget/BudgetTable';
 import type { BudgetGroup } from '../types';
 import { saveToFirestore, loadFromFirestore, COLLECTIONS } from '../lib/firestore';
+import { useAuth } from '../context/AuthContext';
 
 interface LiabilityRow {
   id: string;
@@ -20,6 +21,8 @@ const initialData: LiabilityRow[] = [
 
 export default function Liabilities() {
   const { setPageTitle } = useContext(PageTitleContext)!;
+  const { user } = useAuth();
+  const userId = user?.uid ?? undefined;
 
   useEffect(() => {
     setPageTitle('Пассивы');
@@ -32,7 +35,7 @@ export default function Liabilities() {
   useEffect(() => {
     const load = async () => {
       try {
-        const data = await loadFromFirestore<LiabilityRow>(COLLECTIONS.liabilities);
+        const data = await loadFromFirestore<LiabilityRow>(COLLECTIONS.liabilities, userId);
         if (data.length > 0) {
           setItems(data);
         }
@@ -43,14 +46,14 @@ export default function Liabilities() {
       }
     };
     load();
-  }, []);
+  }, [userId]);
 
   useEffect(() => {
     if (!loaded) return;
-    saveToFirestore(COLLECTIONS.liabilities, items).catch((err) => {
+    saveToFirestore(COLLECTIONS.liabilities, items, userId).catch((err) => {
       setError(err instanceof Error ? err.message : 'Ошибка сохранения');
     });
-  }, [items, loaded]);
+  }, [items, loaded, userId]);
 
   const budgetItems = useMemo(
     () =>

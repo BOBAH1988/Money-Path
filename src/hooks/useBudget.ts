@@ -6,8 +6,11 @@ import {
   resetBudgetPlan,
   applyComputedFields,
 } from '../lib/budget';
+import { useAuth } from '../context/AuthContext';
 
 export const useBudget = () => {
+  const { user } = useAuth();
+  const userId = user?.uid ?? undefined;
   const [plan, setPlan] = useState<BudgetPlan | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -15,7 +18,7 @@ export const useBudget = () => {
   useEffect(() => {
     const load = async () => {
       try {
-        const p = await loadBudgetPlan();
+        const p = await loadBudgetPlan(userId);
         setPlan(p);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Ошибка загрузки данных');
@@ -24,7 +27,7 @@ export const useBudget = () => {
       }
     };
     load();
-  }, []);
+  }, [userId]);
 
   const computed = useMemo(() => {
     if (!plan) return { items: [], updatedAt: '' };
@@ -38,11 +41,11 @@ export const useBudget = () => {
     const current = JSON.stringify(currentItems);
     const previous = JSON.stringify(prevItems);
     if (current !== previous) {
-      saveBudgetPlan(computed).catch((err) => {
+      saveBudgetPlan(computed, userId).catch((err) => {
         setError(err instanceof Error ? err.message : 'Ошибка сохранения');
       });
     }
-  }, [computed, plan]);
+  }, [computed, plan, userId]);
 
   const persist = useCallback((updated: BudgetPlan) => {
     setPlan(updated);
@@ -91,12 +94,12 @@ export const useBudget = () => {
 
   const reset = useCallback(async (empty = false) => {
     try {
-      const def = await resetBudgetPlan(empty);
+      const def = await resetBudgetPlan(empty, userId);
       setPlan(def);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Ошибка сброса');
     }
-  }, []);
+  }, [userId]);
 
   const groupTotal = useCallback(
     (group: BudgetGroup) => {

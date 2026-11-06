@@ -19,13 +19,18 @@ export const COLLECTIONS = {
 
 export type FirestoreCollection = string;
 
-const storageKey = (collectionName: string) => `denegnyj_put_${collectionName}`;
+const storageKey = (collectionName: string, userId?: string) =>
+  userId ? `denegnyj_put_${userId}_${collectionName}` : `denegnyj_put_${collectionName}`;
+
+const colPath = (collectionName: string, userId?: string) =>
+  userId ? `users/${userId}/${collectionName}` : collectionName;
 
 const loadFromLocalStorage = <T extends { id: string }>(
-  collectionName: string
+  collectionName: string,
+  userId?: string
 ): T[] => {
   try {
-    const raw = localStorage.getItem(storageKey(collectionName));
+    const raw = localStorage.getItem(storageKey(collectionName, userId));
     if (!raw) return [];
     const parsed = JSON.parse(raw);
     return Array.isArray(parsed) ? (parsed as T[]) : [];
@@ -36,10 +41,11 @@ const loadFromLocalStorage = <T extends { id: string }>(
 
 const saveToLocalStorage = <T extends { id: string }>(
   collectionName: string,
-  items: T[]
+  items: T[],
+  userId?: string
 ): void => {
   try {
-    localStorage.setItem(storageKey(collectionName), JSON.stringify(items));
+    localStorage.setItem(storageKey(collectionName, userId), JSON.stringify(items));
   } catch {
     // ignore quota errors
   }
@@ -47,14 +53,15 @@ const saveToLocalStorage = <T extends { id: string }>(
 
 export const saveToFirestore = async <T extends { id: string }>(
   collectionName: string,
-  items: T[]
+  items: T[],
+  userId?: string
 ) => {
-  saveToLocalStorage(collectionName, items);
+  saveToLocalStorage(collectionName, items, userId);
   if (!firestoreDb) return;
   try {
-    const colRef = collection(firestoreDb, collectionName);
+    const colRef = collection(firestoreDb, colPath(collectionName, userId));
     const batch = items.map((item) =>
-      setDoc(doc(colRef, item.id), item as Record<string, unknown>)
+      setDoc(doc(colRef, item.id), { ...item, userId } as Record<string, unknown>)
     );
     await Promise.all(batch);
   } catch {
@@ -63,39 +70,44 @@ export const saveToFirestore = async <T extends { id: string }>(
 };
 
 export const loadFromFirestore = async <T extends { id: string } = { id: string }>(
-  collectionName: string
+  collectionName: string,
+  userId?: string
 ): Promise<T[]> => {
   if (!firestoreDb) {
-    return loadFromLocalStorage<T>(collectionName);
+    return loadFromLocalStorage<T>(collectionName, userId);
   }
   try {
-    const colRef = collection(firestoreDb, collectionName);
+    const colRef = collection(firestoreDb, colPath(collectionName, userId));
     const q = query(colRef, orderBy('id'));
     const snapshot = await getDocs(q);
     const data = snapshot.docs.map(
       (docSnap) => docSnap.data() as unknown as T
     );
-    saveToLocalStorage(collectionName, data);
+    saveToLocalStorage(collectionName, data, userId);
     return data;
   } catch {
-    return loadFromLocalStorage<T>(collectionName);
+    return loadFromLocalStorage<T>(collectionName, userId);
   }
 };
 
-export const deleteFromFirestore = async (collectionName: string, id: string) => {
+export const deleteFromFirestore = async (
+  collectionName: string,
+  id: string,
+  userId?: string
+) => {
   try {
-    const raw = localStorage.getItem(storageKey(collectionName));
+    const raw = localStorage.getItem(storageKey(collectionName, userId));
     if (raw) {
       const items = JSON.parse(raw) as { id: string }[];
       const filtered = items.filter((it) => it.id !== id);
-      localStorage.setItem(storageKey(collectionName), JSON.stringify(filtered));
+      localStorage.setItem(storageKey(collectionName, userId), JSON.stringify(filtered));
     }
   } catch {
     // ignore
   }
   if (!firestoreDb) return;
   try {
-    await deleteDoc(doc(firestoreDb, collectionName, id));
+    await deleteDoc(doc(firestoreDb, colPath(collectionName, userId), id));
   } catch {
     // ignore
   }

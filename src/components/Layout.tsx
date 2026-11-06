@@ -4,6 +4,8 @@ import packageJson from '../../package.json';
 import { useBudget } from '../hooks/useBudget';
 import { saveToFirestore, COLLECTIONS } from '../lib/firestore';
 import { AppIcon } from './AppIcon';
+import { AuthModal, AccountButton } from './AuthModal';
+import { useAuth } from '../context/AuthContext';
 
 const pkgVersion = packageJson.version;
 
@@ -35,7 +37,10 @@ export default function Layout() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [pageTitle, setPageTitle] = useState('');
   const [confirmReset, setConfirmReset] = useState(false);
+  const [authModalOpen, setAuthModalOpen] = useState(false);
   const { reset } = useBudget();
+  const { user } = useAuth();
+  const userId = user?.uid ?? undefined;
 
   const ctxValue = { pageTitle, setPageTitle };
 
@@ -51,14 +56,17 @@ export default function Layout() {
               {pageTitle && <span className="app-subtitle">{pageTitle}</span>}
             </div>
           </div>
-          <button
-            className="menu-btn"
-            onClick={() => setMenuOpen(!menuOpen)}
-            aria-label="Меню навигации"
-            aria-expanded={menuOpen}
-          >
-            ☰
-          </button>
+          <div className="top-bar-right">
+            <AccountButton onOpen={() => setAuthModalOpen(true)} />
+            <button
+              className="menu-btn"
+              onClick={() => setMenuOpen(!menuOpen)}
+              aria-label="Меню навигации"
+              aria-expanded={menuOpen}
+            >
+              ☰
+            </button>
+          </div>
         </header>
 
         <main className="content"><Outlet /></main>
@@ -125,10 +133,10 @@ export default function Layout() {
                       onClick={async () => {
                         await reset(true);
                         const emptyRow = [{ id: crypto.randomUUID(), name: 'Введите название', amount: 0, monthly: 0 }];
-                        await saveToFirestore(COLLECTIONS.assets, emptyRow);
-                        await saveToFirestore(COLLECTIONS.liabilities, emptyRow);
-                        await saveToFirestore(COLLECTIONS.income, emptyRow);
-                        await saveToFirestore(COLLECTIONS.incomeArchive, emptyRow);
+                        await saveToFirestore(COLLECTIONS.assets, emptyRow, userId);
+                        await saveToFirestore(COLLECTIONS.liabilities, emptyRow, userId);
+                        await saveToFirestore(COLLECTIONS.income, emptyRow, userId);
+                        await saveToFirestore(COLLECTIONS.incomeArchive, emptyRow, userId);
                         setConfirmReset(false);
                       }}
                     >
@@ -137,6 +145,10 @@ export default function Layout() {
             </div>
           </div>
         </div>
+      )}
+
+      {authModalOpen && (
+        <AuthModal onClose={() => setAuthModalOpen(false)} />
       )}
     </div>
       </PageTitleContext.Provider>

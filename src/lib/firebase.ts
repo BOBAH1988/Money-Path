@@ -1,5 +1,6 @@
 import { initializeApp, type FirebaseApp } from 'firebase/app';
 import { getFirestore, type Firestore } from 'firebase/firestore';
+import { getAuth, type Auth } from 'firebase/auth';
 
 const firebaseConfig = {
   apiKey: 'REDACTED',
@@ -12,6 +13,7 @@ const firebaseConfig = {
 
 let app: FirebaseApp | null = null;
 let firestoreDb: Firestore | null = null;
+let auth: Auth | null = null;
 let firebaseError: Error | null = null;
 
 const isTestEnv =
@@ -21,6 +23,7 @@ if (!isTestEnv) {
   try {
     app = initializeApp(firebaseConfig);
     firestoreDb = getFirestore(app);
+    auth = getAuth(app);
   } catch (err) {
     firebaseError = err instanceof Error ? err : new Error(String(err));
   }
@@ -28,4 +31,4 @@ if (!isTestEnv) {
   firebaseError = new Error('Firebase disabled in test mode');
 }
 
-export { app, firestoreDb, firebaseError };
+export { app, firestoreDb, auth, firebaseError };

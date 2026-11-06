@@ -6,8 +6,6 @@ const now = () => new Date().toISOString();
 
 const uid = () => crypto.randomUUID();
 
-const BUDGET_STORAGE_KEY = 'denegnyj_put_budget_plan';
-
 export const defaultBudgetPlan: BudgetPlan = {
   updatedAt: now(),
   items: [
@@ -45,9 +43,12 @@ export const defaultBudgetPlan: BudgetPlan = {
   ],
 };
 
-const loadBudgetPlanFromLocalStorage = (): BudgetPlan => {
+const BUDGET_STORAGE_KEY = (userId?: string) =>
+  userId ? `denegnyj_put_budget_plan_${userId}` : 'denegnyj_put_budget_plan';
+
+const loadBudgetPlanFromLocalStorage = (userId?: string): BudgetPlan => {
   try {
-    const raw = localStorage.getItem(BUDGET_STORAGE_KEY);
+    const raw = localStorage.getItem(BUDGET_STORAGE_KEY(userId));
     if (!raw) return defaultBudgetPlan;
     const parsed = JSON.parse(raw) as BudgetPlan;
     if (!parsed || !Array.isArray(parsed.items)) return defaultBudgetPlan;
@@ -61,21 +62,20 @@ const loadBudgetPlanFromLocalStorage = (): BudgetPlan => {
   }
 };
 
-const saveBudgetPlanToLocalStorage = (plan: BudgetPlan): void => {
+const saveBudgetPlanToLocalStorage = (plan: BudgetPlan, userId?: string): void => {
   try {
-    localStorage.setItem(BUDGET_STORAGE_KEY, JSON.stringify(plan));
+    localStorage.setItem(BUDGET_STORAGE_KEY(userId), JSON.stringify(plan));
   } catch {
     // ignore quota errors
   }
 };
 
-export const loadBudgetPlan = async (): Promise<BudgetPlan> => {
+export const loadBudgetPlan = async (userId?: string): Promise<BudgetPlan> => {
   if (!db) {
-    return loadBudgetPlanFromLocalStorage();
+    return loadBudgetPlanFromLocalStorage(userId);
   }
-  // Пытаемся загрузить из Firestore
   try {
-    const docRef = doc(db, COLLECTIONS.budgetPlan, 'budget_plan');
+    const docRef = doc(db, COLLECTIONS.budgetPlan, userId ? `users/${userId}/budget_plan` : 'budget_plan');
     const docSnap = await getDoc(docRef);
     if (docSnap.exists()) {
       const parsed = docSnap.data() as BudgetPlan;
@@ -85,31 +85,30 @@ export const loadBudgetPlan = async (): Promise<BudgetPlan> => {
           plan: typeof it.plan === 'number' ? it.plan : it.amount,
         }));
         const result = { ...parsed, items: migrated };
-        // Синхронизируем в localStorage
-        saveBudgetPlanToLocalStorage(result);
+        saveBudgetPlanToLocalStorage(result, userId);
         return result;
       }
     }
   } catch {
     // Firestore недоступен, используем localStorage
   }
-  // Fallback на localStorage
-  return loadBudgetPlanFromLocalStorage();
+  return loadBudgetPlanFromLocalStorage(userId);
 };
 
-export const saveBudgetPlan = async (plan: BudgetPlan): Promise<void> => {
-  // Всегда сохраняем в localStorage
-  saveBudgetPlanToLocalStorage(plan);
-  // Пытаемся сохранить в Firestore
+export const saveBudgetPlan = async (plan: BudgetPlan, userId?: string): Promise<void> => {
+  saveBudgetPlanToLocalStorage(plan, userId);
   if (!db) return;
   try {
-    await setDoc(doc(db, COLLECTIONS.budgetPlan, 'budget_plan'), plan);
+    await setDoc(doc(db, COLLECTIONS.budgetPlan, userId ? `users/${userId}/budget_plan` : 'budget_plan'), {
+      ...plan,
+      userId,
+    });
   } catch {
     // ignore quota errors
   }
 };
 
-export const resetBudgetPlan = async (empty = false): Promise<BudgetPlan> => {
+export const resetBudgetPlan = async (empty = false, userId?: string): Promise<BudgetPlan> => {
   if (empty) {
     const emptyPlan: BudgetPlan = {
       updatedAt: now(),
@@ -117,19 +116,25 @@ export const resetBudgetPlan = async (empty = false): Promise<BudgetPlan> => {
         { id: uid(), name: 'Введите название', amount: 0, plan: 0, group: 'monthly', type: 'item' },
       ],
     };
-    saveBudgetPlanToLocalStorage(emptyPlan);
+    saveBudgetPlanToLocalStorage(emptyPlan, userId);
     if (!db) return emptyPlan;
     try {
-      await setDoc(doc(db, COLLECTIONS.budgetPlan, 'budget_plan'), emptyPlan);
+      await setDoc(doc(db, COLLECTIONS.budgetPlan, userId ? `users/${userId}/budget_plan` : 'budget_plan'), {
+        ...emptyPlan,
+        userId,
+      });
     } catch {
       // ignore
     }
     return emptyPlan;
   }
-  saveBudgetPlanToLocalStorage(defaultBudgetPlan);
+  saveBudgetPlanToLocalStorage(defaultBudgetPlan, userId);
   if (!db) return defaultBudgetPlan;
   try {
-    await setDoc(doc(db, COLLECTIONS.budgetPlan, 'budget_plan'), defaultBudgetPlan);
+    await setDoc(doc(db, COLLECTIONS.budgetPlan, userId ? `users/${userId}/budget_plan` : 'budget_plan'), {
+      ...defaultBudgetPlan,
+      userId,
+    });
   } catch {
     // ignore
   }
