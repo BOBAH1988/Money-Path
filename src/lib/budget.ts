@@ -71,12 +71,9 @@ const saveBudgetPlanToLocalStorage = (plan: BudgetPlan, userId?: string): void =
 };
 
 export const loadBudgetPlan = async (userId?: string): Promise<BudgetPlan> => {
-  // Без авторизации — пустой план, локальные данные не показываем
+  // Без авторизации — загружаем из локального localStorage
   if (!userId) {
-    return {
-      updatedAt: now(),
-      items: [],
-    };
+    return loadBudgetPlanFromLocalStorage(undefined);
   }
   if (!db) {
     return loadBudgetPlanFromLocalStorage(userId);
@@ -103,7 +100,10 @@ export const loadBudgetPlan = async (userId?: string): Promise<BudgetPlan> => {
 };
 
 export const saveBudgetPlan = async (plan: BudgetPlan, userId?: string): Promise<void> => {
-  if (!userId) return;
+  if (!userId) {
+    saveBudgetPlanToLocalStorage(plan, undefined);
+    return;
+  }
   saveBudgetPlanToLocalStorage(plan, userId);
   if (!db) return;
   try {
@@ -118,10 +118,18 @@ export const saveBudgetPlan = async (plan: BudgetPlan, userId?: string): Promise
 
 export const resetBudgetPlan = async (empty = false, userId?: string): Promise<BudgetPlan> => {
   if (!userId) {
-    return {
-      updatedAt: now(),
-      items: [],
-    };
+    if (empty) {
+      const emptyPlan: BudgetPlan = {
+        updatedAt: now(),
+        items: [
+          { id: uid(), name: 'Введите название', amount: 0, plan: 0, group: 'monthly', type: 'item' },
+        ],
+      };
+      saveBudgetPlanToLocalStorage(emptyPlan, undefined);
+      return emptyPlan;
+    }
+    saveBudgetPlanToLocalStorage(defaultBudgetPlan, undefined);
+    return defaultBudgetPlan;
   }
   if (empty) {
     const emptyPlan: BudgetPlan = {

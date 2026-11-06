@@ -73,8 +73,10 @@ export const loadFromFirestore = async <T extends { id: string } = { id: string 
   collectionName: string,
   userId?: string
 ): Promise<T[]> => {
-  // Без авторизации — пусто, локальные данные не показываем
-  if (!userId) return [];
+  // Без авторизации — загружаем из локального localStorage (без userId)
+  if (!userId) {
+    return loadFromLocalStorage<T>(collectionName, undefined);
+  }
   if (!firestoreDb) {
     return loadFromLocalStorage<T>(collectionName, userId);
   }
