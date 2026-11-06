@@ -218,13 +218,13 @@ body { margin: 0; font-family: system-ui, sans-serif; }
 .menu-item {
   display: flex;
   align-items: center;
-  padding: 14px 20px;
-  margin: 4px 12px;
-  font-size: 17px;
+  padding: 10px 16px;
+  margin: 2px 12px;
+  font-size: 15px;
   font-weight: 600;
   color: #111827;
   text-decoration: none;
-  border-radius: 14px;
+  border-radius: 12px;
   background: #f9fafb;
   border: 1px solid var(--border, #e5e7eb);
   touch-action: manipulation;
