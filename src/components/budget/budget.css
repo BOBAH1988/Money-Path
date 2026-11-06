@@ -201,7 +201,15 @@
 .btn-add:hover { background: var(--bp-accent-hover, #047857); }
 .btn-add:active { transform: scale(0.92); }
 
-.btn-done { background: var(--bp-accent, #059669); color: #fff; }
+.btn-done {
+  background: var(--bp-accent, #059669);
+  color: #fff;
+  width: auto;
+  height: auto;
+  padding: 6px 14px;
+  min-width: 70px;
+  border-radius: 10px;
+}
 .btn-done:hover { background: var(--bp-accent-hover, #047857); }
 .btn-done:active { transform: scale(0.92); }
 
