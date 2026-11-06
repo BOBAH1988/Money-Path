@@ -29,7 +29,7 @@ export default function Layout() {
     <div className="layout">
       {/* Верхняя панель приложения */}
       <header className="top-bar">
-        <img className="app-icon" src="/favicon.svg" alt="" />
+        <span className="app-icon">💰</span>
         <span className="app-title">Денежный путь</span>
         <button
           className="menu-btn"

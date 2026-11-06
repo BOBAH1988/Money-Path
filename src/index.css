@@ -37,10 +37,8 @@ body { margin: 0; font-family: system-ui, sans-serif; }
 }
 
 .app-icon {
-  width: 18px;
-  height: 18px;
+  font-size: 18px;
   margin-right: 4px;
-  display: block;
 }
 
 /* ---------- Нижняя панель — copyright строка ---------- */
