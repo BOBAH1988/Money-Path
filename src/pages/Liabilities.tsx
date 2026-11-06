@@ -101,7 +101,7 @@ export default function Liabilities() {
           <span className="summary-value">{totalAmount.toLocaleString('ru-RU')} ₽</span>
         </div>
         <div className="summary-item">
-          <span className="summary-label">Плата % в месяц</span>
+          <span className="summary-label">Оплата % в месяц</span>
           <span className="summary-value">{totalMonthly.toLocaleString('ru-RU')} ₽</span>
         </div>
       </div>
