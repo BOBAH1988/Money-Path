@@ -64,11 +64,8 @@ export default function Dashboard() {
     };
   }, [userId]);
 
-  const totalAmount = useMemo(() => assets.reduce((sum, it) => sum + (it.amount ?? 0), 0), [assets]);
-  const totalMonthly = useMemo(() => assets.reduce((sum, it) => sum + (it.monthly ?? 0), 0), [assets]);
-
-  const liabilityAmount = useMemo(() => safeNegate(liabilities.reduce((sum, it) => sum + (it.amount ?? 0), 0)), [liabilities]);
-  const liabilityMonthly = useMemo(() => safeNegate(liabilities.reduce((sum, it) => sum + (it.monthly ?? 0), 0)), [liabilities]);
+  const totalAssets = useMemo(() => assets.reduce((sum, it) => sum + (it.amount ?? 0), 0), [assets]);
+  const totalLiabilities = useMemo(() => safeNegate(liabilities.reduce((sum, it) => sum + (it.amount ?? 0), 0)), [liabilities]);
 
   return (
     <div className="page">
@@ -92,35 +89,17 @@ export default function Dashboard() {
 
       <div className="budget-card" style={{ margin: '0 4px' }}>
         <div className="budget-card-header">
-          <h2 className="budget-card-title">Активы</h2>
+          <h2 className="budget-card-title">Активы и Пассивы</h2>
         </div>
         <div className="budget-card-body">
           <div className="budget-summary" style={{ padding: '0 4px' }}>
             <div className="summary-item summary-item-total">
-              <span className="summary-label">Итого</span>
-              <span className="summary-value">{totalAmount.toLocaleString('ru-RU')} ₽</span>
+              <span className="summary-label">Активы итого</span>
+              <span className="summary-value">{totalAssets.toLocaleString('ru-RU')} ₽</span>
             </div>
             <div className="summary-item">
-              <span className="summary-label">% в месяц</span>
-              <span className="summary-value">{totalMonthly.toLocaleString('ru-RU')} ₽</span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div className="budget-card" style={{ margin: '0 4px' }}>
-        <div className="budget-card-header">
-          <h2 className="budget-card-title">Пассивы</h2>
-        </div>
-        <div className="budget-card-body">
-          <div className="budget-summary" style={{ padding: '0 4px' }}>
-            <div className="summary-item summary-item-total">
-              <span className="summary-label">Итого</span>
-              <span className="summary-value">{liabilityAmount.toLocaleString('ru-RU')} ₽</span>
-            </div>
-            <div className="summary-item">
-              <span className="summary-label">% в месяц</span>
-              <span className="summary-value">{liabilityMonthly.toLocaleString('ru-RU')} ₽</span>
+              <span className="summary-label">Пассивы итого</span>
+              <span className="summary-value">{totalLiabilities.toLocaleString('ru-RU')} ₽</span>
             </div>
           </div>
         </div>
