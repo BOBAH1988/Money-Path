@@ -10,13 +10,19 @@ import {
 export const useBudget = () => {
   const [plan, setPlan] = useState<BudgetPlan | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   // Загрузка плана из Firestore при монтировании
   useEffect(() => {
     const load = async () => {
-      const p = await loadBudgetPlan();
-      setPlan(p);
-      setLoading(false);
+      try {
+        const p = await loadBudgetPlan();
+        setPlan(p);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Ошибка загрузки данных');
+      } finally {
+        setLoading(false);
+      }
     };
     load();
   }, []);
@@ -27,11 +33,13 @@ export const useBudget = () => {
     return applyComputedFields(plan.items);
   }, [plan]);
 
-  // Пока загружаем — возвращаем пустые stub-методы
+  // Пока загружаем или ошибка — возвращаем stub-методы
   if (loading || !plan) {
     return {
       items: [],
       updatedAt: '',
+      loading,
+      error,
       updateItem: () => {},
       addItem: () => {},
       removeItem: () => {},
@@ -47,7 +55,9 @@ export const useBudget = () => {
     const current = JSON.stringify(currentItems);
     const previous = JSON.stringify(prevItems);
     if (current !== previous) {
-      saveBudgetPlan(computed);
+      saveBudgetPlan(computed).catch((err) => {
+        setError(err instanceof Error ? err.message : 'Ошибка сохранения');
+      });
     }
   }, [computed, plan.items]);
 
@@ -94,8 +104,12 @@ export const useBudget = () => {
   );
 
   const reset = useCallback(async (empty = false) => {
-    const def = await resetBudgetPlan(empty);
-    setPlan(def);
+    try {
+      const def = await resetBudgetPlan(empty);
+      setPlan(def);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Ошибка сброса');
+    }
   }, []);
 
   const groupTotal = useCallback(
@@ -115,6 +129,8 @@ export const useBudget = () => {
   return {
     items: computed.items,
     updatedAt: computed.updatedAt,
+    loading,
+    error,
     updateItem,
     addItem,
     removeItem,

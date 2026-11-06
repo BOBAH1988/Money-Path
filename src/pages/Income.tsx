@@ -27,21 +27,29 @@ export default function Income() {
 
   const [items, setItems] = useState<IncomeRow[]>(initialData);
   const [loaded, setLoaded] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const load = async () => {
-      const data = await loadFromFirestore<IncomeRow>(COLLECTIONS.income);
-      if (data.length > 0) {
-        setItems(data);
+      try {
+        const data = await loadFromFirestore<IncomeRow>(COLLECTIONS.income);
+        if (data.length > 0) {
+          setItems(data);
+        }
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Ошибка загрузки данных');
+      } finally {
+        setLoaded(true);
       }
-      setLoaded(true);
     };
     load();
   }, []);
 
   useEffect(() => {
     if (!loaded) return;
-    saveToFirestore(COLLECTIONS.income, items);
+    saveToFirestore(COLLECTIONS.income, items).catch((err) => {
+      setError(err instanceof Error ? err.message : 'Ошибка сохранения');
+    });
   }, [items, loaded]);
 
   const budgetItems = useMemo(
@@ -67,6 +75,25 @@ export default function Income() {
       setItems(items.filter((it) => it.id !== id));
     }
   };
+
+  if (error) {
+    return (
+      <div className="page page-budget">
+        <div className="budget-card">
+          <div className="budget-card-body">
+            <div className="budget-table-wrap">
+              <div style={{ padding: 40, textAlign: 'center', color: '#dc2626' }}>
+                <div style={{ fontSize: 18, fontWeight: 600, marginBottom: 12 }}>
+                  Ошибка загрузки данных
+                </div>
+                <div style={{ fontSize: 14, marginBottom: 16 }}>{error}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="page page-budget">
