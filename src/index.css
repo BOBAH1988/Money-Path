@@ -577,7 +577,7 @@ body { margin: 0; font-family: system-ui, sans-serif; }
 .budget-summary {
   display: flex;
   gap: 8px;
-  margin-top: 12px;
+  margin: 8px 0 16px;
   animation: fadeIn 0.5s ease;
 }
 
