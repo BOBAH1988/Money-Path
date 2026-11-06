@@ -58,6 +58,15 @@ export default function Assets() {
     setEditingId(null);
   };
 
+  const handleRemove = (id: string) => {
+    if (!window.confirm('Удалить строку?')) return;
+    if (items.length <= 1) {
+      setItems(items.map((it) => (it.id === id ? { ...it, name: '', amount: 0, monthly: 0 } : it)));
+    } else {
+      setItems(items.filter((it) => it.id !== id));
+    }
+  };
+
   return (
     <div className="page page-budget">
       <section className="budget-card">
@@ -156,6 +165,13 @@ export default function Assets() {
                             aria-label="Редактировать строку"
                           >
                             ✎
+                          </button>
+                          <button
+                            className="btn-delete"
+                            onClick={(e) => { e.stopPropagation(); handleRemove(item.id); }}
+                            aria-label="Удалить строку"
+                          >
+                            ×
                           </button>
                         </td>
                       </>
