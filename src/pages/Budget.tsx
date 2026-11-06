@@ -1,9 +1,15 @@
-import { useMemo } from 'react';
+import { useMemo, useEffect, useContext } from 'react';
 import { useBudget } from '../hooks/useBudget';
 import { BudgetTable } from '../components/budget/BudgetTable';
+import { PageTitleContext } from '../components/Layout';
 
 export default function Budget() {
   const { items, updateItem, addItem, removeItem, groupTotal } = useBudget();
+  const { setPageTitle } = useContext(PageTitleContext)!;
+
+  useEffect(() => {
+    setPageTitle('Планирование бюджета');
+  }, [setPageTitle]);
 
   const monthlyItems = useMemo(
     () => items.filter((it) => it.group === 'monthly'),
@@ -19,12 +25,6 @@ export default function Budget() {
 
   return (
     <div className="page page-budget">
-      <div className="budget-page-header">
-        <h1>Планирование бюджета</h1>
-
-
-      </div>
-
       <div className="budget-grid">
         <BudgetTable
           group="monthly"

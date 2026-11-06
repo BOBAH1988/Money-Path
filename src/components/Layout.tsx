@@ -1,10 +1,17 @@
-import { useState } from 'react';
+import { useState, createContext } from 'react';
 import { NavLink, Outlet } from 'react-router-dom';
 import packageJson from '../../package.json';
 import { useBudget } from '../hooks/useBudget';
 import { AppIcon } from './AppIcon';
 
 const pkgVersion = packageJson.version;
+
+interface PageTitleContextValue {
+  pageTitle: string;
+  setPageTitle: (title: string) => void;
+}
+
+export const PageTitleContext = createContext<PageTitleContextValue | undefined>(undefined);
 
 const items = [
   { to: '/', label: 'Дашборд', icon: '📊' },
@@ -24,27 +31,34 @@ const footerText =
 
 export default function Layout() {
   const [menuOpen, setMenuOpen] = useState(false);
+  const [pageTitle, setPageTitle] = useState('');
   const { reset } = useBudget();
 
-  return (
-    <div className="layout">
-      {/* Верхняя панель приложения */}
-      <header className="top-bar">
-        <div className="top-bar-left">
-          <AppIcon />
-          <span className="app-title">Денежный путь</span>
-        </div>
-        <button
-          className="menu-btn"
-          onClick={() => setMenuOpen(!menuOpen)}
-          aria-label="Меню навигации"
-          aria-expanded={menuOpen}
-        >
-          ☰
-        </button>
-      </header>
+  const ctxValue = { pageTitle, setPageTitle };
 
-      <main className="content"><Outlet /></main>
+  return (
+    <PageTitleContext.Provider value={ctxValue}>
+      <div className="layout">
+        {/* Верхняя панель приложения */}
+        <header className="top-bar">
+          <div className="top-bar-left">
+            <AppIcon />
+            <div className="app-title-block">
+              <span className="app-title">Денежный путь</span>
+              {pageTitle && <span className="app-subtitle">{pageTitle}</span>}
+            </div>
+          </div>
+          <button
+            className="menu-btn"
+            onClick={() => setMenuOpen(!menuOpen)}
+            aria-label="Меню навигации"
+            aria-expanded={menuOpen}
+          >
+            ☰
+          </button>
+        </header>
+
+        <main className="content"><Outlet /></main>
 
       {/* Нижняя панель — copyright строка и обратная связь */}
       <nav className="bottom-nav">
@@ -98,5 +112,6 @@ export default function Layout() {
         </div>
       )}
     </div>
+      </PageTitleContext.Provider>
   );
 }
