@@ -28,7 +28,7 @@ describe('BudgetRow', () => {
     expect(screen.queryAllByRole('textbox')).toHaveLength(0);
   });
 
-  it('shows inputs after clicking the row', () => {
+  it('renders edit and delete buttons in actions cell', () => {
     const { container } = renderRow({
       id: '1',
       name: 'Ипотека',
@@ -37,7 +37,20 @@ describe('BudgetRow', () => {
       group: 'monthly',
       type: 'item',
     });
-    fireEvent.click(container.querySelector('.row-name')!);
+    expect(container.querySelector('.btn-edit')).toBeInTheDocument();
+    expect(container.querySelector('.btn-delete')).toBeInTheDocument();
+  });
+
+  it('shows inputs after clicking edit button', () => {
+    const { container } = renderRow({
+      id: '1',
+      name: 'Ипотека',
+      amount: 12500,
+      plan: 12500,
+      group: 'monthly',
+      type: 'item',
+    });
+    fireEvent.click(container.querySelector('.btn-edit')!);
     const nameInput = screen.getAllByRole('textbox')[0];
     expect(nameInput).toHaveValue('Ипотека');
     const amountInput = screen.getAllByRole('textbox')[1];
@@ -46,7 +59,7 @@ describe('BudgetRow', () => {
     expect(planInput).toHaveValue('12500');
   });
 
-  it('calls onRemove when delete button clicked in edit mode', () => {
+  it('calls onRemove when delete button clicked', () => {
     const onRemove = vi.fn();
     const { container } = renderRow(
       {
@@ -60,9 +73,7 @@ describe('BudgetRow', () => {
       vi.fn(),
       onRemove
     );
-    fireEvent.click(container.querySelector('.row-name')!);
-    const deleteBtn = container.querySelector('.btn-delete')!;
-    fireEvent.click(deleteBtn);
+    fireEvent.click(container.querySelector('.btn-delete')!);
     expect(onRemove).toHaveBeenCalledWith('1');
   });
 });

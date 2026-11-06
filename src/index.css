@@ -471,7 +471,8 @@ body { margin: 0; font-family: system-ui, sans-serif; }
 }
 
 .btn-add,
-.btn-delete {
+.btn-delete,
+.btn-edit {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -492,6 +493,10 @@ body { margin: 0; font-family: system-ui, sans-serif; }
 .btn-delete { background: #f1f5f9; color: #94a3b8; }
 .btn-delete:hover { background: #fee2e2; color: #dc2626; }
 .btn-delete:active { transform: scale(0.92); }
+
+.btn-edit { background: #f1f5f9; color: #64748b; }
+.btn-edit:hover { background: #e2e8f0; color: #0f172a; }
+.btn-edit:active { transform: scale(0.92); }
 
 .budget-row.total {
   background: #f1f5f9 !important;

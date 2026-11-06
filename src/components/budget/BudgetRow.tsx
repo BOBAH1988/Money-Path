@@ -37,7 +37,7 @@ export const BudgetRow = ({ item, onUpdate, onRemove }: Props) => {
     }
   };
 
-  const toggleEdit = () => {
+  const startEdit = () => {
     if (isTotal) return;
     setEditing(true);
     setName(item.name);
@@ -49,7 +49,7 @@ export const BudgetRow = ({ item, onUpdate, onRemove }: Props) => {
 
   if (!editing) {
     return (
-      <tr className={`budget-row ${item.type}`} onClick={toggleEdit}>
+      <tr className={`budget-row ${item.type}`}>
         <td className="budget-cell budget-cell-name">
           <span className="row-name">{item.name}</span>
           {isSubtotal && <span className="row-hint">из запланированных расходов</span>}
@@ -60,7 +60,26 @@ export const BudgetRow = ({ item, onUpdate, onRemove }: Props) => {
         <td className="budget-cell budget-cell-plan">
           <span className="row-amount">{format(item.plan)}</span>
         </td>
-        <td className="budget-cell budget-cell-actions" />
+        <td className="budget-cell budget-cell-actions">
+          {!isTotal && (
+            <>
+              <button
+                className="btn-edit"
+                onClick={startEdit}
+                aria-label="Редактировать строку"
+              >
+                ✏️
+              </button>
+              <button
+                className="btn-delete"
+                onClick={() => onRemove(item.id)}
+                aria-label="Удалить строку"
+              >
+                ×
+              </button>
+            </>
+          )}
+        </td>
       </tr>
     );
   }
@@ -102,15 +121,13 @@ export const BudgetRow = ({ item, onUpdate, onRemove }: Props) => {
         </div>
       </td>
       <td className="budget-cell budget-cell-actions">
-        {!isTotal && (
-          <button
-            className="btn-delete"
-            onClick={() => onRemove(item.id)}
-            aria-label="Удалить строку"
-          >
-            ×
-          </button>
-        )}
+        <button
+          className="btn-delete"
+          onClick={() => setEditing(false)}
+          aria-label="Отмена"
+        >
+          ×
+        </button>
       </td>
     </tr>
   );
