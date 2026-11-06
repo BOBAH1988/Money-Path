@@ -115,7 +115,7 @@ export default function Income() {
         headers={{
           name: 'Доходы',
           amount: 'Сумма',
-          plan: '% в мес.',
+          plan: 'План',
         }}
         onUpdate={(id, patch) => {
           setItems((prev) =>
