@@ -5,8 +5,16 @@ import { useBudget } from '../hooks/useBudget';
 import { computeBudgetPageTotals } from '../lib/budget';
 import { useAuth } from '../context/AuthContext';
 import { loadFromFirestore, COLLECTIONS } from '../lib/firestore';
+import { safeNegate } from '../lib/budget';
 
 interface AssetRow {
+  id: string;
+  name: string;
+  amount: number;
+  monthly: number;
+}
+
+interface LiabilityRow {
   id: string;
   name: string;
   amount: number;
@@ -21,6 +29,7 @@ export default function Dashboard() {
   const totals = useMemo(() => computeBudgetPageTotals(items), [items]);
 
   const [assets, setAssets] = useState<AssetRow[]>([]);
+  const [liabilities, setLiabilities] = useState<LiabilityRow[]>([]);
 
   useEffect(() => {
     setPageTitle('Главная');
@@ -29,15 +38,25 @@ export default function Dashboard() {
   useEffect(() => {
     if (!userId) {
       setAssets([]);
+      setLiabilities([]);
       return;
     }
     let cancelled = false;
     (async () => {
       try {
-        const data = await loadFromFirestore<AssetRow>(COLLECTIONS.assets, userId);
-        if (!cancelled) setAssets(data);
+        const [a, l] = await Promise.all([
+          loadFromFirestore<AssetRow>(COLLECTIONS.assets, userId),
+          loadFromFirestore<LiabilityRow>(COLLECTIONS.liabilities, userId),
+        ]);
+        if (!cancelled) {
+          setAssets(a);
+          setLiabilities(l);
+        }
       } catch {
-        if (!cancelled) setAssets([]);
+        if (!cancelled) {
+          setAssets([]);
+          setLiabilities([]);
+        }
       }
     })();
     return () => {
@@ -47,6 +66,9 @@ export default function Dashboard() {
 
   const totalAmount = useMemo(() => assets.reduce((sum, it) => sum + (it.amount ?? 0), 0), [assets]);
   const totalMonthly = useMemo(() => assets.reduce((sum, it) => sum + (it.monthly ?? 0), 0), [assets]);
+
+  const liabilityAmount = useMemo(() => safeNegate(liabilities.reduce((sum, it) => sum + (it.amount ?? 0), 0)), [liabilities]);
+  const liabilityMonthly = useMemo(() => safeNegate(liabilities.reduce((sum, it) => sum + (it.monthly ?? 0), 0)), [liabilities]);
 
   return (
     <div className="page">
@@ -81,6 +103,24 @@ export default function Dashboard() {
             <div className="summary-item">
               <span className="summary-label">% в месяц</span>
               <span className="summary-value">{totalMonthly.toLocaleString('ru-RU')} ₽</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="budget-card" style={{ margin: '0 4px' }}>
+        <div className="budget-card-header">
+          <h2 className="budget-card-title">Пассивы</h2>
+        </div>
+        <div className="budget-card-body">
+          <div className="budget-summary" style={{ padding: '0 4px' }}>
+            <div className="summary-item summary-item-total">
+              <span className="summary-label">Итого</span>
+              <span className="summary-value">{liabilityAmount.toLocaleString('ru-RU')} ₽</span>
+            </div>
+            <div className="summary-item">
+              <span className="summary-label">% в месяц</span>
+              <span className="summary-value">{liabilityMonthly.toLocaleString('ru-RU')} ₽</span>
             </div>
           </div>
         </div>
