@@ -135,11 +135,8 @@ export const BudgetRow = ({ item, onUpdate, onRemove, onToggle, isPlannedCollaps
           </div>
         </td>
         <td className="budget-cell budget-cell-actions">
-          <button className="btn-cancel" onClick={() => { if (onFinishEdit) onFinishEdit(); }} aria-label="Отмена">
-            ×
-          </button>
           <button className="btn-delete" onClick={() => setConfirmDelete(true)} aria-label="Удалить строку">
-            ×
+            🗑️
           </button>
         </td>
       </tr>

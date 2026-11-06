@@ -74,7 +74,7 @@ describe('BudgetRow', () => {
       true
     );
     expect(container.querySelector('.btn-delete')).toBeInTheDocument();
-    expect(container.querySelector('.btn-cancel')).toBeInTheDocument();
+    expect(container.querySelector('.btn-cancel')).toBeNull();
   });
 
   it('calls onRemove when confirm delete button clicked in edit mode', () => {
@@ -198,7 +198,7 @@ describe('BudgetRow', () => {
     expect(onStartEdit).toHaveBeenCalledWith('1');
   });
 
-  it('shows cancel button only in edit mode', () => {
+  it('shows delete button only in edit mode', () => {
     const { container } = renderRow(
       {
         id: '1',
@@ -212,7 +212,7 @@ describe('BudgetRow', () => {
       vi.fn(),
       true
     );
-    expect(container.querySelector('.btn-cancel')).toBeInTheDocument();
+    expect(container.querySelector('.btn-delete')).toBeInTheDocument();
   });
 
   it('does not enter edit mode when clicking the row', () => {
