@@ -291,8 +291,7 @@ body { margin: 0; font-family: system-ui, sans-serif; }
 .page-budget {
   max-width: 900px;
   margin: 0 auto;
-  padding-bottom: 90px;
-  background: var(--bp-bg, #f8fafc);
+  padding-bottom: 70px;
 }
 
 .budget-page-header {
