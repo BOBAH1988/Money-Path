@@ -5,6 +5,7 @@ import { useBudget } from '../hooks/useBudget';
 import { saveToFirestore, COLLECTIONS } from '../lib/firestore';
 import { AppIcon } from './AppIcon';
 import { AuthModal, AccountButton, AccountMenu, AnalyticsModal } from './AuthModal';
+import { ImportModal } from './ImportModal';
 import { useAuth } from '../context/AuthContext';
 
 const pkgVersion = packageJson.version;
@@ -40,6 +41,7 @@ export default function Layout() {
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [accountMenuOpen, setAccountMenuOpen] = useState(false);
   const [analyticsOpen, setAnalyticsOpen] = useState(false);
+  const [importModalOpen, setImportModalOpen] = useState(false);
   const { reset } = useBudget();
   const { user } = useAuth();
   const userId = user?.uid ?? undefined;
@@ -95,14 +97,27 @@ export default function Layout() {
             <ul className="menu-list">
               {items.map((i) => (
                 <li key={i.to}>
-                  <NavLink
-                    to={i.to}
-                    className={({ isActive }) => isActive ? 'menu-item active' : 'menu-item'}
-                    onClick={() => setMenuOpen(false)}
-                  >
-                    <span className="menu-icon">{i.icon}</span>
-                    {i.label}
-                  </NavLink>
+                  {i.label === 'Импорт' ? (
+                    <button
+                      className="menu-item"
+                      onClick={() => {
+                        setMenuOpen(false);
+                        setImportModalOpen(true);
+                      }}
+                    >
+                      <span className="menu-icon">{i.icon}</span>
+                      {i.label}
+                    </button>
+                  ) : (
+                    <NavLink
+                      to={i.to}
+                      className={({ isActive }) => isActive ? 'menu-item active' : 'menu-item'}
+                      onClick={() => setMenuOpen(false)}
+                    >
+                      <span className="menu-icon">{i.icon}</span>
+                      {i.label}
+                    </NavLink>
+                  )}
                 </li>
               ))}
               <li>
@@ -159,6 +174,10 @@ export default function Layout() {
 
       {analyticsOpen && (
         <AnalyticsModal onClose={() => setAnalyticsOpen(false)} />
+      )}
+
+      {importModalOpen && (
+        <ImportModal onClose={() => setImportModalOpen(false)} />
       )}
     </div>
       </PageTitleContext.Provider>
