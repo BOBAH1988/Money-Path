@@ -88,7 +88,7 @@ export const BudgetRow = ({ item, onUpdate, onRemove }: Props) => {
               onClick={startEdit}
               aria-label="Редактировать строку"
             >
-              ✏️
+              ✎
             </button>
           )}
         </td>
