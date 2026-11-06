@@ -65,9 +65,6 @@ export const ImportModal = ({ onClose }: { onClose: () => void }) => {
           ×
         </button>
         <h2 className="auth-title">Скачать данные</h2>
-        <p style={{ marginBottom: 16, color: '#64748b', fontSize: 13 }}>
-          Все ваши данные будут сохранены в файл JSON для передачи аналитику или наставнику.
-        </p>
 
         {!userId && (
           <div style={{ padding: 20, textAlign: 'center', color: '#dc2626' }}>
