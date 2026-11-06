@@ -206,9 +206,10 @@
   color: #fff;
   width: auto;
   height: auto;
-  padding: 6px 14px;
-  min-width: 70px;
+  padding: 4px 10px;
+  min-width: 50px;
   border-radius: 10px;
+  white-space: nowrap;
 }
 .btn-done:hover { background: var(--bp-accent-hover, #047857); }
 .btn-done:active { transform: scale(0.92); }
