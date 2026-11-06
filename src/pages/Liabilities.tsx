@@ -11,11 +11,25 @@ interface LiabilityRow {
   monthly: number;
 }
 
+const LIABILITIES_STORAGE_KEY = 'denegnyj_put_liabilities';
+
 const initialData: LiabilityRow[] = [
   { id: '1', name: 'Ипотека', amount: 1_131_000, monthly: 11_000 },
   { id: '2', name: 'Деду', amount: 150_000, monthly: 0 },
   { id: '3', name: 'Кредитка', amount: 30_000, monthly: 0 },
 ];
+
+const loadLiabilities = (): LiabilityRow[] => {
+  try {
+    const raw = localStorage.getItem(LIABILITIES_STORAGE_KEY);
+    if (!raw) return initialData;
+    const parsed = JSON.parse(raw) as LiabilityRow[];
+    if (!parsed || !Array.isArray(parsed)) return initialData;
+    return parsed;
+  } catch {
+    return initialData;
+  }
+};
 
 export default function Liabilities() {
   const { setPageTitle } = useContext(PageTitleContext)!;
@@ -24,7 +38,15 @@ export default function Liabilities() {
     setPageTitle('Пассивы');
   }, [setPageTitle]);
 
-  const [items, setItems] = useState<LiabilityRow[]>(initialData);
+  const [items, setItems] = useState<LiabilityRow[]>(loadLiabilities);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(LIABILITIES_STORAGE_KEY, JSON.stringify(items));
+    } catch {
+      // ignore quota errors
+    }
+  }, [items]);
 
   const budgetItems = useMemo(
     () =>

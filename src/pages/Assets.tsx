@@ -11,11 +11,25 @@ interface AssetRow {
   monthly: number;
 }
 
+const ASSETS_STORAGE_KEY = 'denegnyj_put_assets';
+
 const initialData: AssetRow[] = [
   { id: '1', name: 'Накопления', amount: 500_000, monthly: 0 },
   { id: '2', name: 'Инвестиции', amount: 200_000, monthly: 5_000 },
   { id: '3', name: 'Деньги', amount: 80_000, monthly: 0 },
 ];
+
+const loadAssets = (): AssetRow[] => {
+  try {
+    const raw = localStorage.getItem(ASSETS_STORAGE_KEY);
+    if (!raw) return initialData;
+    const parsed = JSON.parse(raw) as AssetRow[];
+    if (!parsed || !Array.isArray(parsed)) return initialData;
+    return parsed;
+  } catch {
+    return initialData;
+  }
+};
 
 export default function Assets() {
   const { setPageTitle } = useContext(PageTitleContext)!;
@@ -24,7 +38,15 @@ export default function Assets() {
     setPageTitle('Активы');
   }, [setPageTitle]);
 
-  const [items, setItems] = useState<AssetRow[]>(initialData);
+  const [items, setItems] = useState<AssetRow[]>(loadAssets);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(ASSETS_STORAGE_KEY, JSON.stringify(items));
+    } catch {
+      // ignore quota errors
+    }
+  }, [items]);
 
   const budgetItems = useMemo(
     () =>
