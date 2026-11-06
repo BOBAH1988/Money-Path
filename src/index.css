@@ -428,6 +428,7 @@ body { margin: 0; font-family: system-ui, sans-serif; }
 .row-name { font-weight: 500; }
 .row-hint { display: block; font-size: 11px; color: #94a3b8; margin-top: 2px; }
 .row-amount { font-weight: 600; color: var(--bp-text, #0f172a); }
+.row-currency { margin-left: 2px; font-size: 12px; color: #64748b; }
 
 .budget-row-editing .budget-cell { background: #ecfdf5; }
 
