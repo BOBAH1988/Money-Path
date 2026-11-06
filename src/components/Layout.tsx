@@ -18,8 +18,8 @@ const items = [
   { to: '/budget', label: 'Бюджет', icon: '💰' },
   { to: '/assets', label: 'Активы', icon: '📈' },
   { to: '/liabilities', label: 'Пассивы', icon: '🏦' },
-  { to: '/categories', label: 'Категории', icon: '📁' },
-  { to: '/transactions', label: 'Транзакции', icon: '💳' },
+  { to: '/income', label: 'Доход', icon: '💵' },
+  { to: '/income-archive', label: 'Доходы архив', icon: '📂' },
   { to: '/import', label: 'Импорт', icon: '📥' },
 ];
 
