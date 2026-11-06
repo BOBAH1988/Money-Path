@@ -73,7 +73,7 @@ export const BudgetRow = ({ item, onUpdate, onRemove }: Props) => {
       <tr className={`budget-row ${item.type}`}>
         <td className="budget-cell budget-cell-name">
           <span className="row-name">{item.name}</span>
-          {isSubtotal && <span className="row-hint">из запланированных расходов</span>}
+          {isSubtotal && <span className="row-hint">- сумма запланированных расходов</span>}
         </td>
         <td className="budget-cell budget-cell-amount">
           <span className="row-amount">{format(item.amount)}</span>
