@@ -100,7 +100,7 @@ export default function Assets() {
           <span className="summary-value">{totalAmount.toLocaleString('ru-RU')} ₽</span>
         </div>
         <div className="summary-item">
-          <span className="summary-label">% в месяц</span>
+          <span className="summary-label">Дивиденды в месяц</span>
           <span className="summary-value">{totalMonthly.toLocaleString('ru-RU')} ₽</span>
         </div>
       </div>
