@@ -4,7 +4,7 @@ import { BudgetTable } from '../components/budget/BudgetTable';
 import { PageTitleContext } from '../components/Layout';
 
 export default function Budget() {
-  const { items, updateItem, addItem, removeItem, groupTotal, loading, error } = useBudget();
+  const { items, updateItem, addItem, removeItem, loading, error } = useBudget();
   const { setPageTitle } = useContext(PageTitleContext)!;
 
   useEffect(() => {
@@ -20,8 +20,20 @@ export default function Budget() {
     [items]
   );
 
-  const totalMonthly = groupTotal('monthly');
-  const totalPlanned = groupTotal('planned');
+  const totalMonthly = useMemo(
+    () =>
+      items
+        .filter((it) => it.group === 'monthly' && it.type === 'item')
+        .reduce((sum, it) => sum + it.amount, 0),
+    [items]
+  );
+  const totalPlanned = useMemo(
+    () =>
+      items
+        .filter((it) => it.group === 'planned' && it.type === 'item')
+        .reduce((sum, it) => sum + it.amount, 0),
+    [items]
+  );
 
   const [plannedVisible, setPlannedVisible] = useState(() => {
     try {
