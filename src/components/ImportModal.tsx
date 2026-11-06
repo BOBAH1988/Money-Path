@@ -78,7 +78,7 @@ export const ImportModal = ({ onClose }: { onClose: () => void }) => {
         )}
 
         {userId && (
-          <div style={{ display: 'flex', gap: 12, flexDirection: 'column' }}>
+          <div style={{ display: 'flex', justifyContent: 'center', gap: 12, flexDirection: 'column', alignItems: 'center' }}>
             <button
               onClick={handleDownload}
               disabled={loading}
