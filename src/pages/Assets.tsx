@@ -115,7 +115,7 @@ export default function Assets() {
         headers={{
           name: 'Активы',
           amount: 'Сумма',
-          plan: '% в мес.',
+          plan: 'В мес.',
         }}
         onUpdate={(id, patch) => {
           setItems((prev) =>
