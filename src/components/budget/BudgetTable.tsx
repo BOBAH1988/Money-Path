@@ -166,7 +166,7 @@ export const BudgetTable = ({
                   <td className="budget-cell budget-cell-name">
                     <span className="footer-label">Итого:</span>
                   </td>
-                  <td className="budget-cell budget-cell-amount">
+                  <td className="budget-cell budget-cell-amount" style={{ whiteSpace: 'nowrap' }}>
                     {total.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ')}<span className="row-currency">₽</span>
                   </td>
                   <td className="budget-cell budget-cell-plan" style={{ whiteSpace: 'nowrap' }}>
