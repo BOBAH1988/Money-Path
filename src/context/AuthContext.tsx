@@ -13,7 +13,6 @@ import { COLLECTIONS, migrateCollectionToUser } from '../lib/firestore';
 
 const ADMIN_EMAIL = '79042044926@ya.ru';
 
-// Минимальные требования к паролю
 export const PASSWORD_RULES = {
   minLength: 8,
   requireUppercase: true,
@@ -59,7 +58,6 @@ export const useAuth = () => {
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
 
   const isAdmin = user ? user.email === ADMIN_EMAIL : false;
 
@@ -75,13 +73,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   useEffect(() => {
     if (!auth) {
-      setLoading(false);
       return;
     }
     const unsub = onAuthStateChanged(auth, async (u) => {
       setUser(u);
-      setLoading(false);
-
       if (u) {
         await migrateAllToUser(u.uid);
       }
@@ -97,11 +92,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const register = async (email: string, password: string) => {
     if (!auth) throw new Error('Firebase Auth не инициализирован');
     const credential = await createUserWithEmailAndPassword(auth, email, password);
-    // Отправляем письмо с подтверждением почты
     try {
       await sendEmailVerification(credential.user);
     } catch {
-      // ignore — пользователь зарегистрирован, но письмо не отправилось
+      // ignore
     }
   };
 
@@ -120,11 +114,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     await sendEmailVerification(user);
   };
 
-  const value = { user, isAdmin, loading, login, register, logout, sendPasswordReset, resendVerification };
+  const value = { user, isAdmin, loading: false, login, register, logout, sendPasswordReset, resendVerification };
 
   return (
     <AuthContext.Provider value={value}>
-      {!loading && children}
+      {children}
     </AuthContext.Provider>
   );
 };
