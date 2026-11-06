@@ -10,8 +10,8 @@ interface Props {
 export const BudgetRow = ({ item, onUpdate, onRemove }: Props) => {
   const [editing, setEditing] = useState(item.type === 'item');
   const [name, setName] = useState(item.name);
-  const [amount, setAmount] = useState(String(item.amount));
-  const [plan, setPlan] = useState(String(item.plan));
+  const [amount, setAmount] = useState(String(item.amount ?? 0));
+  const [plan, setPlan] = useState(String(item.plan ?? 0));
 
   const isSubtotal = item.type === 'subtotal';
   const isTotal = item.type === 'total';
