@@ -3,6 +3,7 @@ import { useContext } from 'react';
 import { PageTitleContext } from '../components/Layout';
 import { BudgetTable } from '../components/budget/BudgetTable';
 import type { BudgetGroup } from '../types';
+import { saveToFirestore, loadFromFirestore, COLLECTIONS } from '../lib/firestore';
 
 interface IncomeArchiveRow {
   id: string;
@@ -11,25 +12,11 @@ interface IncomeArchiveRow {
   monthly: number;
 }
 
-const INCOME_ARCHIVE_STORAGE_KEY = 'denegnyj_put_income_archive';
-
 const initialData: IncomeArchiveRow[] = [
   { id: '1', name: 'Премия 2025', amount: 50_000, monthly: 0 },
   { id: '2', name: 'Возврат налога', amount: 13_000, monthly: 0 },
   { id: '3', name: 'Продажа авто', amount: 200_000, monthly: 0 },
 ];
-
-const loadIncomeArchive = (): IncomeArchiveRow[] => {
-  try {
-    const raw = localStorage.getItem(INCOME_ARCHIVE_STORAGE_KEY);
-    if (!raw) return initialData;
-    const parsed = JSON.parse(raw) as IncomeArchiveRow[];
-    if (!parsed || !Array.isArray(parsed)) return initialData;
-    return parsed;
-  } catch {
-    return initialData;
-  }
-};
 
 export default function IncomeArchive() {
   const { setPageTitle } = useContext(PageTitleContext)!;
@@ -38,15 +25,24 @@ export default function IncomeArchive() {
     setPageTitle('Доходы архив');
   }, [setPageTitle]);
 
-  const [items, setItems] = useState<IncomeArchiveRow[]>(loadIncomeArchive);
+  const [items, setItems] = useState<IncomeArchiveRow[]>(initialData);
+  const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
-    try {
-      localStorage.setItem(INCOME_ARCHIVE_STORAGE_KEY, JSON.stringify(items));
-    } catch {
-      // ignore quota errors
-    }
-  }, [items]);
+    const load = async () => {
+      const data = await loadFromFirestore<IncomeArchiveRow>(COLLECTIONS.incomeArchive);
+      if (data.length > 0) {
+        setItems(data);
+      }
+      setLoaded(true);
+    };
+    load();
+  }, []);
+
+  useEffect(() => {
+    if (!loaded) return;
+    saveToFirestore(COLLECTIONS.incomeArchive, items);
+  }, [items, loaded]);
 
   const budgetItems = useMemo(
     () =>

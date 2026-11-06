@@ -3,6 +3,7 @@ import { useContext } from 'react';
 import { PageTitleContext } from '../components/Layout';
 import { BudgetTable } from '../components/budget/BudgetTable';
 import type { BudgetGroup } from '../types';
+import { saveToFirestore, loadFromFirestore, COLLECTIONS } from '../lib/firestore';
 
 interface AssetRow {
   id: string;
@@ -11,25 +12,11 @@ interface AssetRow {
   monthly: number;
 }
 
-const ASSETS_STORAGE_KEY = 'denegnyj_put_assets';
-
 const initialData: AssetRow[] = [
   { id: '1', name: 'Накопления', amount: 500_000, monthly: 0 },
   { id: '2', name: 'Инвестиции', amount: 200_000, monthly: 5_000 },
   { id: '3', name: 'Деньги', amount: 80_000, monthly: 0 },
 ];
-
-const loadAssets = (): AssetRow[] => {
-  try {
-    const raw = localStorage.getItem(ASSETS_STORAGE_KEY);
-    if (!raw) return initialData;
-    const parsed = JSON.parse(raw) as AssetRow[];
-    if (!parsed || !Array.isArray(parsed)) return initialData;
-    return parsed;
-  } catch {
-    return initialData;
-  }
-};
 
 export default function Assets() {
   const { setPageTitle } = useContext(PageTitleContext)!;
@@ -38,15 +25,24 @@ export default function Assets() {
     setPageTitle('Активы');
   }, [setPageTitle]);
 
-  const [items, setItems] = useState<AssetRow[]>(loadAssets);
+  const [items, setItems] = useState<AssetRow[]>(initialData);
+  const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
-    try {
-      localStorage.setItem(ASSETS_STORAGE_KEY, JSON.stringify(items));
-    } catch {
-      // ignore quota errors
-    }
-  }, [items]);
+    const load = async () => {
+      const data = await loadFromFirestore<AssetRow>(COLLECTIONS.assets);
+      if (data.length > 0) {
+        setItems(data);
+      }
+      setLoaded(true);
+    };
+    load();
+  }, []);
+
+  useEffect(() => {
+    if (!loaded) return;
+    saveToFirestore(COLLECTIONS.assets, items);
+  }, [items, loaded]);
 
   const budgetItems = useMemo(
     () =>

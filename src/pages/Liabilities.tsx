@@ -3,6 +3,7 @@ import { useContext } from 'react';
 import { PageTitleContext } from '../components/Layout';
 import { BudgetTable } from '../components/budget/BudgetTable';
 import type { BudgetGroup } from '../types';
+import { saveToFirestore, loadFromFirestore, COLLECTIONS } from '../lib/firestore';
 
 interface LiabilityRow {
   id: string;
@@ -11,25 +12,11 @@ interface LiabilityRow {
   monthly: number;
 }
 
-const LIABILITIES_STORAGE_KEY = 'denegnyj_put_liabilities';
-
 const initialData: LiabilityRow[] = [
   { id: '1', name: 'Ипотека', amount: 1_131_000, monthly: 11_000 },
   { id: '2', name: 'Деду', amount: 150_000, monthly: 0 },
   { id: '3', name: 'Кредитка', amount: 30_000, monthly: 0 },
 ];
-
-const loadLiabilities = (): LiabilityRow[] => {
-  try {
-    const raw = localStorage.getItem(LIABILITIES_STORAGE_KEY);
-    if (!raw) return initialData;
-    const parsed = JSON.parse(raw) as LiabilityRow[];
-    if (!parsed || !Array.isArray(parsed)) return initialData;
-    return parsed;
-  } catch {
-    return initialData;
-  }
-};
 
 export default function Liabilities() {
   const { setPageTitle } = useContext(PageTitleContext)!;
@@ -38,15 +25,24 @@ export default function Liabilities() {
     setPageTitle('Пассивы');
   }, [setPageTitle]);
 
-  const [items, setItems] = useState<LiabilityRow[]>(loadLiabilities);
+  const [items, setItems] = useState<LiabilityRow[]>(initialData);
+  const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
-    try {
-      localStorage.setItem(LIABILITIES_STORAGE_KEY, JSON.stringify(items));
-    } catch {
-      // ignore quota errors
-    }
-  }, [items]);
+    const load = async () => {
+      const data = await loadFromFirestore<LiabilityRow>(COLLECTIONS.liabilities);
+      if (data.length > 0) {
+        setItems(data);
+      }
+      setLoaded(true);
+    };
+    load();
+  }, []);
+
+  useEffect(() => {
+    if (!loaded) return;
+    saveToFirestore(COLLECTIONS.liabilities, items);
+  }, [items, loaded]);
 
   const budgetItems = useMemo(
     () =>
@@ -104,14 +100,14 @@ export default function Liabilities() {
               return {
                 ...it,
                 ...(patch.name !== undefined && { name: patch.name }),
-                ...(patch.amount !== undefined && { amount: -patch.amount }),
-                ...(patch.plan !== undefined && { monthly: -patch.plan }),
+                ...(patch.amount !== undefined && { amount: patch.amount }),
+                ...(patch.plan !== undefined && { monthly: patch.plan }),
               };
             })
           );
         }}
         onAdd={(_group, name, amount, plan) => {
-          setItems([...items, { id: crypto.randomUUID(), name, amount: -amount, monthly: -plan }]);
+          setItems([...items, { id: crypto.randomUUID(), name, amount, monthly: plan }]);
         }}
         onRemove={handleRemove}
       />
