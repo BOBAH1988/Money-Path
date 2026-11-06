@@ -15,7 +15,12 @@ export const useBudget = () => {
 
   // Сохранение в локальное хранилище — внешняя синхронизация
   useEffect(() => {
-    saveBudgetPlan(computed);
+    const prev = loadBudgetPlan();
+    const current = JSON.stringify(computed.items);
+    const previous = JSON.stringify(prev.items);
+    if (current !== previous) {
+      saveBudgetPlan(computed);
+    }
   }, [computed]);
 
   const persist = useCallback((updated: BudgetPlan) => {
