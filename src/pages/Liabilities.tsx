@@ -31,16 +31,16 @@ export default function Liabilities() {
       items.map((it) => ({
         id: it.id,
         name: it.name,
-        amount: it.amount,
-        plan: it.monthly,
+        amount: -it.amount,
+        plan: -it.monthly,
         group: 'monthly' as BudgetGroup,
         type: 'item' as const,
       })),
     [items]
   );
 
-  const totalAmount = items.reduce((sum, it) => sum + it.amount, 0);
-  const totalMonthly = items.reduce((sum, it) => sum + it.monthly, 0);
+  const totalAmount = -items.reduce((sum, it) => sum + it.amount, 0);
+  const totalMonthly = -items.reduce((sum, it) => sum + it.monthly, 0);
 
   const handleRemove = (id: string) => {
     if (!window.confirm('Удалить строку?')) return;
@@ -72,14 +72,14 @@ export default function Liabilities() {
               return {
                 ...it,
                 ...(patch.name !== undefined && { name: patch.name }),
-                ...(patch.amount !== undefined && { amount: patch.amount }),
-                ...(patch.plan !== undefined && { monthly: patch.plan }),
+                ...(patch.amount !== undefined && { amount: -patch.amount }),
+                ...(patch.plan !== undefined && { monthly: -patch.plan }),
               };
             })
           );
         }}
         onAdd={(_group, name, amount, plan) => {
-          setItems([...items, { id: crypto.randomUUID(), name, amount, monthly: plan }]);
+          setItems([...items, { id: crypto.randomUUID(), name, amount: -amount, monthly: -plan }]);
         }}
         onRemove={handleRemove}
       />
