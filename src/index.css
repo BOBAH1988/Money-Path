@@ -391,7 +391,7 @@ body { margin: 0; font-family: system-ui, sans-serif; }
 
 .budget-input-sm { width: 150px; }
 
-.budget-table-wrap { overflow-x: auto; }
+.budget-table-wrap { overflow-x: hidden; }
 
 .budget-table { width: 100%; border-collapse: collapse; font-size: 14px; }
 
@@ -420,7 +420,7 @@ body { margin: 0; font-family: system-ui, sans-serif; }
 .budget-row:not(.budget-row-editing):hover { background: #f1f5f9; }
 
 .budget-cell { display: table-cell; padding: 6px 8px; vertical-align: middle; }
-.budget-cell-name { width: 100%; font-size: 14px; color: var(--bp-text, #0f172a); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 200px; }
+.budget-cell-name { font-size: 14px; color: var(--bp-text, #0f172a); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 200px; }
 .budget-cell-amount { text-align: left; font-variant-numeric: tabular-nums; width: 80px; padding-left: 6px; }
 .budget-cell-plan { text-align: left; font-variant-numeric: tabular-nums; width: 80px; padding-left: 6px; }
 .budget-cell-actions { text-align: center; width: 36px; }
