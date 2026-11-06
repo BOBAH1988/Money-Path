@@ -78,15 +78,7 @@ export const ImportModal = ({ onClose }: { onClose: () => void }) => {
         )}
 
         {userId && (
-          <div style={{ display: 'flex', justifyContent: 'center', gap: 12, flexDirection: 'column', alignItems: 'center' }}>
-            <button
-              onClick={handleDownload}
-              disabled={loading}
-              className="auth-btn"
-              style={{ width: 'fit-content', padding: '12px 24px' }}
-            >
-              {loading ? 'Готовим файл…' : 'Скачать данные'}
-            </button>
+          <div style={{ marginBottom: 16 }}>
             {error && (
               <div className="auth-error">{error}</div>
             )}
@@ -105,6 +97,19 @@ export const ImportModal = ({ onClose }: { onClose: () => void }) => {
             <li style={{ marginBottom: 4 }}>План бюджета</li>
           </ul>
         </div>
+
+        {userId && (
+          <div style={{ display: 'flex', justifyContent: 'center', marginTop: 16 }}>
+            <button
+              onClick={handleDownload}
+              disabled={loading}
+              className="auth-btn"
+              style={{ width: 'fit-content', padding: '12px 24px' }}
+            >
+              {loading ? 'Готовим файл…' : 'Скачать'}
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );
