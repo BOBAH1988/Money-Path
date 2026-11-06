@@ -77,9 +77,11 @@ export const BudgetRow = ({ item, onUpdate, onRemove }: Props) => {
         </td>
         <td className="budget-cell budget-cell-amount">
           <span className="row-amount">{format(item.amount)}</span>
+          <span className="row-currency">₽</span>
         </td>
         <td className="budget-cell budget-cell-plan">
           <span className="row-amount">{format(item.plan)}</span>
+          <span className="row-currency">₽</span>
         </td>
         <td className="budget-cell budget-cell-actions">
           {!isTotal && (

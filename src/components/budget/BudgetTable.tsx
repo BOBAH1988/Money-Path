@@ -60,8 +60,8 @@ export const BudgetTable = ({
             <thead>
               <tr>
                 <th className="budget-head budget-head-name">Наименование</th>
-                <th className="budget-head budget-head-amount">Сумма ₽</th>
-                <th className="budget-head budget-head-plan">План ₽</th>
+                <th className="budget-head budget-head-amount">Сумма</th>
+                <th className="budget-head budget-head-plan">План</th>
                 <th className="budget-head budget-head-actions">
                   <button
                     className="btn-add btn-add-header"
@@ -151,7 +151,7 @@ export const BudgetTable = ({
                     <span className="footer-label">Итого:</span>
                   </td>
                   <td className="budget-cell budget-cell-amount">
-                    {total.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ')}
+                    {total.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ')} ₽
                   </td>
                   <td className="budget-cell budget-cell-plan" />
                   <td className="budget-cell budget-cell-actions" />
