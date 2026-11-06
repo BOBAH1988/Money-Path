@@ -206,8 +206,8 @@
   color: #fff;
   width: auto;
   height: auto;
-  padding: 4px 10px;
-  min-width: 50px;
+  padding: 4px 8px;
+  min-width: 44px;
   border-radius: 10px;
   white-space: nowrap;
 }
