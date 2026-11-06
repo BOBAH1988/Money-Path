@@ -37,10 +37,17 @@ body { margin: 0; font-family: system-ui, sans-serif; }
 }
 
 .app-icon {
-  width: 18px;
-  height: 18px;
+  width: 16px;
+  height: 16px;
   margin-right: 4px;
   display: block;
+}
+.app-title {
+  font-size: 18px;
+  font-weight: 800;
+  color: #111827;
+  display: inline-block;
+  vertical-align: middle;
 }
 
 /* ---------- Нижняя панель — copyright строка ---------- */

@@ -1,5 +1,5 @@
 export const AppIcon = () => (
-  <svg className="app-icon" width="18" height="18" viewBox="0 0 48 48" fill="none" aria-hidden="true">
+  <svg className="app-icon" width="16" height="16" viewBox="0 0 48 48" fill="none" aria-hidden="true">
     <rect width="48" height="48" rx="12" fill="#0ea5e9"/>
     <path fill="white" d="M14 14h4v2h-4zM20 14h4v2h-4zM26 14h4v2h-4zM14 18h4v2h-4zM20 18h4v2h-4zM26 18h4v2h-4zM14 22h4v2h-4zM20 22h4v2h-4zM26 22h4v2h-4zM32 14h4v2h-4zM32 18h4v2h-4zM32 22h4v2h-4z"/>
     <path fill="#1e3a8a" d="M12 34h24v2H12zM14 30h20v2H14z"/>
