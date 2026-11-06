@@ -67,17 +67,16 @@ export const useBudget = () => {
 
   const groupTotal = useCallback(
     (group: BudgetGroup) => {
-      const field = group === 'planned' ? 'plan' : 'amount';
-      const own = plan.items
-        .filter((it) => it.group === group && it.type === 'item')
-        .reduce((sum, it) => sum + it[field], 0);
       if (group === 'monthly') {
-        const plannedSum = plan.items
-          .filter((it) => it.group === 'planned' && it.type === 'item')
-          .reduce((sum, it) => sum + it.plan, 0);
-        return own + plannedSum;
+        // общая сумма всех расходов (amount по всем item)
+        return plan.items
+          .filter((it) => it.type === 'item')
+          .reduce((sum, it) => sum + it.amount, 0);
       }
-      return own;
+      // planned: сумма plan по planned item
+      return plan.items
+        .filter((it) => it.group === 'planned' && it.type === 'item')
+        .reduce((sum, it) => sum + it.plan, 0);
     },
     [plan.items]
   );
