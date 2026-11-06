@@ -1,10 +1,12 @@
 import type { BudgetPlan, BudgetPlanItem, BudgetGroup } from '../types';
-import { db, COLLECTIONS } from './firestore';
+import { firestoreDb as db, COLLECTIONS } from './firestore';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 
 const now = () => new Date().toISOString();
 
 const uid = () => crypto.randomUUID();
+
+const BUDGET_STORAGE_KEY = 'denegnyj_put_budget_plan';
 
 export const defaultBudgetPlan: BudgetPlan = {
   updatedAt: now(),
@@ -43,12 +45,11 @@ export const defaultBudgetPlan: BudgetPlan = {
   ],
 };
 
-export const loadBudgetPlan = async (): Promise<BudgetPlan> => {
+const loadBudgetPlanFromLocalStorage = (): BudgetPlan => {
   try {
-    const docRef = doc(db, COLLECTIONS.budgetPlan, 'budget_plan');
-    const docSnap = await getDoc(docRef);
-    if (!docSnap.exists()) return defaultBudgetPlan;
-    const parsed = docSnap.data() as BudgetPlan;
+    const raw = localStorage.getItem(BUDGET_STORAGE_KEY);
+    if (!raw) return defaultBudgetPlan;
+    const parsed = JSON.parse(raw) as BudgetPlan;
     if (!parsed || !Array.isArray(parsed.items)) return defaultBudgetPlan;
     const migrated = parsed.items.map((it) => ({
       ...it,
@@ -60,9 +61,49 @@ export const loadBudgetPlan = async (): Promise<BudgetPlan> => {
   }
 };
 
-export const saveBudgetPlan = async (plan: BudgetPlan): Promise<void> => {
+const saveBudgetPlanToLocalStorage = (plan: BudgetPlan): void => {
   try {
-    await setDoc(doc(db, COLLECTIONS.income, 'budget_plan'), plan);
+    localStorage.setItem(BUDGET_STORAGE_KEY, JSON.stringify(plan));
+  } catch {
+    // ignore quota errors
+  }
+};
+
+export const loadBudgetPlan = async (): Promise<BudgetPlan> => {
+  if (!db) {
+    return loadBudgetPlanFromLocalStorage();
+  }
+  // Пытаемся загрузить из Firestore
+  try {
+    const docRef = doc(db, COLLECTIONS.budgetPlan, 'budget_plan');
+    const docSnap = await getDoc(docRef);
+    if (docSnap.exists()) {
+      const parsed = docSnap.data() as BudgetPlan;
+      if (parsed && Array.isArray(parsed.items)) {
+        const migrated = parsed.items.map((it) => ({
+          ...it,
+          plan: typeof it.plan === 'number' ? it.plan : it.amount,
+        }));
+        const result = { ...parsed, items: migrated };
+        // Синхронизируем в localStorage
+        saveBudgetPlanToLocalStorage(result);
+        return result;
+      }
+    }
+  } catch {
+    // Firestore недоступен, используем localStorage
+  }
+  // Fallback на localStorage
+  return loadBudgetPlanFromLocalStorage();
+};
+
+export const saveBudgetPlan = async (plan: BudgetPlan): Promise<void> => {
+  // Всегда сохраняем в localStorage
+  saveBudgetPlanToLocalStorage(plan);
+  // Пытаемся сохранить в Firestore
+  if (!db) return;
+  try {
+    await setDoc(doc(db, COLLECTIONS.budgetPlan, 'budget_plan'), plan);
   } catch {
     // ignore quota errors
   }
@@ -76,10 +117,22 @@ export const resetBudgetPlan = async (empty = false): Promise<BudgetPlan> => {
         { id: uid(), name: 'Введите название', amount: 0, plan: 0, group: 'monthly', type: 'item' },
       ],
     };
-    await setDoc(doc(db, COLLECTIONS.budgetPlan, 'budget_plan'), emptyPlan);
+    saveBudgetPlanToLocalStorage(emptyPlan);
+    if (!db) return emptyPlan;
+    try {
+      await setDoc(doc(db, COLLECTIONS.budgetPlan, 'budget_plan'), emptyPlan);
+    } catch {
+      // ignore
+    }
     return emptyPlan;
   }
+  saveBudgetPlanToLocalStorage(defaultBudgetPlan);
+  if (!db) return defaultBudgetPlan;
+  try {
     await setDoc(doc(db, COLLECTIONS.budgetPlan, 'budget_plan'), defaultBudgetPlan);
+  } catch {
+    // ignore
+  }
   return defaultBudgetPlan;
 };
 

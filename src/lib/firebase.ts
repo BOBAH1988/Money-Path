@@ -1,4 +1,5 @@
-import { initializeApp } from 'firebase/app';
+import { initializeApp, type FirebaseApp } from 'firebase/app';
+import { getFirestore, type Firestore } from 'firebase/firestore';
 
 const firebaseConfig = {
   apiKey: 'REDACTED',
@@ -9,6 +10,15 @@ const firebaseConfig = {
   appId: '1:1093832828420:web:0d02feeb8adc2dab16b751',
 };
 
-const app = initializeApp(firebaseConfig);
+let app: FirebaseApp | null = null;
+let firestoreDb: Firestore | null = null;
+let firebaseError: Error | null = null;
 
-export default app;
+try {
+  app = initializeApp(firebaseConfig);
+  firestoreDb = getFirestore(app);
+} catch (err) {
+  firebaseError = err instanceof Error ? err : new Error(String(err));
+}
+
+export { app, firestoreDb, firebaseError };
