@@ -8,7 +8,7 @@ interface Props {
 }
 
 export const BudgetRow = ({ item, onUpdate, onRemove }: Props) => {
-  const [editing, setEditing] = useState(item.type === 'item');
+  const [editing, setEditing] = useState(false);
   const [name, setName] = useState(item.name);
   const [amount, setAmount] = useState(String(item.amount ?? 0));
   const [plan, setPlan] = useState(String(item.plan ?? 0));
@@ -47,7 +47,7 @@ export const BudgetRow = ({ item, onUpdate, onRemove }: Props) => {
 
   const format = (value: number) => value.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
 
-  if (!editing && (isSubtotal || isTotal || !isSubtotal && !isTotal)) {
+  if (!editing) {
     return (
       <tr className={`budget-row ${item.type}`} onClick={toggleEdit}>
         <td className="budget-cell budget-cell-name">
