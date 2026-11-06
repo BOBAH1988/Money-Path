@@ -630,3 +630,75 @@ body { margin: 0; font-family: system-ui, sans-serif; }
   color: #111827;
   font-variant-numeric: tabular-nums;
 }
+
+/* ---------- Успех и подсказки авторизации ---------- */
+.auth-success {
+  margin: 0 0 16px 0;
+  padding: 10px 14px;
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  color: #166534;
+  border-radius: 8px;
+  font-size: 13px;
+  text-align: center;
+}
+
+.auth-password-hints {
+  margin-top: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.auth-hint-error {
+  font-size: 11px;
+  color: #dc2626;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.auth-hint {
+  font-size: 12px;
+  color: #6b7280;
+  margin-top: 4px;
+  text-align: center;
+}
+
+.auth-checkbox-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.auth-checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: #374151;
+  cursor: pointer;
+}
+
+.auth-checkbox-label input {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--accent, #007aff);
+}
+
+.auth-verify {
+  text-align: center;
+  padding: 20px 0;
+}
+
+.auth-verify p {
+  font-size: 14px;
+  color: #374151;
+  margin: 0 0 16px 0;
+}
+
+@media (min-width: 768px) {
+  .auth-card {
+    max-width: 420px;
+  }
+}

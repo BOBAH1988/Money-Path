@@ -4,12 +4,39 @@ import {
   createUserWithEmailAndPassword,
   signOut,
   onAuthStateChanged,
+  sendPasswordResetEmail,
+  sendEmailVerification,
   type User,
 } from 'firebase/auth';
 import { auth } from '../lib/firebase';
 import { COLLECTIONS, migrateCollectionToUser } from '../lib/firestore';
 
 const ADMIN_EMAIL = '79042044926@ya.ru';
+
+// Минимальные требования к паролю
+export const PASSWORD_RULES = {
+  minLength: 8,
+  requireUppercase: true,
+  requireLowercase: true,
+  requireDigit: true,
+};
+
+export const validatePassword = (password: string): string[] => {
+  const errors: string[] = [];
+  if (password.length < PASSWORD_RULES.minLength) {
+    errors.push(`не менее ${PASSWORD_RULES.minLength} символов`);
+  }
+  if (PASSWORD_RULES.requireUppercase && !/[A-Z]/.test(password)) {
+    errors.push('заглавная буква');
+  }
+  if (PASSWORD_RULES.requireLowercase && !/[a-z]/.test(password)) {
+    errors.push('строчная буква');
+  }
+  if (PASSWORD_RULES.requireDigit && !/\d/.test(password)) {
+    errors.push('цифра');
+  }
+  return errors;
+};
 
 interface AuthContextValue {
   user: User | null;
@@ -18,6 +45,8 @@ interface AuthContextValue {
   login: (email: string, password: string) => Promise<void>;
   register: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
+  sendPasswordReset: (email: string) => Promise<void>;
+  resendVerification: (user: User) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
@@ -67,7 +96,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const register = async (email: string, password: string) => {
     if (!auth) throw new Error('Firebase Auth не инициализирован');
-    await createUserWithEmailAndPassword(auth, email, password);
+    const credential = await createUserWithEmailAndPassword(auth, email, password);
+    // Отправляем письмо с подтверждением почты
+    try {
+      await sendEmailVerification(credential.user);
+    } catch {
+      // ignore — пользователь зарегистрирован, но письмо не отправилось
+    }
   };
 
   const logout = async () => {
@@ -75,7 +110,17 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     await signOut(auth);
   };
 
-  const value = { user, isAdmin, loading, login, register, logout };
+  const sendPasswordReset = async (email: string) => {
+    if (!auth) throw new Error('Firebase Auth не инициализирован');
+    await sendPasswordResetEmail(auth, email);
+  };
+
+  const resendVerification = async (user: User) => {
+    if (!auth) throw new Error('Firebase Auth не инициализирован');
+    await sendEmailVerification(user);
+  };
+
+  const value = { user, isAdmin, loading, login, register, logout, sendPasswordReset, resendVerification };
 
   return (
     <AuthContext.Provider value={value}>
