@@ -50,12 +50,12 @@ export default function Dashboard() {
 
   return (
     <div className="page">
-      <div className="budget-card">
+      <div className="budget-card" style={{ margin: '0 4px' }}>
         <div className="budget-card-header">
           <h2 className="budget-card-title">Расходы</h2>
         </div>
         <div className="budget-card-body">
-          <div className="budget-summary">
+          <div className="budget-summary" style={{ padding: '0 4px' }}>
             <div className="summary-item summary-item-total">
               <span className="summary-label">Общее итого</span>
               <span className="summary-value">{totals.totalAll.toLocaleString('ru-RU')} ₽</span>
@@ -68,12 +68,12 @@ export default function Dashboard() {
         </div>
       </div>
 
-      <div className="budget-card">
+      <div className="budget-card" style={{ margin: '0 4px' }}>
         <div className="budget-card-header">
           <h2 className="budget-card-title">Активы</h2>
         </div>
         <div className="budget-card-body">
-          <div className="budget-summary">
+          <div className="budget-summary" style={{ padding: '0 4px' }}>
             <div className="summary-item summary-item-total">
               <span className="summary-label">Итого</span>
               <span className="summary-value">{totalAmount.toLocaleString('ru-RU')} ₽</span>
