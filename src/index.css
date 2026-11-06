@@ -410,8 +410,8 @@ body { margin: 0; font-family: system-ui, sans-serif; }
 }
 
 .budget-head-name { text-align: left; padding-left: 8px; }
-.budget-head-amount { text-align: left; width: 95px; padding-left: 4px; padding-right: 4px; }
-.budget-head-plan { text-align: left; width: 95px; padding-left: 4px; padding-right: 4px; }
+.budget-head-amount { text-align: right; width: 95px; padding-right: 4px; }
+.budget-head-plan { text-align: right; width: 95px; padding-right: 4px; }
 .budget-head-actions { text-align: center; width: 28px; }
 
 .budget-row { display: table-row; border-bottom: 1px solid var(--bp-border, #e2e8f0); transition: background 0.15s; }
@@ -420,8 +420,8 @@ body { margin: 0; font-family: system-ui, sans-serif; }
 
 .budget-cell { display: table-cell; padding: 4px 4px; vertical-align: middle; }
 .budget-cell-name { font-size: 14px; color: var(--bp-text, #0f172a); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.budget-cell-amount { text-align: left; font-variant-numeric: tabular-nums; width: 90px; padding-left: 2px; padding-right: 2px; }
-.budget-cell-plan { text-align: left; font-variant-numeric: tabular-nums; width: 90px; padding-left: 2px; padding-right: 2px; }
+.budget-cell-amount { text-align: right; font-variant-numeric: tabular-nums; width: 90px; padding-right: 2px; }
+.budget-cell-plan { text-align: right; font-variant-numeric: tabular-nums; width: 90px; padding-right: 2px; }
 .budget-cell-actions { text-align: center; width: 28px; }
 
 .row-name { font-weight: 500; }
@@ -450,9 +450,9 @@ body { margin: 0; font-family: system-ui, sans-serif; }
 
 .budget-input-amount {
   width: 95px;
-  text-align: left;
+  text-align: right;
   font-variant-numeric: tabular-nums;
-  padding-left: 4px;
+  padding-right: 4px;
 }
 
 .input-group { position: relative; display: inline-flex; align-items: center; }
