@@ -411,8 +411,8 @@ body { margin: 0; font-family: system-ui, sans-serif; }
 }
 
 .budget-head-name { text-align: left; padding-left: 8px; }
-.budget-head-amount { text-align: left; width: 80px; padding-left: 6px; }
-.budget-head-plan { text-align: left; width: 80px; padding-left: 6px; }
+.budget-head-amount { text-align: left; width: 70px; padding-left: 4px; padding-right: 4px; }
+.budget-head-plan { text-align: left; width: 70px; padding-left: 4px; padding-right: 4px; }
 .budget-head-actions { text-align: center; width: 36px; }
 
 .budget-row { display: table-row; border-bottom: 1px solid var(--bp-border, #e2e8f0); transition: background 0.15s; }
@@ -449,10 +449,10 @@ body { margin: 0; font-family: system-ui, sans-serif; }
 }
 
 .budget-input-amount {
-  width: 100px;
+  width: 70px;
   text-align: left;
   font-variant-numeric: tabular-nums;
-  padding-left: 26px;
+  padding-left: 4px;
 }
 
 .input-group { position: relative; display: inline-flex; align-items: center; }
