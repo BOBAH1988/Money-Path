@@ -25,7 +25,8 @@ body { margin: 0; font-family: system-ui, sans-serif; }
   border-bottom: 1px solid var(--border, #e5e7eb);
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-start;
+  gap: 10px;
   padding: 0 16px;
   z-index: 60;
 }
@@ -34,20 +35,14 @@ body { margin: 0; font-family: system-ui, sans-serif; }
   font-size: 18px;
   font-weight: 800;
   color: #111827;
+  vertical-align: middle;
 }
 
 .app-icon {
-  width: 16px;
-  height: 16px;
+  width: 18px;
+  height: 18px;
   margin-right: 4px;
   display: block;
-}
-.app-title {
-  font-size: 18px;
-  font-weight: 800;
-  color: #111827;
-  display: inline-block;
-  vertical-align: middle;
 }
 
 /* ---------- Нижняя панель — copyright строка ---------- */
