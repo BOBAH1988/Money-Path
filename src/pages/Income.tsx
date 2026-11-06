@@ -25,7 +25,7 @@ export default function Income() {
   const userId = user?.uid ?? undefined;
 
   useEffect(() => {
-    setPageTitle('Доход');
+    setPageTitle('Доходы');
   }, [setPageTitle]);
 
   const [items, setItems] = useState<IncomeRow[]>(initialData);
@@ -119,7 +119,7 @@ export default function Income() {
         total={totalAmount}
         totalPlan={totalMonthly}
         headers={{
-          name: 'Доход',
+          name: 'Доходы',
           amount: 'Сумма',
           plan: '% в мес.',
         }}

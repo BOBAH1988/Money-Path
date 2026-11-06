@@ -104,7 +104,7 @@ npm run build
 | `/budget` | Планирование бюджета (ежемесячные + запланированные расходы) |
 | `/assets` | Активы |
 | `/liabilities` | Пассивы |
-| `/income` | Доход |
+| `/income` | Доходы |
 | `/income-archive` | Доходы архив |
 | `/import` | Импорт/экспорт данных (всплывающее окно из меню) |
 
@@ -228,7 +228,7 @@ Money-Path/
 │   │   ├── Dashboard.tsx   # Дашборд
 │   │   ├── Assets.tsx      # Активы
 │   │   ├── Liabilities.tsx # Пассивы
-│   │   ├── Income.tsx      # Доход
+│   │   ├── Income.tsx      # Доходы
 │   │   ├── IncomeArchive.tsx # Доходы архив
 │   │   └── Import.tsx      # Страница импорта (заглушка, используется ImportModal)
 │   ├── App.tsx             # Роутинг с AuthProvider
