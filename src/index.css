@@ -411,8 +411,8 @@ body { margin: 0; font-family: system-ui, sans-serif; }
 }
 
 .budget-head-name { text-align: left; padding-left: 8px; }
-.budget-head-amount { text-align: left; width: 70px; padding-left: 4px; padding-right: 4px; }
-.budget-head-plan { text-align: left; width: 70px; padding-left: 4px; padding-right: 4px; }
+.budget-head-amount { text-align: left; width: 95px; padding-left: 4px; padding-right: 4px; }
+.budget-head-plan { text-align: left; width: 95px; padding-left: 4px; padding-right: 4px; }
 .budget-head-actions { text-align: center; width: 36px; }
 
 .budget-row { display: table-row; border-bottom: 1px solid var(--bp-border, #e2e8f0); transition: background 0.15s; }
@@ -421,8 +421,8 @@ body { margin: 0; font-family: system-ui, sans-serif; }
 
 .budget-cell { display: table-cell; padding: 6px 8px; vertical-align: middle; }
 .budget-cell-name { font-size: 14px; color: var(--bp-text, #0f172a); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 200px; }
-.budget-cell-amount { text-align: left; font-variant-numeric: tabular-nums; width: 80px; padding-left: 6px; }
-.budget-cell-plan { text-align: left; font-variant-numeric: tabular-nums; width: 80px; padding-left: 6px; }
+.budget-cell-amount { text-align: left; font-variant-numeric: tabular-nums; width: 95px; padding-left: 4px; padding-right: 4px; }
+.budget-cell-plan { text-align: left; font-variant-numeric: tabular-nums; width: 95px; padding-left: 4px; padding-right: 4px; }
 .budget-cell-actions { text-align: center; width: 36px; }
 
 .row-name { font-weight: 500; }
@@ -449,7 +449,7 @@ body { margin: 0; font-family: system-ui, sans-serif; }
 }
 
 .budget-input-amount {
-  width: 70px;
+  width: 95px;
   text-align: left;
   font-variant-numeric: tabular-nums;
   padding-left: 4px;
