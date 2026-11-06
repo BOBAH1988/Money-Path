@@ -67,11 +67,15 @@ export const useBudget = () => {
 
   const groupTotal = useCallback(
     (group: BudgetGroup) => {
-      return computed.items
-        .filter((it) => it.group === group && it.type === 'total')
+      const own = plan.items
+        .filter((it) => it.group === group && it.type === 'item')
         .reduce((sum, it) => sum + it.amount, 0);
+      const subtotal = plan.items.find(
+        (it) => it.group === group && it.type === 'subtotal'
+      )?.amount ?? 0;
+      return own + subtotal;
     },
-    [computed]
+    [plan.items]
   );
 
   return {
