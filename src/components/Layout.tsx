@@ -67,7 +67,10 @@ export default function Layout() {
                   <NavLink
                     to={i.to}
                     className={({ isActive }) => isActive ? 'menu-item active' : 'menu-item'}
-                    onClick={() => setMenuOpen(false)}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      setMenuOpen(false);
+                    }}
                   >
                     <span className="menu-icon">{i.icon}</span>
                     {i.label}
