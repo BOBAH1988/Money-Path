@@ -33,6 +33,7 @@ const footerText =
 export default function Layout() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [pageTitle, setPageTitle] = useState('');
+  const [confirmReset, setConfirmReset] = useState(false);
   const { reset } = useBudget();
 
   const ctxValue = { pageTitle, setPageTitle };
@@ -97,7 +98,7 @@ export default function Layout() {
                 <button
                   className="menu-item menu-reset-btn"
                   onClick={() => {
-                    reset();
+                    setConfirmReset(true);
                     setMenuOpen(false);
                   }}
                 >
@@ -106,6 +107,33 @@ export default function Layout() {
                 </button>
               </li>
             </ul>
+
+            {confirmReset && (
+              <div className="confirm-overlay" onClick={() => setConfirmReset(false)}>
+                <div className="confirm-card" onClick={(e) => e.stopPropagation()}>
+                  <p>Точно удалить все данные?</p>
+                  <div className="confirm-actions">
+                    <button className="btn-cancel" onClick={() => setConfirmReset(false)}>
+                      Нет
+                    </button>
+                    <button
+                      className="btn-delete-confirm"
+                      onClick={() => {
+                        reset(true);
+                        const emptyRow = [{ id: crypto.randomUUID(), name: 'Введите название', amount: 0, monthly: 0 }];
+                        localStorage.setItem('denegnyj_put_assets', JSON.stringify(emptyRow));
+                        localStorage.setItem('denegnyj_put_liabilities', JSON.stringify(emptyRow));
+                        localStorage.setItem('denegnyj_put_income', JSON.stringify(emptyRow));
+                        localStorage.setItem('denegnyj_put_income_archive', JSON.stringify(emptyRow));
+                        setConfirmReset(false);
+                      }}
+                    >
+                      Да
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}

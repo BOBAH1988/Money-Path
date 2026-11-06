@@ -60,8 +60,8 @@ export const useBudget = () => {
     [plan, persist]
   );
 
-  const reset = useCallback(() => {
-    const def = resetBudgetPlan();
+  const reset = useCallback((empty = false) => {
+    const def = resetBudgetPlan(empty);
     setPlan(def);
   }, []);
 

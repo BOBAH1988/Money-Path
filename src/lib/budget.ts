@@ -68,7 +68,17 @@ export const saveBudgetPlan = (plan: BudgetPlan): void => {
   }
 };
 
-export const resetBudgetPlan = (): BudgetPlan => {
+export const resetBudgetPlan = (empty = false): BudgetPlan => {
+  if (empty) {
+    const emptyPlan: BudgetPlan = {
+      updatedAt: now(),
+      items: [
+        { id: uid(), name: 'Введите название', amount: 0, plan: 0, group: 'monthly', type: 'item' },
+      ],
+    };
+    saveBudgetPlan(emptyPlan);
+    return emptyPlan;
+  }
   saveBudgetPlan(defaultBudgetPlan);
   return defaultBudgetPlan;
 };
