@@ -77,7 +77,6 @@ describe('BudgetRow', () => {
 
   it('calls onRemove when delete confirmed in edit mode', () => {
     const onRemove = vi.fn();
-    vi.spyOn(window, 'confirm').mockReturnValue(true);
     const { container } = renderRow(
       {
         id: '1',
@@ -92,14 +91,12 @@ describe('BudgetRow', () => {
     );
     fireEvent.click(container.querySelector('.btn-edit')!);
     fireEvent.click(container.querySelector('.btn-delete')!);
-    expect(window.confirm).toHaveBeenCalledWith('Удалить строку "Ипотека"?');
+    fireEvent.click(container.querySelector('.btn-delete-confirm')!);
     expect(onRemove).toHaveBeenCalledWith('1');
-    (window.confirm as any).mockRestore();
   });
 
   it('does not call onRemove when delete cancelled', () => {
     const onRemove = vi.fn();
-    vi.spyOn(window, 'confirm').mockReturnValue(false);
     const { container } = renderRow(
       {
         id: '1',
@@ -114,8 +111,8 @@ describe('BudgetRow', () => {
     );
     fireEvent.click(container.querySelector('.btn-edit')!);
     fireEvent.click(container.querySelector('.btn-delete')!);
+    fireEvent.click(container.querySelector('.btn-cancel')!);
     expect(onRemove).not.toHaveBeenCalled();
-    (window.confirm as any).mockRestore();
   });
 
   it('does not enter edit mode when clicking the row', () => {

@@ -49,9 +49,7 @@ export const BudgetRow = ({ item, onUpdate, onRemove, onToggle, isPlannedCollaps
   };
 
   const handleDelete = () => {
-    if (!window.confirm(`Удалить строку "${item.name}"?`)) return;
-    onRemove(item.id);
-    setEditing(false);
+    setConfirmDelete(true);
   };
 
   const togglePlanned = () => {
