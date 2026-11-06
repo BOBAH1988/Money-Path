@@ -108,7 +108,6 @@ export const BudgetRow = ({ item, onUpdate, onRemove, onToggle, isPlannedCollaps
             value={name}
             onChange={(e) => setName(e.target.value)}
             onKeyDown={handleKeyDown}
-            onBlur={handleSave}
             placeholder="Название"
             autoFocus
           />
@@ -120,7 +119,6 @@ export const BudgetRow = ({ item, onUpdate, onRemove, onToggle, isPlannedCollaps
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
               onKeyDown={handleKeyDown}
-              onBlur={handleSave}
               placeholder="0"
             />
           </div>
@@ -132,7 +130,6 @@ export const BudgetRow = ({ item, onUpdate, onRemove, onToggle, isPlannedCollaps
               value={plan}
               onChange={(e) => setPlan(e.target.value)}
               onKeyDown={handleKeyDown}
-              onBlur={handleSave}
               placeholder="0"
             />
           </div>
