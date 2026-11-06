@@ -89,6 +89,7 @@ export default function Budget() {
           group="monthly"
           title="Ежемесячные расходы"
           items={monthlyItems}
+          plannedItems={plannedItems}
           total={totalAll}
           totalPlan={totalPlanned}
           onUpdate={updateItem}

@@ -7,6 +7,7 @@ interface Props {
   group: BudgetGroup;
   title: string;
   items: BudgetPlanItem[];
+  plannedItems?: BudgetPlanItem[];
   total: number;
   totalPlan?: number;
   onUpdate: (id: string, patch: { name?: string; amount?: number; plan?: number }) => void;
@@ -26,6 +27,7 @@ export const BudgetTable = ({
   group,
   title,
   items,
+  plannedItems,
   total,
   totalPlan,
   onUpdate,
@@ -164,7 +166,7 @@ export const BudgetTable = ({
                 </tr>
               )}
 
-              {subtotalItem && group === 'monthly' && (
+              {subtotalItem && group === 'monthly' && plannedItems !== undefined && (
                 <BudgetRow
                   key={subtotalItem.id}
                   item={subtotalItem}
@@ -177,7 +179,7 @@ export const BudgetTable = ({
                 />
               )}
 
-              {group === 'monthly' && !subtotalItem && (
+              {group === 'monthly' && plannedItems !== undefined && !subtotalItem && (
                 <tr
                   className="budget-row subtotal"
                   onClick={() => onToggle && onToggle('planned')}
