@@ -8,11 +8,17 @@ interface Props {
   title: string;
   items: BudgetPlanItem[];
   total: number;
+  totalPlan?: number;
   onUpdate: (id: string, patch: { name?: string; amount?: number; plan?: number }) => void;
   onAdd: (group: BudgetGroup, name: string, amount: number, plan: number) => void;
   onRemove: (id: string) => void;
   onToggle?: (group: 'planned') => void;
   isPlannedCollapsed?: boolean;
+  headers?: {
+    name?: string;
+    amount?: string;
+    plan?: string;
+  };
 }
 
 export const BudgetTable = ({
@@ -21,11 +27,13 @@ export const BudgetTable = ({
   title,
   items,
   total,
+  totalPlan,
   onUpdate,
   onAdd,
   onRemove,
   onToggle,
   isPlannedCollapsed,
+  headers,
 }: Props) => {
   const groupItems = items.filter((it) => it.group === group);
   const [showAddRow, setShowAddRow] = useState(false);
@@ -65,9 +73,9 @@ export const BudgetTable = ({
           <table className="budget-table">
             <thead>
               <tr>
-                <th className="budget-head budget-head-name">Наименование</th>
-                <th className="budget-head budget-head-amount">Сумма</th>
-                <th className="budget-head budget-head-plan">План</th>
+                <th className="budget-head budget-head-name">{headers?.name ?? 'Наименование'}</th>
+                <th className="budget-head budget-head-amount">{headers?.amount ?? 'Сумма'}</th>
+                <th className="budget-head budget-head-plan">{headers?.plan ?? 'План'}</th>
                 <th className="budget-head budget-head-actions">
                   <button
                     className="btn-add btn-add-header"
@@ -161,7 +169,14 @@ export const BudgetTable = ({
                   <td className="budget-cell budget-cell-amount">
                     {total.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ')}<span className="row-currency">₽</span>
                   </td>
-                  <td className="budget-cell budget-cell-plan" />
+                  <td className="budget-cell budget-cell-plan" style={{ whiteSpace: 'nowrap' }}>
+                    {totalPlan !== undefined ? (
+                      <>
+                        {totalPlan.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ')}
+                        <span className="row-currency">₽</span>
+                      </>
+                    ) : null}
+                  </td>
                   <td className="budget-cell budget-cell-actions" />
                 </tr>
               )}
