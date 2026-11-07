@@ -1,11 +1,10 @@
-import { useEffect, useState, useMemo } from 'react';
-import { useContext } from 'react';
+import { useContext, useEffect, useMemo, useState } from 'react';
 import { PageTitleContext } from '../components/PageTitleContext';
 import { BudgetTable } from '../components/budget/BudgetTable';
 import type { BudgetGroup } from '../types';
-import { saveToFirestore, loadFromFirestore, COLLECTIONS } from '../lib/firestore';
+import { loadFromFirestore, COLLECTIONS } from '../lib/firestore';
+import { useCollection } from '../hooks/useCollection';
 import { useAuth } from '../context/AuthContext';
-import { useToast } from '../ui/Toast';
 
 const CURRENT_YEAR = new Date().getFullYear();
 
@@ -23,7 +22,9 @@ interface IncomeArchiveRow {
   months: number[];
 }
 
-const migrateArchiveRow = (raw: { id?: string; name?: string; year?: number; months?: number[]; amount?: number; monthly?: number }): IncomeArchiveRow => {
+const migrateArchiveRow = (
+  raw: { id?: string; name?: string; year?: number; months?: number[]; amount?: number; monthly?: number }
+): IncomeArchiveRow => {
   const year = typeof raw?.year === 'number' ? raw.year : new Date().getFullYear();
   if (raw && Array.isArray(raw.months) && raw.months.length === 12) {
     return { id: raw.id ?? crypto.randomUUID(), name: raw.name ?? '', year, months: raw.months.map((v) => (typeof v === 'number' ? v : 0)) };
@@ -36,7 +37,6 @@ const migrateArchiveRow = (raw: { id?: string; name?: string; year?: number; mon
 
 export default function Income() {
   const { setPageTitle } = useContext(PageTitleContext)!;
-  const { toast: addToast } = useToast();
   const { user } = useAuth();
   const userId = user?.uid ?? undefined;
 
@@ -44,41 +44,52 @@ export default function Income() {
     setPageTitle('Доходы');
   }, [setPageTitle]);
 
-  const [items, setItems] = useState<IncomeRow[]>([]);
-  const [incomeArchive, setIncomeArchive] = useState<IncomeArchiveRow[]>([]);
-  const [loaded, setLoaded] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    const load = async () => {
-      try {
-        const [data, archive] = await Promise.all([
-          loadFromFirestore<IncomeRow>(COLLECTIONS.income, userId),
-          loadFromFirestore<IncomeArchiveRow>(COLLECTIONS.incomeArchive, userId),
-        ]);
-        if (data.length > 0) {
-          setItems(data);
-        }
-        setIncomeArchive(archive.map(migrateArchiveRow));
-      } catch (err) {
-        const msg = err instanceof Error ? err.message : 'Ошибка загрузки данных';
-        setError(msg);
-        addToast('error', 'Ошибка загрузки', msg);
-      } finally {
-        setLoaded(true);
-      }
-    };
-    load();
-  }, [userId, addToast]);
-
-  useEffect(() => {
-    if (!loaded) return;
-    saveToFirestore(COLLECTIONS.income, items, userId).catch((err) => {
-      const msg = err instanceof Error ? err.message : 'Ошибка сохранения';
-      setError(msg);
-      addToast('error', 'Ошибка сохранения', msg);
+  const { items, loading: itemsLoading, error: itemsError, addItem, updateItem, removeItem } =
+    useCollection<IncomeRow>({
+      collectionName: COLLECTIONS.income,
+      userId,
     });
-  }, [items, loaded, userId, addToast]);
+
+  const [archive, setArchive] = useState<IncomeArchiveRow[]>([]);
+  const [archiveLoading, setArchiveLoading] = useState(true);
+
+  useEffect(() => {
+    if (!userId) {
+      setArchive([]);
+      setArchiveLoading(false);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      try {
+        const data = await loadFromFirestore<IncomeArchiveRow>(COLLECTIONS.incomeArchive, userId);
+        if (!cancelled) {
+          setArchive(data.map(migrateArchiveRow));
+        }
+      } catch {
+        if (!cancelled) {
+          setArchive([]);
+        }
+      } finally {
+        if (!cancelled) setArchiveLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [userId]);
+
+  const archiveRows = useMemo(() => archive.filter((r) => r.year === CURRENT_YEAR), [archive]);
+  const archiveTotal = useMemo(
+    () => archiveRows.reduce((s, row) => s + row.months.reduce((a, b) => a + (b || 0), 0), 0),
+    [archiveRows]
+  );
+  const archiveFilledMonths = useMemo(() => {
+    const set = new Set<number>();
+    archiveRows.forEach((row) => row.months.forEach((v, idx) => { if (v && v !== 0) set.add(idx); }));
+    return set.size;
+  }, [archiveRows]);
+  const archiveAverage = archiveFilledMonths > 0 ? Math.round(archiveTotal / archiveFilledMonths) : 0;
 
   const budgetItems = useMemo(
     () =>
@@ -96,22 +107,8 @@ export default function Income() {
   const totalAmount = items.reduce((sum, it) => sum + it.amount, 0);
   const totalMonthly = items.reduce((sum, it) => sum + it.monthly, 0);
 
-  const archiveRows = incomeArchive.filter((r) => r.year === CURRENT_YEAR);
-  const archiveTotal = archiveRows.reduce((s, row) => s + row.months.reduce((a, b) => a + (b || 0), 0), 0);
-  const archiveFilledMonths = useMemo(() => {
-    const set = new Set<number>();
-    archiveRows.forEach((row) => row.months.forEach((v, idx) => { if (v && v !== 0) set.add(idx); }));
-    return set.size;
-  }, [archiveRows]);
-  const archiveAverage = archiveFilledMonths > 0 ? Math.round(archiveTotal / archiveFilledMonths) : totalAmount;
-
-  const handleRemove = (id: string) => {
-    if (items.length <= 1) {
-      setItems(items.map((it) => (it.id === id ? { ...it, name: '', amount: 0, monthly: 0 } : it)));
-    } else {
-      setItems(items.filter((it) => it.id !== id));
-    }
-  };
+  const loading = itemsLoading || archiveLoading;
+  const error = itemsError;
 
   if (error) {
     return (
@@ -124,6 +121,22 @@ export default function Income() {
                   Ошибка загрузки данных
                 </div>
                 <div style={{ fontSize: 14, marginBottom: 16 }}>{error}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (loading) {
+    return (
+      <div className="page page-budget">
+        <div className="budget-card">
+          <div className="budget-card-body">
+            <div className="budget-table-wrap">
+              <div style={{ padding: 40, textAlign: 'center', color: '#64748b' }}>
+                Загрузка данных
               </div>
             </div>
           </div>
@@ -148,7 +161,7 @@ export default function Income() {
       <BudgetTable
         id="income-table"
         group="monthly"
-        title="Доход"
+        title="Доходы"
         items={budgetItems}
         total={totalAmount}
         totalPlan={totalMonthly}
@@ -158,22 +171,16 @@ export default function Income() {
           plan: 'План',
         }}
         onUpdate={(id, patch) => {
-          setItems((prev) =>
-            prev.map((it) => {
-              if (it.id !== id) return it;
-              return {
-                ...it,
-                ...(patch.name !== undefined && { name: patch.name }),
-                ...(patch.amount !== undefined && { amount: patch.amount }),
-                ...(patch.plan !== undefined && { monthly: patch.plan }),
-              };
-            })
-          );
+          updateItem(id, {
+            ...(patch.name !== undefined && { name: patch.name }),
+            ...(patch.amount !== undefined && { amount: patch.amount }),
+            ...(patch.plan !== undefined && { monthly: patch.plan }),
+          });
         }}
         onAdd={(_group, name, amount, plan) => {
-          setItems([...items, { id: crypto.randomUUID(), name, amount, monthly: plan }]);
+          addItem({ name, amount, monthly: plan });
         }}
-        onRemove={handleRemove}
+        onRemove={removeItem}
       />
     </div>
   );

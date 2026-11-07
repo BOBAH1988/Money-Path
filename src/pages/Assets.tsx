@@ -1,11 +1,10 @@
-import { useEffect, useState, useMemo } from 'react';
-import { useContext } from 'react';
+import { useContext, useEffect, useMemo } from 'react';
 import { PageTitleContext } from '../components/PageTitleContext';
 import { BudgetTable } from '../components/budget/BudgetTable';
 import type { BudgetGroup } from '../types';
-import { saveToFirestore, loadFromFirestore, COLLECTIONS } from '../lib/firestore';
+import { COLLECTIONS } from '../lib/firestore';
+import { useCollection } from '../hooks/useCollection';
 import { useAuth } from '../context/AuthContext';
-import { useToast } from '../ui/Toast';
 
 interface AssetRow {
   id: string;
@@ -16,7 +15,6 @@ interface AssetRow {
 
 export default function Assets() {
   const { setPageTitle } = useContext(PageTitleContext)!;
-  const { toast: addToast } = useToast();
   const { user } = useAuth();
   const userId = user?.uid ?? undefined;
 
@@ -24,36 +22,11 @@ export default function Assets() {
     setPageTitle('Активы');
   }, [setPageTitle]);
 
-  const [items, setItems] = useState<AssetRow[]>([]);
-  const [loaded, setLoaded] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    const load = async () => {
-      try {
-        const data = await loadFromFirestore<AssetRow>(COLLECTIONS.assets, userId);
-        if (data.length > 0) {
-          setItems(data);
-        }
-      } catch (err) {
-        const msg = err instanceof Error ? err.message : 'Ошибка загрузки данных';
-        setError(msg);
-        addToast('error', 'Ошибка загрузки', msg);
-      } finally {
-        setLoaded(true);
-      }
-    };
-    load();
-  }, [userId, addToast]);
-
-  useEffect(() => {
-    if (!loaded) return;
-    saveToFirestore(COLLECTIONS.assets, items, userId).catch((err) => {
-      const msg = err instanceof Error ? err.message : 'Ошибка сохранения';
-      setError(msg);
-      addToast('error', 'Ошибка сохранения', msg);
+  const { items, loading, error, addItem, updateItem, removeItem } =
+    useCollection<AssetRow>({
+      collectionName: COLLECTIONS.assets,
+      userId,
     });
-  }, [items, loaded, userId, addToast]);
 
   const budgetItems = useMemo(
     () =>
@@ -71,14 +44,6 @@ export default function Assets() {
   const totalAmount = items.reduce((sum, it) => sum + it.amount, 0);
   const totalMonthly = items.reduce((sum, it) => sum + it.monthly, 0);
 
-  const handleRemove = (id: string) => {
-    if (items.length <= 1) {
-      setItems(items.map((it) => (it.id === id ? { ...it, name: '', amount: 0, monthly: 0 } : it)));
-    } else {
-      setItems(items.filter((it) => it.id !== id));
-    }
-  };
-
   if (error) {
     return (
       <div className="page page-budget">
@@ -90,6 +55,22 @@ export default function Assets() {
                   Ошибка загрузки данных
                 </div>
                 <div style={{ fontSize: 14, marginBottom: 16 }}>{error}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (loading) {
+    return (
+      <div className="page page-budget">
+        <div className="budget-card">
+          <div className="budget-card-body">
+            <div className="budget-table-wrap">
+              <div style={{ padding: 40, textAlign: 'center', color: '#64748b' }}>
+                Загрузка данных
               </div>
             </div>
           </div>
@@ -124,22 +105,16 @@ export default function Assets() {
           plan: '+ в мес.',
         }}
         onUpdate={(id, patch) => {
-          setItems((prev) =>
-            prev.map((it) => {
-              if (it.id !== id) return it;
-              return {
-                ...it,
-                ...(patch.name !== undefined && { name: patch.name }),
-                ...(patch.amount !== undefined && { amount: patch.amount }),
-                ...(patch.plan !== undefined && { monthly: patch.plan }),
-              };
-            })
-          );
+          updateItem(id, {
+            ...(patch.name !== undefined && { name: patch.name }),
+            ...(patch.amount !== undefined && { amount: patch.amount }),
+            ...(patch.plan !== undefined && { monthly: patch.plan }),
+          });
         }}
         onAdd={(_group, name, amount, plan) => {
-          setItems([...items, { id: crypto.randomUUID(), name, amount, monthly: plan }]);
+          addItem({ name, amount, monthly: plan });
         }}
-        onRemove={handleRemove}
+        onRemove={removeItem}
       />
     </div>
   );
