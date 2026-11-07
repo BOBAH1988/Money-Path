@@ -5,6 +5,7 @@ import type { BudgetGroup } from '../types';
 import { COLLECTIONS } from '../lib/firestore';
 import { useCollection } from '../hooks/useCollection';
 import { useAuth } from '../context/AuthContext';
+import { EmptyState } from '../ui/EmptyState';
 
 interface AssetRow {
   id: string;
@@ -75,6 +76,23 @@ export default function Assets() {
             </div>
           </div>
         </div>
+      </div>
+    );
+  }
+
+  if (items.length === 0) {
+    return (
+      <div className="page page-budget">
+        <EmptyState
+          icon="📈"
+          title="Активы не добавлены"
+          description="Добавьте первый актив, например банковский вклад или инвестиции."
+          action={
+            <button className="auth-btn" type="button">
+              Добавить актив
+            </button>
+          }
+        />
       </div>
     );
   }
