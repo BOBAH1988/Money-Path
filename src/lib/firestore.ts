@@ -13,15 +13,26 @@ const RESET_FLAG_KEY = 'denegnyj_put_reset_pending';
 
 export const markResetPending = (userId?: string) => {
   try {
-    localStorage.setItem(RESET_FLAG_KEY, userId ?? '');
+    localStorage.setItem(RESET_FLAG_KEY, `${userId ?? ''}|${Date.now()}`);
   } catch {
     // ignore
   }
 };
 
+const RESET_FLAG_TTL = 60_000;
+
 export const isResetPending = (): boolean => {
   try {
-    return localStorage.getItem(RESET_FLAG_KEY) !== null;
+    const v = localStorage.getItem(RESET_FLAG_KEY);
+    if (v === null) return false;
+    const parts = v.split('|');
+    const ts = Number(parts[1]);
+    if (!ts || Date.now() - ts > RESET_FLAG_TTL) {
+      // истёк — убираем
+      localStorage.removeItem(RESET_FLAG_KEY);
+      return false;
+    }
+    return true;
   } catch {
     return false;
   }
@@ -31,7 +42,10 @@ export const getResetPendingUserId = (): string | undefined => {
   try {
     const v = localStorage.getItem(RESET_FLAG_KEY);
     if (v === null) return undefined;
-    return v === '' ? undefined : v;
+    const parts = v.split('|');
+    const ts = Number(parts[1]);
+    if (!ts || Date.now() - ts > RESET_FLAG_TTL) return undefined;
+    return parts[0] === '' ? undefined : parts[0];
   } catch {
     return undefined;
   }
@@ -92,6 +106,14 @@ export const saveToFirestore = async <T extends { id: string }>(
   userId?: string
 ) => {
   if (!userId) return;
+  // Если был сброс — сначала чистим Firestore (старые данные), затем сохраняем новые
+  if (isResetPending()) {
+    try {
+      await cleanupResetPendingFirestore(userId);
+    } catch {
+      // ignore
+    }
+  }
   saveToLocalStorage(collectionName, items, userId);
   if (!firestoreDb) return;
   try {
