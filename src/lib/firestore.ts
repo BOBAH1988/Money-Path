@@ -9,6 +9,41 @@ import {
   orderBy,
 } from 'firebase/firestore';
 
+const RESET_FLAG_KEY = 'denegnyj_put_reset_pending';
+
+export const markResetPending = (userId?: string) => {
+  try {
+    localStorage.setItem(RESET_FLAG_KEY, userId ?? '');
+  } catch {
+    // ignore
+  }
+};
+
+export const isResetPending = (): boolean => {
+  try {
+    return localStorage.getItem(RESET_FLAG_KEY) !== null;
+  } catch {
+    return false;
+  }
+};
+
+export const getResetPendingUserId = (): string | undefined => {
+  try {
+    const v = localStorage.getItem(RESET_FLAG_KEY);
+    if (v === null) return undefined;
+    return v === '' ? undefined : v;
+  } catch {
+    return undefined;
+  }
+};
+
+export const clearResetPending = () => {
+  try {
+    localStorage.removeItem(RESET_FLAG_KEY);
+  } catch {
+    // ignore
+  }
+};
 export const COLLECTIONS = {
   assets: 'assets',
   liabilities: 'liabilities',
@@ -74,6 +109,10 @@ export const loadFromFirestore = async <T extends { id: string } = { id: string 
   collectionName: string,
   userId?: string
 ): Promise<T[]> => {
+  // После сброса — возвращаем пустой массив, не читаем Firestore/LocalStorage
+  if (isResetPending()) {
+    return [];
+  }
   // Без авторизации — данные недоступны, возвращаем пустой массив
   if (!userId) {
     return [];
@@ -161,23 +200,51 @@ export const clearCollectionData = async (
   collectionName: string,
   userId?: string
 ): Promise<void> => {
-  // Чистим и пользовательский, и общий (un-scoped) ключ локального хранилища синхронно
+  // Чистим локальное хранилище синхронно
   try {
     localStorage.removeItem(storageKey(collectionName, userId));
     localStorage.removeItem(storageKey(collectionName, undefined));
   } catch {
     // ignore
   }
-  // Чистим Firestore — await'ится в Layout, чтобы перезагрузка шла после очистки
+  // Firestore чистим в фоне — не блокируем UI
   if (firestoreDb && userId) {
-    try {
-      const colRef = collection(firestoreDb, colPath(collectionName, userId));
-      const snapshot = await getDocs(colRef);
-      await Promise.all(snapshot.docs.map((docSnap) => deleteDoc(docSnap.ref)));
-    } catch {
-      // ignore — локальное хранилище уже очищено
-    }
+    (async () => {
+      try {
+        const colRef = collection(firestoreDb, colPath(collectionName, userId));
+        const snapshot = await getDocs(colRef);
+        await Promise.all(snapshot.docs.map((docSnap) => deleteDoc(docSnap.ref)));
+      } catch {
+        // ignore
+      }
+    })();
   }
+};
+
+export const cleanupResetPendingFirestore = async (userId: string): Promise<void> => {
+  if (!firestoreDb || !userId) {
+    clearResetPending();
+    return;
+  }
+  const collections = [COLLECTIONS.assets, COLLECTIONS.liabilities, COLLECTIONS.income, COLLECTIONS.incomeArchive];
+  await Promise.all(
+    collections.map(async (c) => {
+      try {
+        const colRef = collection(firestoreDb!, colPath(c, userId));
+        const snapshot = await getDocs(colRef);
+        await Promise.all(snapshot.docs.map((docSnap) => deleteDoc(docSnap.ref)));
+      } catch {
+        // ignore
+      }
+    })
+  );
+  // budget plan
+  try {
+    await deleteDoc(doc(firestoreDb!, colPath(COLLECTIONS.budgetPlan, userId), 'budget_plan'));
+  } catch {
+    // ignore
+  }
+  clearResetPending();
 };
 
 export { firestoreDb, firebaseError };

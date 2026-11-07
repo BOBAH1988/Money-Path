@@ -1,8 +1,8 @@
-import { useState, createContext } from 'react';
+import { useState, useEffect, createContext } from 'react';
 import { NavLink, Outlet } from 'react-router-dom';
 import packageJson from '../../package.json';
 import { useBudget } from '../hooks/useBudget';
-import { clearCollectionData, COLLECTIONS } from '../lib/firestore';
+import { clearCollectionData, markResetPending, cleanupResetPendingFirestore, getResetPendingUserId, isResetPending, clearResetPending, COLLECTIONS } from '../lib/firestore';
 import { AppIcon } from './AppIcon';
 import { AuthModal, AccountButton, AccountMenu, AnalyticsModal } from './AuthModal';
 import { ImportModal } from './ImportModal';
@@ -38,6 +38,7 @@ export default function Layout() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [pageTitle, setPageTitle] = useState('');
   const [confirmReset, setConfirmReset] = useState(false);
+  const [resetting, setResetting] = useState(false);
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [accountMenuOpen, setAccountMenuOpen] = useState(false);
   const [analyticsOpen, setAnalyticsOpen] = useState(false);
@@ -45,6 +46,21 @@ export default function Layout() {
   const { reset } = useBudget();
   const { user, isAuthenticated } = useAuth();
   const userId = isAuthenticated ? user?.uid ?? undefined : undefined;
+
+  // Фоновая очистка Firestore после сброса (на новой загрузке страницы)
+  useEffect(() => {
+    const pendingUserId = getResetPendingUserId();
+    if (pendingUserId !== undefined || isResetPending()) {
+      const uid = pendingUserId ?? userId;
+      if (uid) {
+        cleanupResetPendingFirestore(uid).catch(() => {
+          clearResetPending();
+        });
+      } else {
+        clearResetPending();
+      }
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const ctxValue = { pageTitle, setPageTitle };
 
@@ -149,23 +165,34 @@ export default function Layout() {
                     <button
                       className="btn-delete-confirm"
                       onClick={async () => {
+                        setResetting(true);
                         try {
+                          // 1. Отмечаем сброс (чтобы после reload не читать старый Firestore)
+                          markResetPending(userId);
+                          // 2. Чистим localStorage синхронно
                           await reset(true);
-                          await Promise.all([
-                            clearCollectionData(COLLECTIONS.assets, userId),
-                            clearCollectionData(COLLECTIONS.liabilities, userId),
-                            clearCollectionData(COLLECTIONS.income, userId),
-                            clearCollectionData(COLLECTIONS.incomeArchive, userId),
-                          ]);
+                          clearCollectionData(COLLECTIONS.assets, userId);
+                          clearCollectionData(COLLECTIONS.liabilities, userId);
+                          clearCollectionData(COLLECTIONS.income, userId);
+                          clearCollectionData(COLLECTIONS.incomeArchive, userId);
+                          // 3. Firestore чистим в фоне (не блокирует UI)
+                          if (userId) {
+                            cleanupResetPendingFirestore(userId).catch(() => {});
+                          } else {
+                            clearResetPending();
+                          }
                           setConfirmReset(false);
+                          // 4. Мгновенная перезагрузка
                           window.location.reload();
                         } catch (err) {
                           alert(err instanceof Error ? err.message : 'Ошибка сброса данных');
                           setConfirmReset(false);
+                          setResetting(false);
                         }
                       }}
+                      disabled={resetting}
                     >
-                      Да
+                      {resetting ? 'Сброс...' : 'Да'}
                     </button>
             </div>
           </div>
