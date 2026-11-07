@@ -221,7 +221,6 @@ export default function IncomeArchive() {
                   {visibleMonths.map((idx) => (
                     <th key={idx} className="budget-head budget-head-amount">{MONTHS[idx]}</th>
                   ))}
-                  <th className="budget-head budget-head-amount">Всего</th>
                   <th className="budget-head budget-head-actions">
                     <button className="btn-add btn-add-header" onClick={() => setShowAddRow((v) => !v)} aria-label="Добавить строку">+</button>
                   </th>
@@ -246,28 +245,25 @@ export default function IncomeArchive() {
                           <span className="row-name">{row.name || '—'}</span>
                         )}
                       </td>
-                      {visibleMonths.map((idx) => (
-                        <td key={idx} className="budget-cell budget-cell-amount">
-                          {isEditing ? (
-                            <input
-                              className="budget-input budget-input-amount"
-                              value={row.months[idx] || ''}
-                              onChange={(e) => updateCell(row.id, idx, Number(e.target.value.replace(/[^\d]/g, '')) || 0)}
-                              onBlur={finishEdit}
-                              onKeyDown={(e) => e.key === 'Enter' && finishEdit()}
-                            />
-                          ) : (
-                            <span className="row-amount">{fmt(row.months[idx])}</span>
-                          )}
-                        </td>
-                      ))}
-                      <td className="budget-cell budget-cell-amount" style={{ whiteSpace: 'nowrap', fontWeight: 700 }}>
-                        {rowTotal(row).toLocaleString('ru-RU')} ₽
+                    {visibleMonths.map((idx) => (
+                      <td key={idx} className="budget-cell budget-cell-amount">
+                        {isEditing ? (
+                          <input
+                            className="budget-input budget-input-amount"
+                            value={row.months[idx] || ''}
+                            onChange={(e) => updateCell(row.id, idx, Number(e.target.value.replace(/[^\d]/g, '')) || 0)}
+                            onBlur={finishEdit}
+                            onKeyDown={(e) => e.key === 'Enter' && finishEdit()}
+                          />
+                        ) : (
+                          <span className="row-amount">{fmt(row.months[idx])}</span>
+                        )}
                       </td>
-                      <td className="budget-cell budget-cell-actions">
-                        <button className="btn-edit" onClick={() => setEditingId(row.id)} aria-label="Редактировать">✎</button>
-                        <button className="btn-delete" onClick={() => handleRemove(row.id)} aria-label="Удалить">🗑️</button>
-                      </td>
+                    ))}
+                    <td className="budget-cell budget-cell-actions">
+                      <button className="btn-edit" onClick={() => setEditingId(row.id)} aria-label="Редактировать">✎</button>
+                      <button className="btn-delete" onClick={() => handleRemove(row.id)} aria-label="Удалить">🗑️</button>
+                    </td>
                     </tr>
                   );
                 })}
@@ -302,9 +298,6 @@ export default function IncomeArchive() {
                         />
                       </td>
                     ))}
-                    <td className="budget-cell budget-cell-amount" style={{ whiteSpace: 'nowrap', fontWeight: 700 }}>
-                      {addMonths.reduce((s, v) => s + (v || 0), 0).toLocaleString('ru-RU')} ₽
-                    </td>
                     <td className="budget-cell budget-cell-actions">
                       <button className="btn-delete" onClick={() => setShowAddRow(false)} aria-label="Отмена">×</button>
                     </td>
@@ -318,9 +311,6 @@ export default function IncomeArchive() {
                       {colTotal(idx).toLocaleString('ru-RU')} ₽
                     </td>
                   ))}
-                  <td className="budget-cell budget-cell-amount" style={{ whiteSpace: 'nowrap', fontWeight: 800 }}>
-                    {grandTotal.toLocaleString('ru-RU')} ₽
-                  </td>
                   <td className="budget-cell budget-cell-actions" />
                 </tr>
               </tbody>
