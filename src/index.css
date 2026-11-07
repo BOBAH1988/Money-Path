@@ -3,7 +3,7 @@
 * { box-sizing: border-box; }
 body { margin: 0; font-family: system-ui, sans-serif; }
 .layout { display: flex; flex-direction: column; min-height: 100vh; }
-.content { flex: 1; padding: 16px; max-width: 480px; margin: 0 auto; width: 100%; }
+.content { flex: 1; padding: 16px; max-width: 900px; margin: 0 auto; width: 100%; }
 .page { padding: 8px; }
 
 /* ---------- Нижняя навигация PWA-стиль (iPhone приоритет) ---------- */
@@ -30,7 +30,7 @@ body { margin: 0; font-family: system-ui, sans-serif; }
   justify-content: space-between;
   padding: 0 16px;
   z-index: 100;
-  max-width: 480px;
+  max-width: 900px;
   margin: 0 auto;
 }
 
