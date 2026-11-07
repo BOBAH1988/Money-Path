@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Денежный путь</title>
+  </head>
+  <body>
+    <script>
+      // SPA fallback для GitHub Pages + BrowserRouter.
+      // Сохраняет путь в хеше и перенаправляет на index.html.
+      const base = '/Money-Path/';
+      const path = window.location.pathname + window.location.search;
+      if (path.startsWith(base)) {
+        window.location.replace(base + 'index.html#' + path.slice(base.length));
+      } else {
+        window.location.replace(base + 'index.html');
+      }
+    </script>
+  </body>
+</html>

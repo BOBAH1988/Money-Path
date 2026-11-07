@@ -35,6 +35,15 @@ window.addEventListener('online', async () => {
   }
 });
 
+// При загрузке через 404.html fallback (GitHub Pages + BrowserRouter)
+// путь хранится в хеше — восстанавливаем его в URL без хеша.
+const hash = window.location.hash;
+if (hash && hash.startsWith('#/')) {
+  const path = hash.slice(1); // убрать #
+  window.history.replaceState(null, '', path);
+  window.location.hash = '';
+}
+
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <App />
