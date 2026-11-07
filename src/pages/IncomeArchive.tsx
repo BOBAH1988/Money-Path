@@ -130,8 +130,12 @@ export default function IncomeArchive() {
     setItems((prev) => prev.map((it) => (it.id === id ? { ...it, name } : it)));
   };
 
+  const [focusId, setFocusId] = useState<string | null>(null);
+
   const handleAdd = () => {
-    setItems((prev) => [...prev, { id: crypto.randomUUID(), name: '', year: selectedYear, months: emptyMonths() }]);
+    const newId = crypto.randomUUID();
+    setItems((prev) => [...prev, { id: newId, name: '', year: selectedYear, months: emptyMonths() }]);
+    setFocusId(newId);
   };
 
   const handleRemove = (id: string) => {
@@ -236,6 +240,7 @@ export default function IncomeArchive() {
                         value={row.name}
                         onChange={(e) => updateName(row.id, e.target.value)}
                         placeholder="Источник"
+                        autoFocus={focusId === row.id}
                       />
                     </td>
                     {visibleMonths.map((idx) => (
