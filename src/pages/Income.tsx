@@ -13,6 +13,24 @@ interface IncomeRow {
   monthly: number;
 }
 
+interface IncomeArchiveRow {
+  id: string;
+  name: string;
+  year: number;
+  months: number[];
+}
+
+const migrateArchiveRow = (raw: any): IncomeArchiveRow => {
+  const year = typeof raw?.year === 'number' ? raw.year : new Date().getFullYear();
+  if (raw && Array.isArray(raw.months) && raw.months.length === 12) {
+    return { id: raw.id, name: raw.name ?? '', year, months: raw.months.map((v: any) => (typeof v === 'number' ? v : 0)) };
+  }
+  const months = new Array(12).fill(0);
+  if (typeof raw?.amount === 'number') months[0] = raw.amount;
+  if (typeof raw?.monthly === 'number') months[1] = raw.monthly;
+  return { id: raw?.id ?? crypto.randomUUID(), name: raw?.name ?? '', year, months };
+};
+
 export default function Income() {
   const { setPageTitle } = useContext(PageTitleContext)!;
   const { user } = useAuth();
@@ -23,16 +41,21 @@ export default function Income() {
   }, [setPageTitle]);
 
   const [items, setItems] = useState<IncomeRow[]>([]);
+  const [incomeArchive, setIncomeArchive] = useState<IncomeArchiveRow[]>([]);
   const [loaded, setLoaded] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const load = async () => {
       try {
-        const data = await loadFromFirestore<IncomeRow>(COLLECTIONS.income, userId);
+        const [data, archive] = await Promise.all([
+          loadFromFirestore<IncomeRow>(COLLECTIONS.income, userId),
+          loadFromFirestore<any>(COLLECTIONS.incomeArchive, userId),
+        ]);
         if (data.length > 0) {
           setItems(data);
         }
+        setIncomeArchive(archive.map(migrateArchiveRow));
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Ошибка загрузки данных');
       } finally {
@@ -64,6 +87,16 @@ export default function Income() {
 
   const totalAmount = items.reduce((sum, it) => sum + it.amount, 0);
   const totalMonthly = items.reduce((sum, it) => sum + it.monthly, 0);
+
+  const currentYear = new Date().getFullYear();
+  const archiveRows = incomeArchive.filter((r) => r.year === currentYear);
+  const archiveTotal = archiveRows.reduce((s, row) => s + row.months.reduce((a, b) => a + (b || 0), 0), 0);
+  const archiveFilledMonths = useMemo(() => {
+    const set = new Set<number>();
+    archiveRows.forEach((row) => row.months.forEach((v, idx) => { if (v && v !== 0) set.add(idx); }));
+    return set.size;
+  }, [archiveRows]);
+  const archiveAverage = archiveFilledMonths > 0 ? Math.round(archiveTotal / archiveFilledMonths) : totalAmount;
 
   const handleRemove = (id: string) => {
     if (items.length <= 1) {
@@ -97,7 +130,7 @@ export default function Income() {
       <div className="budget-summary">
         <div className="summary-item summary-item-total">
           <span className="summary-label">Средний доход</span>
-          <span className="summary-value">{totalAmount.toLocaleString('ru-RU')} ₽</span>
+          <span className="summary-value">{archiveAverage.toLocaleString('ru-RU')} ₽</span>
         </div>
         <div className="summary-item">
           <span className="summary-label">Планируемый доход</span>
