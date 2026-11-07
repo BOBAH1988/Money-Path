@@ -151,7 +151,6 @@ export default function Layout() {
                       className="btn-delete-confirm"
                       onClick={async () => {
                         console.log('[reset] handler started, userId:', userId);
-                        alert('Сброс начат, userId=' + userId);
                         setResetting(true);
                         try {
                           await reset(true);
