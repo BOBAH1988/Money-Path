@@ -119,7 +119,8 @@ export default function Dashboard() {
   const summaryIncome = archiveAverage > 0 ? archiveAverage : 0;
   const summaryExpenses = totals.totalAll;
   const summaryDiff = summaryIncome - summaryExpenses;
-  const summaryOk = summaryExpenses < summaryIncome;
+  const summaryOk = summaryExpenses <= summaryIncome;
+  const summaryEqual = summaryExpenses === summaryIncome;
 
   return (
     <div className="page">
@@ -155,7 +156,9 @@ export default function Dashboard() {
           >
             <span style={{ fontSize: 18 }}>{summaryOk ? '✅' : '⚠️'}</span>
             <span>
-              {summaryOk
+              {summaryEqual
+                ? 'Расходы равны доходам'
+                : summaryOk
                 ? `Хорошо: расходы меньше доходов на ${summaryDiff.toLocaleString('ru-RU')} ₽`
                 : `Необходимо пересмотреть расходы: расходы превышают доходы на ${Math.abs(summaryDiff).toLocaleString('ru-RU')} ₽`}
             </span>
