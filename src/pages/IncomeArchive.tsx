@@ -243,9 +243,7 @@ export default function IncomeArchive() {
                             autoFocus
                           />
                         ) : (
-                          <span className="row-name" onClick={() => setEditingId(row.id)} style={{ cursor: 'pointer' }}>
-                            {row.name || '—'}
-                          </span>
+                          <span className="row-name">{row.name || '—'}</span>
                         )}
                       </td>
                       {visibleMonths.map((idx) => (
@@ -259,9 +257,7 @@ export default function IncomeArchive() {
                               onKeyDown={(e) => e.key === 'Enter' && finishEdit()}
                             />
                           ) : (
-                            <span className="row-amount" onClick={() => setEditingId(row.id)} style={{ cursor: 'pointer' }}>
-                              {fmt(row.months[idx])}
-                            </span>
+                            <span className="row-amount">{fmt(row.months[idx])}</span>
                           )}
                         </td>
                       ))}
