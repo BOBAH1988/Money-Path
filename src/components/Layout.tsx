@@ -163,14 +163,14 @@ export default function Layout() {
                             const ok = await cleanupResetPendingFirestore(userId);
                             if (!ok) {
                               console.error('Firestore cleanup failed');
-                              alert('Не удалось удалить данные из облака. Проверьте консоль (F12).');
+                              setConfirmReset(false);
+                              setResetting(false);
                             }
                           }
                           setConfirmReset(false);
                           window.location.reload();
                         } catch (err) {
                           console.error('[reset] error:', err);
-                          alert(err instanceof Error ? err.message : 'Ошибка сброса данных');
                           setConfirmReset(false);
                           setResetting(false);
                         }
