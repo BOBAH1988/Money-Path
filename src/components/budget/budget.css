@@ -54,13 +54,12 @@
 
 .budget-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 1fr;
   gap: 8px;
   margin-bottom: 12px;
 }
 
 @media (max-width: 720px) {
-  .budget-grid { grid-template-columns: 1fr; }
   .page-budget { padding: 12px; padding-bottom: 90px; }
 }
 
