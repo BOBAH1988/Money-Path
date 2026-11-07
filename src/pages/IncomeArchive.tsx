@@ -136,8 +136,33 @@ export default function IncomeArchive() {
     setItems((prev) => (prev.length <= 1 ? prev.map((it) => (it.id === id ? { ...it, name: '', months: emptyMonths() } : it)) : prev.filter((it) => it.id !== id)));
   };
 
-  const prevWindow = () => setMonthStart((s) => (s - 2 + 12) % 12);
-  const nextWindow = () => setMonthStart((s) => (s + 2) % 12);
+  const currentMonth = new Date().getMonth();
+  const currentYearNow = new Date().getFullYear();
+
+  const isFutureMonth = (m: number, y: number) =>
+    y > currentYearNow || (y === currentYearNow && m > currentMonth);
+
+  const windowHasFuture = (start: number) => {
+    if (selectedYear < currentYearNow) return false;
+    return [start, (start + 1) % 12, (start + 2) % 12].some((m) => isFutureMonth(m, selectedYear));
+  };
+
+  const canPrev = !windowHasFuture((monthStart - 2 + 12) % 12);
+  const canNext = !windowHasFuture((monthStart + 2) % 12);
+
+  const prevWindow = () => { if (canPrev) setMonthStart((s) => (s - 2 + 12) % 12); };
+  const nextWindow = () => { if (canNext) setMonthStart((s) => (s + 2) % 12); };
+
+  useEffect(() => {
+    if (selectedYear === currentYearNow) {
+      // Подбираем окно, не содержащее будущих месяцев
+      const cur = currentMonth;
+      // старт = cur-2, но не меньше 0 (для ранних месяцев года)
+      let start = cur - 2;
+      if (start < 0) start = 0;
+      setMonthStart(start);
+    }
+  }, [selectedYear, currentYearNow, currentMonth]);
 
   const finishEdit = () => setEditingId(null);
 
@@ -208,8 +233,8 @@ export default function IncomeArchive() {
             </select>
           </div>
           <div style={{ display: 'flex', gap: 8 }}>
-            <button className="btn-edit" onClick={prevWindow} aria-label="Назад">◀</button>
-            <button className="btn-edit" onClick={nextWindow} aria-label="Вперёд">▶</button>
+            <button className="btn-edit" onClick={prevWindow} aria-label="Назад" disabled={!canPrev} style={{ opacity: canPrev ? 1 : 0.3, cursor: canPrev ? 'pointer' : 'not-allowed' }}>◀</button>
+            <button className="btn-edit" onClick={nextWindow} aria-label="Вперёд" disabled={!canNext} style={{ opacity: canNext ? 1 : 0.3, cursor: canNext ? 'pointer' : 'not-allowed' }}>▶</button>
           </div>
         </div>
         <div className="budget-card-body">
