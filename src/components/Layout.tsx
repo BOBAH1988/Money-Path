@@ -43,6 +43,7 @@ export default function Layout() {
   const [accountMenuOpen, setAccountMenuOpen] = useState(false);
   const [analyticsOpen, setAnalyticsOpen] = useState(false);
   const [importModalOpen, setImportModalOpen] = useState(false);
+  const [theme, setTheme] = useState<'light' | 'dark'>('light');
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const [installModalOpen, setInstallModalOpen] = useState(false);
 
@@ -79,6 +80,18 @@ export default function Layout() {
       media.removeEventListener('change', mediaHandler);
     };
   }, []);
+
+  useEffect(() => {
+    const saved = localStorage.getItem('denegnyj_put_theme') as 'light' | 'dark' | null;
+    const initial = saved ?? (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    setTheme(initial);
+    document.documentElement.classList.toggle('dark', initial === 'dark');
+  }, []);
+
+  useEffect(() => {
+    document.documentElement.classList.toggle('dark', theme === 'dark');
+    localStorage.setItem('denegnyj_put_theme', theme);
+  }, [theme]);
 
   return (
     <PageTitleContext.Provider value={ctxValue}>
@@ -188,6 +201,30 @@ export default function Layout() {
                   <span className="menu-icon">🔄</span>
                   Сброс на стандартные
                 </button>
+              </li>
+              <li className="menu-theme-item">
+                <div className="menu-theme-row">
+                  <button
+                    className={`menu-item menu-theme-btn ${theme === 'light' ? 'theme-active' : ''}`}
+                    onClick={() => {
+                      setTheme('light');
+                      setMenuOpen(false);
+                    }}
+                  >
+                    <span className="menu-icon">☀️</span>
+                    Светлая тема
+                  </button>
+                  <button
+                    className={`menu-item menu-theme-btn ${theme === 'dark' ? 'theme-active' : ''}`}
+                    onClick={() => {
+                      setTheme('dark');
+                      setMenuOpen(false);
+                    }}
+                  >
+                    <span className="menu-icon">🌙</span>
+                    Темная тема
+                  </button>
+                </div>
               </li>
             </ul>
           </div>
