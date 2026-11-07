@@ -12,20 +12,24 @@ const MONTHS = [
 interface IncomeArchiveRow {
   id: string;
   name: string;
+  year: number;
   months: number[];
 }
 
 const emptyMonths = () => new Array(12).fill(0);
 
 const migrateRow = (raw: any): IncomeArchiveRow => {
+  const year = typeof raw?.year === 'number' ? raw.year : new Date().getFullYear();
   if (raw && Array.isArray(raw.months) && raw.months.length === 12) {
-    return { id: raw.id, name: raw.name ?? '', months: raw.months.map((v: any) => (typeof v === 'number' ? v : 0)) };
+    return { id: raw.id, name: raw.name ?? '', year, months: raw.months.map((v: any) => (typeof v === 'number' ? v : 0)) };
   }
   const months = emptyMonths();
   if (typeof raw?.amount === 'number') months[0] = raw.amount;
   if (typeof raw?.monthly === 'number') months[1] = raw.monthly;
-  return { id: raw?.id ?? crypto.randomUUID(), name: raw?.name ?? '', months };
+  return { id: raw?.id ?? crypto.randomUUID(), name: raw?.name ?? '', year, months };
 };
+
+const hasData = (row: IncomeArchiveRow) => row.months.some((v) => v && v !== 0);
 
 export default function IncomeArchive() {
   const { setPageTitle } = useContext(PageTitleContext)!;
@@ -40,10 +44,13 @@ export default function IncomeArchive() {
   const [loaded, setLoaded] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Окно из 3 месяцев: стартовый индекс (0..11). По умолчанию — текущий месяц минус 2.
+  const currentYear = new Date().getFullYear();
+
+  const [selectedYear, setSelectedYear] = useState(currentYear);
+
   const [monthStart, setMonthStart] = useState(() => {
     const now = new Date();
-    const cur = now.getMonth(); // 0..11
+    const cur = now.getMonth();
     return (cur - 2 + 12) % 12;
   });
 
@@ -70,13 +77,32 @@ export default function IncomeArchive() {
     });
   }, [items, loaded, userId]);
 
+  // Доступные годы: текущий + годы с заполненными значениями
+  const availableYears = useMemo(() => {
+    const set = new Set<number>();
+    set.add(currentYear);
+    items.forEach((row) => {
+      if (hasData(row)) set.add(row.year);
+    });
+    return Array.from(set).sort((a, b) => b - a);
+  }, [items, currentYear]);
+
+  // Если выбранный год недоступен — переключаемся на первый доступный
+  useEffect(() => {
+    if (!availableYears.includes(selectedYear)) {
+      setSelectedYear(availableYears[0]);
+    }
+  }, [availableYears, selectedYear]);
+
+  const yearItems = useMemo(() => items.filter((row) => row.year === selectedYear), [items, selectedYear]);
+
   const visibleMonths = useMemo(() => [monthStart, (monthStart + 1) % 12, (monthStart + 2) % 12], [monthStart]);
 
   const rowTotal = (row: IncomeArchiveRow) => row.months.reduce((s, v) => s + (v || 0), 0);
 
-  const colTotal = (idx: number) => items.reduce((s, row) => s + (row.months[idx] || 0), 0);
+  const colTotal = (idx: number) => yearItems.reduce((s, row) => s + (row.months[idx] || 0), 0);
 
-  const grandTotal = items.reduce((s, row) => s + rowTotal(row), 0);
+  const grandTotal = yearItems.reduce((s, row) => s + rowTotal(row), 0);
 
   const updateCell = (id: string, monthIdx: number, value: number) => {
     setItems((prev) => prev.map((it) => {
@@ -92,7 +118,7 @@ export default function IncomeArchive() {
   };
 
   const handleAdd = () => {
-    setItems((prev) => [...prev, { id: crypto.randomUUID(), name: '', months: emptyMonths() }]);
+    setItems((prev) => [...prev, { id: crypto.randomUUID(), name: '', year: selectedYear, months: emptyMonths() }]);
   };
 
   const handleRemove = (id: string) => {
@@ -136,8 +162,27 @@ export default function IncomeArchive() {
   return (
     <div className="page page-budget">
       <div className="budget-card">
-        <div className="budget-card-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <h2 className="budget-card-title">Доходы архив</h2>
+        <div className="budget-card-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <h2 className="budget-card-title" style={{ margin: 0 }}>Доходы архив</h2>
+            <select
+              value={selectedYear}
+              onChange={(e) => setSelectedYear(Number(e.target.value))}
+              style={{
+                padding: '6px 10px',
+                borderRadius: 8,
+                border: '1px solid var(--bp-border, #e2e8f0)',
+                background: 'var(--bp-card, #fff)',
+                fontSize: 14,
+                fontWeight: 600,
+                cursor: 'pointer',
+              }}
+            >
+              {availableYears.map((y) => (
+                <option key={y} value={y}>{y}</option>
+              ))}
+            </select>
+          </div>
           <div style={{ display: 'flex', gap: 8 }}>
             <button className="btn-edit" onClick={prevWindow} aria-label="Назад">◀</button>
             <button className="btn-edit" onClick={nextWindow} aria-label="Вперёд">▶</button>
@@ -159,7 +204,7 @@ export default function IncomeArchive() {
                 </tr>
               </thead>
               <tbody>
-                {items.map((row) => (
+                {yearItems.map((row) => (
                   <tr key={row.id} className="budget-row">
                     <td className="budget-cell budget-cell-name">
                       <input
