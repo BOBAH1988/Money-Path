@@ -167,22 +167,21 @@ export default function Layout() {
                       onClick={async () => {
                         setResetting(true);
                         try {
-                          // 1. Отмечаем сброс (чтобы после reload не читать старый Firestore)
                           markResetPending(userId);
-                          // 2. Чистим localStorage синхронно
                           await reset(true);
                           clearCollectionData(COLLECTIONS.assets, userId);
                           clearCollectionData(COLLECTIONS.liabilities, userId);
                           clearCollectionData(COLLECTIONS.income, userId);
                           clearCollectionData(COLLECTIONS.incomeArchive, userId);
-                          // 3. Firestore чистим в фоне (не блокирует UI)
+                          // Очищаем Firestore (с таймаутом, чтобы не ждать вечно)
                           if (userId) {
-                            cleanupResetPendingFirestore(userId).catch(() => {});
-                          } else {
-                            clearResetPending();
+                            await Promise.race([
+                              cleanupResetPendingFirestore(userId),
+                              new Promise((resolve) => setTimeout(resolve, 5000)),
+                            ]);
                           }
+                          clearResetPending();
                           setConfirmReset(false);
-                          // 4. Мгновенная перезагрузка
                           window.location.reload();
                         } catch (err) {
                           alert(err instanceof Error ? err.message : 'Ошибка сброса данных');
