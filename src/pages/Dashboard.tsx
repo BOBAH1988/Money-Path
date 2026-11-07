@@ -116,7 +116,7 @@ export default function Dashboard() {
   }, [archiveRows]);
   const archiveAverage = archiveFilledMonths > 0 ? Math.round(archiveTotal / archiveFilledMonths) : 0;
 
-  const summaryIncome = archiveAverage > 0 ? archiveAverage : 100000;
+  const summaryIncome = archiveAverage > 0 ? archiveAverage : 0;
   const summaryExpenses = totals.totalAll;
   const summaryDiff = summaryIncome - summaryExpenses;
   const summaryOk = summaryExpenses < summaryIncome;
