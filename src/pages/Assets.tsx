@@ -120,7 +120,6 @@ export default function Assets() {
         headers={{
           name: 'Активы',
           amount: 'Сумма',
-          plan: '+ в мес.',
         }}
         onUpdate={(id, patch) => {
           updateItem(id, {
