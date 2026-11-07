@@ -260,10 +260,12 @@ export default function IncomeArchive() {
                         )}
                       </td>
                     ))}
-                    <td className="budget-cell budget-cell-actions">
-                      <button className="btn-edit" onClick={() => setEditingId(row.id)} aria-label="Редактировать">✎</button>
-                      <button className="btn-delete" onClick={() => handleRemove(row.id)} aria-label="Удалить">🗑️</button>
-                    </td>
+                      <td className="budget-cell budget-cell-actions">
+                        <button className="btn-edit" onClick={() => setEditingId(row.id)} aria-label="Редактировать">✎</button>
+                        {isEditing && (
+                          <button className="btn-delete" onClick={() => handleRemove(row.id)} aria-label="Удалить">🗑️</button>
+                        )}
+                      </td>
                     </tr>
                   );
                 })}
