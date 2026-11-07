@@ -212,7 +212,6 @@ export default function Layout() {
                     }}
                     aria-label="Светлая тема"
                   >
-                    <span className="menu-icon">🌞</span>
                     Светлая
                   </button>
                   <button
@@ -223,7 +222,6 @@ export default function Layout() {
                     }}
                     aria-label="Темная тема"
                   >
-                    <span className="menu-icon">🌚</span>
                     Темная
                   </button>
                 </div>
