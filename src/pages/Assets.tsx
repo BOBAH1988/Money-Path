@@ -88,7 +88,11 @@ export default function Assets() {
           title="Активы не добавлены"
           description="Добавьте первый актив, например банковский вклад или инвестиции."
           action={
-            <button className="auth-btn" type="button">
+            <button
+              className="auth-btn"
+              type="button"
+              onClick={() => addItem({ name: '', amount: 0, monthly: 0 })}
+            >
               Добавить актив
             </button>
           }
