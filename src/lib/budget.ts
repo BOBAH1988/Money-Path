@@ -1,5 +1,5 @@
 import type { BudgetPlan, BudgetPlanItem, BudgetGroup } from '../types';
-import { firestoreDb as db, COLLECTIONS, isResetPending } from './firestore';
+import { firestoreDb as db, COLLECTIONS } from './firestore';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 
 const now = () => new Date().toISOString();
@@ -37,9 +37,6 @@ const saveBudgetPlanToLocalStorage = (plan: BudgetPlan, userId?: string): void =
 };
 
 export const loadBudgetPlan = async (userId?: string): Promise<BudgetPlan> => {
-  if (isResetPending()) {
-    return emptyBudgetPlan;
-  }
   if (!userId) {
     return emptyBudgetPlan;
   }

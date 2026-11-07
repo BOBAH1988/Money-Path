@@ -11,24 +11,7 @@ import {
 
 const RESET_FLAG_KEY = 'denegnyj_put_reset_pending';
 
-export const markResetPending = (userId?: string) => {
-  try {
-    localStorage.setItem(RESET_FLAG_KEY, userId ?? '');
-    console.log('[reset-flag] markResetPending set:', userId ?? '');
-  } catch {
-    // ignore
-  }
-};
-
-export const isResetPending = (): boolean => {
-  try {
-    const v = localStorage.getItem(RESET_FLAG_KEY);
-    console.log('[reset-flag] isResetPending:', v !== null, 'value:', v);
-    return v !== null;
-  } catch {
-    return false;
-  }
-};
+export const isResetPending = (): boolean => false;
 
 export const getResetPendingUserId = (): string | undefined => {
   try {
@@ -95,14 +78,6 @@ export const saveToFirestore = async <T extends { id: string }>(
   userId?: string
 ) => {
   if (!userId) return;
-  // Если был сброс — сначала чистим Firestore (старые данные), затем сохраняем новые
-  if (isResetPending()) {
-    try {
-      await cleanupResetPendingFirestore(userId);
-    } catch {
-      // ignore
-    }
-  }
   saveToLocalStorage(collectionName, items, userId);
   if (!firestoreDb) return;
   try {
@@ -122,11 +97,6 @@ export const loadFromFirestore = async <T extends { id: string } = { id: string 
   collectionName: string,
   userId?: string
 ): Promise<T[]> => {
-  // После сброса — возвращаем пустой массив, не читаем Firestore/LocalStorage
-  if (isResetPending()) {
-    console.log('[loadFromFirestore] reset pending, returning [] for', collectionName);
-    return [];
-  }
   // Без авторизации — данные недоступны, возвращаем пустой массив
   if (!userId) {
     return [];
@@ -210,28 +180,16 @@ export const deleteFromFirestore = async (
   }
 };
 
-export const clearCollectionData = async (
+export const clearCollectionData = (
   collectionName: string,
   userId?: string
-): Promise<void> => {
+): void => {
   // Чистим локальное хранилище синхронно
   try {
     localStorage.removeItem(storageKey(collectionName, userId));
     localStorage.removeItem(storageKey(collectionName, undefined));
   } catch {
     // ignore
-  }
-  // Firestore чистим в фоне — не блокируем UI
-  if (firestoreDb && userId) {
-    (async () => {
-      try {
-        const colRef = collection(firestoreDb, colPath(collectionName, userId));
-        const snapshot = await getDocs(colRef);
-        await Promise.all(snapshot.docs.map((docSnap) => deleteDoc(docSnap.ref)));
-      } catch {
-        // ignore
-      }
-    })();
   }
 };
 

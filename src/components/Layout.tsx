@@ -1,8 +1,8 @@
-import { useState, useEffect, createContext } from 'react';
+import { useState, createContext } from 'react';
 import { NavLink, Outlet } from 'react-router-dom';
 import packageJson from '../../package.json';
 import { useBudget } from '../hooks/useBudget';
-import { clearCollectionData, markResetPending, cleanupResetPendingFirestore, getResetPendingUserId, isResetPending, clearResetPending, COLLECTIONS } from '../lib/firestore';
+import { clearCollectionData, cleanupResetPendingFirestore, COLLECTIONS } from '../lib/firestore';
 import { AppIcon } from './AppIcon';
 import { AuthModal, AccountButton, AccountMenu, AnalyticsModal } from './AuthModal';
 import { ImportModal } from './ImportModal';
@@ -46,21 +46,6 @@ export default function Layout() {
   const { reset } = useBudget();
   const { user, isAuthenticated } = useAuth();
   const userId = isAuthenticated ? user?.uid ?? undefined : undefined;
-
-  // Фоновая очистка Firestore после сброса (на новой загрузке страницы)
-  useEffect(() => {
-    const pendingUserId = getResetPendingUserId();
-    if (pendingUserId !== undefined || isResetPending()) {
-      const uid = pendingUserId ?? userId;
-      if (uid) {
-        cleanupResetPendingFirestore(uid).catch(() => {
-          clearResetPending();
-        });
-      } else {
-        clearResetPending();
-      }
-    }
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const ctxValue = { pageTitle, setPageTitle };
 
@@ -167,20 +152,17 @@ export default function Layout() {
                       onClick={async () => {
                         setResetting(true);
                         try {
-                          markResetPending(userId);
                           await reset(true);
                           clearCollectionData(COLLECTIONS.assets, userId);
                           clearCollectionData(COLLECTIONS.liabilities, userId);
                           clearCollectionData(COLLECTIONS.income, userId);
                           clearCollectionData(COLLECTIONS.incomeArchive, userId);
-                          // Firestore чистим с ожиданием (до 8с), чтобы данные успели удалиться
+                          // Очищаем Firestore и проверяем результат
                           if (userId) {
-                            await Promise.race([
-                              cleanupResetPendingFirestore(userId),
-                              new Promise((resolve) => setTimeout(resolve, 8000)),
-                            ]);
-                          } else {
-                            clearResetPending();
+                            const ok = await cleanupResetPendingFirestore(userId);
+                            if (!ok) {
+                              console.error('Firestore cleanup failed');
+                            }
                           }
                           setConfirmReset(false);
                           window.location.reload();
