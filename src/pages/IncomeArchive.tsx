@@ -325,9 +325,9 @@ export default function IncomeArchive() {
                         />
                       </td>
                     ))}
-                    <td className="budget-cell budget-cell-actions">
-                      <button className="btn-delete" onClick={() => setShowAddRow(false)} aria-label="Отмена">×</button>
-                    </td>
+                      <td className="budget-cell budget-cell-actions">
+                        <button className="btn-delete" onClick={() => setShowAddRow(false)} aria-label="Отмена">×</button>
+                      </td>
                   </tr>
                 )}
 
