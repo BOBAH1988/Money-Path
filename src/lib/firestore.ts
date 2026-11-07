@@ -108,6 +108,8 @@ export const saveToFirestore = async <T extends { id: string }>(
       setDoc(doc(colRef, item.id), { ...item, userId } as Record<string, unknown>)
     );
     await Promise.all(batch);
+    // После успешного сохранения новых данных — снимаем флаг сброса
+    clearResetPending();
   } catch {
     // Firestore недоступен, localStorage уже сохранён
   }
@@ -255,9 +257,8 @@ export const cleanupResetPendingFirestore = async (userId: string): Promise<bool
     hadError = true;
     console.error('budget cleanup failed', e);
   }
-  if (!hadError) {
-    clearResetPending();
-  }
+  // Флаг не снимаем здесь — его снимет saveToFirestore при добавлении новых данных
+  // (или вручную). Это защищает от повторного чтения устаревшего Firestore.
   return !hadError;
 };
 

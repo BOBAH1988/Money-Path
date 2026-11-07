@@ -173,14 +173,9 @@ export default function Layout() {
                           clearCollectionData(COLLECTIONS.liabilities, userId);
                           clearCollectionData(COLLECTIONS.income, userId);
                           clearCollectionData(COLLECTIONS.incomeArchive, userId);
-                          // Очищаем Firestore (ждём до 2с, чтобы данные успели удалиться)
+                          // Firestore чистим в фоне (не блокирует UI)
                           if (userId) {
-                            await Promise.race([
-                              cleanupResetPendingFirestore(userId),
-                              new Promise((resolve) => setTimeout(resolve, 2000)),
-                            ]);
-                          } else {
-                            clearResetPending();
+                            cleanupResetPendingFirestore(userId).catch(() => {});
                           }
                           setConfirmReset(false);
                           window.location.reload();
