@@ -1,7 +1,7 @@
 import { useMemo, useEffect, useContext, useState } from 'react';
 import { useBudget } from '../hooks/useBudget';
 import { BudgetTable } from '../components/budget/BudgetTable';
-import { PageTitleContext } from '../components/Layout';
+import { PageTitleContext } from '../components/PageTitleContext';
 import { computeBudgetPageTotals } from '../lib/budget';
 
 export default function Budget() {

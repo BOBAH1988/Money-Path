@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import { render, screen, fireEvent, cleanup } from '@testing-library/react';
 import { BudgetRow } from './BudgetRow';
+import { ToastProvider } from '../../ui/Toast';
 
 afterEach(() => cleanup());
 afterEach(() => {
@@ -15,18 +16,20 @@ const renderRow = (
   onStartEdit = vi.fn()
 ) =>
   render(
-    <table>
-      <tbody>
-        <BudgetRow
-          item={item}
-          onUpdate={onUpdate}
-          onRemove={onRemove}
-          isEditing={isEditing}
-          onStartEdit={onStartEdit}
-          onFinishEdit={vi.fn()}
-        />
-      </tbody>
-    </table>
+    <ToastProvider>
+      <table>
+        <tbody>
+          <BudgetRow
+            item={item}
+            onUpdate={onUpdate}
+            onRemove={onRemove}
+            isEditing={isEditing}
+            onStartEdit={onStartEdit}
+            onFinishEdit={vi.fn()}
+          />
+        </tbody>
+      </table>
+    </ToastProvider>
   );
 
 describe('BudgetRow', () => {
@@ -93,7 +96,7 @@ describe('BudgetRow', () => {
       true
     );
     fireEvent.click(container.querySelector('.btn-delete')!);
-    fireEvent.click(container.querySelector('.btn-delete-confirm')!);
+    fireEvent.click(screen.getByRole('button', { name: /Удалить/ }));
     expect(onRemove).toHaveBeenCalledWith('1');
   });
 
@@ -112,8 +115,7 @@ describe('BudgetRow', () => {
       true
     );
     fireEvent.click(container.querySelector('.btn-delete')!);
-    expect(container.querySelector('.confirm-overlay')).toBeInTheDocument();
-    expect(container.textContent).toContain('Удалить строку "Ипотека"?');
+    expect(document.querySelector('.confirm-title')?.textContent).toContain('Удалить строку');
   });
 
   it('calls onRemove when confirm delete button clicked', () => {
@@ -132,7 +134,7 @@ describe('BudgetRow', () => {
       true
     );
     fireEvent.click(container.querySelector('.btn-delete')!);
-    fireEvent.click(container.querySelector('.btn-delete-confirm')!);
+    fireEvent.click(screen.getByRole('button', { name: /Удалить/ }));
     expect(onRemove).toHaveBeenCalledWith('1');
   });
 
@@ -152,7 +154,7 @@ describe('BudgetRow', () => {
       true
     );
     fireEvent.click(container.querySelector('.btn-delete')!);
-    fireEvent.click(container.querySelector('.btn-cancel')!);
+    fireEvent.click(screen.getByRole('button', { name: /Отмена/ }));
     expect(onRemove).not.toHaveBeenCalled();
   });
 

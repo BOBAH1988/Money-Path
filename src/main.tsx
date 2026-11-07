@@ -6,9 +6,10 @@ import { syncPendingToFirestore } from './lib/firestore'
 
 // Регистрация Service Worker для офлайн-работы PWA.
 if ('serviceWorker' in navigator) {
+  const swPath = import.meta.env.BASE_URL ? `${import.meta.env.BASE_URL}sw.js` : '/sw.js';
   window.addEventListener('load', () => {
     navigator.serviceWorker
-      .register('/Money-Path/sw.js', { scope: '/Money-Path/' })
+      .register(swPath)
       .then(() => {
         // eslint-disable-next-line no-console
         console.log('[PWA] Service Worker зарегистрирован');

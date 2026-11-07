@@ -1,21 +1,22 @@
-import { useState, createContext, useEffect, useMemo } from 'react';
-import { NavLink, Outlet } from 'react-router-dom';
+import { useContext, useState, useEffect, useMemo } from 'react';
+import { NavLink, Outlet, useNavigate, useLocation } from 'react-router-dom';
 import packageJson from '../../package.json';
 import { useBudget } from '../hooks/useBudget';
 import { clearCollectionData, cleanupResetPendingFirestore, COLLECTIONS } from '../lib/firestore';
 import { AppIcon } from './AppIcon';
 import { AuthModal, AccountButton, AccountMenu, AnalyticsModal } from './AuthModal';
 import { ImportModal } from './ImportModal';
+import { PageTitleProvider, PageTitleContext } from './PageTitleContext';
 import { useAuth } from '../context/AuthContext';
+import { ConfirmDialog } from '../ui/ConfirmDialog';
+import { useToast } from '../ui/Toast';
 
 const pkgVersion = packageJson.version;
-
-interface PageTitleContextValue {
-  pageTitle: string;
-  setPageTitle: (title: string) => void;
-}
-
-export const PageTitleContext = createContext<PageTitleContextValue | undefined>(undefined);
+const currentYear = new Date().getFullYear();
+const footerText =
+  currentYear === 2026
+    ? `project by Vladimir Sokolov 2026`
+    : `project by Vladimir Sokolov 2026 - ${currentYear}`;
 
 const items = [
   { to: '/', label: 'Главная', icon: '📊' },
@@ -27,23 +28,19 @@ const items = [
   { to: '/import', label: 'Импорт', icon: '📥' },
 ];
 
-const START_YEAR = 2026;
-const currentYear = new Date().getFullYear();
-const footerText =
-  currentYear === START_YEAR
-    ? `project by Vladimir Sokolov ${START_YEAR}`
-    : `project by Vladimir Sokolov ${START_YEAR} - ${currentYear}`;
+
 
 export default function Layout() {
   const [menuOpen, setMenuOpen] = useState(false);
-  const [pageTitle, setPageTitle] = useState('');
   const [confirmReset, setConfirmReset] = useState(false);
-  const [resetting, setResetting] = useState(false);
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [accountMenuOpen, setAccountMenuOpen] = useState(false);
   const [analyticsOpen, setAnalyticsOpen] = useState(false);
   const [importModalOpen, setImportModalOpen] = useState(false);
-  const [theme, setTheme] = useState<'light' | 'dark'>('light');
+  const [theme, setTheme] = useState<'light' | 'dark'>(() => {
+    const saved = localStorage.getItem('denegnyj_put_theme') as 'light' | 'dark' | null;
+    return saved ?? (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+  });
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const [installModalOpen, setInstallModalOpen] = useState(false);
 
@@ -56,10 +53,13 @@ export default function Layout() {
     []
   );
   const { reset } = useBudget();
+  const { error: toastError, success: toastSuccess } = useToast();
   const { user, isAuthenticated } = useAuth();
   const userId = user?.uid ?? undefined;
-
-  const ctxValue = { pageTitle, setPageTitle };
+  const navigate = useNavigate();
+  const location = useLocation();
+  const ctx = useContext(PageTitleContext);
+  const pageTitle = ctx?.pageTitle ?? '';
 
   useEffect(() => {
     const promptHandler = (e: any) => {
@@ -82,19 +82,34 @@ export default function Layout() {
   }, []);
 
   useEffect(() => {
-    const saved = localStorage.getItem('denegnyj_put_theme') as 'light' | 'dark' | null;
-    const initial = saved ?? (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
-    setTheme(initial);
-    document.documentElement.classList.toggle('dark', initial === 'dark');
-  }, []);
-
-  useEffect(() => {
     document.documentElement.classList.toggle('dark', theme === 'dark');
     localStorage.setItem('denegnyj_put_theme', theme);
   }, [theme]);
 
+  const handleConfirmReset = async () => {
+    try {
+      await reset(true);
+      clearCollectionData(COLLECTIONS.assets, userId);
+      clearCollectionData(COLLECTIONS.liabilities, userId);
+      clearCollectionData(COLLECTIONS.income, userId);
+      clearCollectionData(COLLECTIONS.incomeArchive, userId);
+      if (userId) {
+        const ok = await cleanupResetPendingFirestore(userId);
+        if (!ok) {
+          toastError('Ошибка сброса', 'Не удалось полностью очистить данные в облаке');
+        }
+      }
+      toastSuccess('Данные сброшены', 'Все данные удалены и приложение перезагружено');
+      setConfirmReset(false);
+      window.location.reload();
+    } catch (err) {
+      toastError('Ошибка сброса', err instanceof Error ? err.message : 'Не удалось сбросить данные');
+      setConfirmReset(false);
+    }
+  };
+
   return (
-    <PageTitleContext.Provider value={ctxValue}>
+    <PageTitleProvider>
       <div className="layout">
         {/* Верхняя панель приложения */}
         <header className="top-bar">
@@ -128,13 +143,59 @@ export default function Layout() {
 
         <main className="content"><Outlet /></main>
 
-      {/* Нижняя панель — copyright строка и обратная связь */}
+      {/* Нижняя навигация PWA */}
       <nav className="bottom-nav">
-        <span className="footer-text">{footerText}</span>
-        <a className="footer-link" href="mailto:79042044926@ya.ru">
-          Обратная связь
-        </a>
-        <span className="footer-version">v{pkgVersion}</span>
+        <div className="bottom-nav-buttons">
+          <button
+            className={`bottom-nav-item ${location.pathname === '/' ? 'active' : ''}`}
+            onClick={() => navigate('/')}
+          >
+            <span className="nav-icon">📊</span>
+            <span>Главная</span>
+          </button>
+          <button
+            className={`bottom-nav-item ${location.pathname === '/budget' ? 'active' : ''}`}
+            onClick={() => navigate('/budget')}
+          >
+            <span className="nav-icon">💰</span>
+            <span>Бюджет</span>
+          </button>
+          <button
+            className={`bottom-nav-item ${location.pathname === '/assets' ? 'active' : ''}`}
+            onClick={() => navigate('/assets')}
+          >
+            <span className="nav-icon">📈</span>
+            <span>Активы</span>
+          </button>
+          <button
+            className={`bottom-nav-item ${location.pathname === '/liabilities' ? 'active' : ''}`}
+            onClick={() => navigate('/liabilities')}
+          >
+            <span className="nav-icon">🏦</span>
+            <span>Пассивы</span>
+          </button>
+          <button
+            className={`bottom-nav-item ${location.pathname === '/income' ? 'active' : ''}`}
+            onClick={() => navigate('/income')}
+          >
+            <span className="nav-icon">💵</span>
+            <span>Доходы</span>
+          </button>
+          <button
+            className={`bottom-nav-item ${location.pathname === '/income-archive' ? 'active' : ''}`}
+            onClick={() => navigate('/income-archive')}
+          >
+            <span className="nav-icon">📂</span>
+            <span>Архив</span>
+          </button>
+        </div>
+        <div className="bottom-nav-footer">
+          <span className="footer-text">{footerText}</span>
+          <a className="footer-link" href="mailto:79042044926@ya.ru">
+            Обратная связь
+          </a>
+          <span className="footer-version">v{pkgVersion}</span>
+        </div>
       </nav>
 
       {/* Выезжающее меню поверх всего */}
@@ -233,48 +294,16 @@ export default function Layout() {
       )}
 
       {confirmReset && (
-        <div className="confirm-overlay" onClick={() => setConfirmReset(false)}>
-          <div className="confirm-card" onClick={(e) => e.stopPropagation()}>
-            <p>Точно удалить все данные?</p>
-            <div className="confirm-actions">
-              <button className="btn-cancel" onClick={() => setConfirmReset(false)}>
-                Нет
-              </button>
-                    <button
-                      className="btn-delete-confirm"
-                      onClick={async () => {
-                        console.log('[reset] handler started, userId:', userId);
-                        setResetting(true);
-                        try {
-                          await reset(true);
-                          clearCollectionData(COLLECTIONS.assets, userId);
-                          clearCollectionData(COLLECTIONS.liabilities, userId);
-                          clearCollectionData(COLLECTIONS.income, userId);
-                          clearCollectionData(COLLECTIONS.incomeArchive, userId);
-                          // Очищаем Firestore и проверяем результат
-                          if (userId) {
-                            const ok = await cleanupResetPendingFirestore(userId);
-                            if (!ok) {
-                              console.error('Firestore cleanup failed');
-                              setConfirmReset(false);
-                              setResetting(false);
-                            }
-                          }
-                          setConfirmReset(false);
-                          window.location.reload();
-                        } catch (err) {
-                          console.error('[reset] error:', err);
-                          setConfirmReset(false);
-                          setResetting(false);
-                        }
-                      }}
-                      disabled={resetting}
-                    >
-                      {resetting ? 'Сброс...' : 'Да'}
-                    </button>
-            </div>
-          </div>
-        </div>
+        <ConfirmDialog
+          open={confirmReset}
+          onClose={() => setConfirmReset(false)}
+          onConfirm={handleConfirmReset}
+          title="Сброс данных"
+          description="Все ваши данные будут безвозвратно удалены. Действие необратимо."
+          confirmLabel="Сбросить"
+          cancelLabel="Отмена"
+          confirmVariant="danger"
+        />
       )}
 
       {authModalOpen && (
@@ -317,6 +346,6 @@ export default function Layout() {
         </div>
       )}
     </div>
-      </PageTitleContext.Provider>
+    </PageTitleProvider>
   );
 }

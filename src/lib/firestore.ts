@@ -11,7 +11,14 @@ import {
 
 const RESET_FLAG_KEY = 'denegnyj_put_reset_pending';
 
-export const isResetPending = (): boolean => false;
+export const isResetPending = (): boolean => {
+  try {
+    const v = localStorage.getItem(RESET_FLAG_KEY);
+    return v !== null && v !== '';
+  } catch {
+    return false;
+  }
+};
 
 export const getResetPendingUserId = (): string | undefined => {
   try {
@@ -222,10 +229,8 @@ export const cleanupResetPendingFirestore = async (userId: string): Promise<bool
     try {
       const colRef = collection(firestoreDb!, colPath(c, userId));
       const snapshot = await getDocs(colRef);
-      console.log('[cleanup] ' + c + ': found ' + snapshot.docs.length + ' docs');
       await Promise.all(snapshot.docs.map((docSnap) => deleteDoc(docSnap.ref)));
       const after = await getDocs(colRef);
-      console.log('[cleanup] ' + c + ': after delete ' + after.docs.length + ' docs remain');
       if (after.docs.length > 0) {
         hadError = true;
         console.error('[cleanup] ' + c + ': docs still remain!');

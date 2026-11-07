@@ -1,10 +1,11 @@
 import { useEffect, useState, useMemo } from 'react';
 import { useContext } from 'react';
-import { PageTitleContext } from '../components/Layout';
+import { PageTitleContext } from '../components/PageTitleContext';
 import { BudgetTable } from '../components/budget/BudgetTable';
 import type { BudgetGroup } from '../types';
 import { saveToFirestore, loadFromFirestore, COLLECTIONS } from '../lib/firestore';
 import { useAuth } from '../context/AuthContext';
+import { useToast } from '../ui/Toast';
 
 interface AssetRow {
   id: string;
@@ -15,6 +16,7 @@ interface AssetRow {
 
 export default function Assets() {
   const { setPageTitle } = useContext(PageTitleContext)!;
+  const { toast: addToast } = useToast();
   const { user } = useAuth();
   const userId = user?.uid ?? undefined;
 
@@ -34,20 +36,24 @@ export default function Assets() {
           setItems(data);
         }
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Ошибка загрузки данных');
+        const msg = err instanceof Error ? err.message : 'Ошибка загрузки данных';
+        setError(msg);
+        addToast('error', 'Ошибка загрузки', msg);
       } finally {
         setLoaded(true);
       }
     };
     load();
-  }, [userId]);
+  }, [userId, addToast]);
 
   useEffect(() => {
     if (!loaded) return;
     saveToFirestore(COLLECTIONS.assets, items, userId).catch((err) => {
-      setError(err instanceof Error ? err.message : 'Ошибка сохранения');
+      const msg = err instanceof Error ? err.message : 'Ошибка сохранения';
+      setError(msg);
+      addToast('error', 'Ошибка сохранения', msg);
     });
-  }, [items, loaded, userId]);
+  }, [items, loaded, userId, addToast]);
 
   const budgetItems = useMemo(
     () =>

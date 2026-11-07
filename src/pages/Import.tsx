@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useContext } from 'react';
-import { PageTitleContext } from '../components/Layout';
+import { PageTitleContext } from '../components/PageTitleContext';
 import { useAuth } from '../context/AuthContext';
 import {
   loadFromFirestore,
@@ -62,7 +62,7 @@ export default function Import() {
     } finally {
       setLoading(false);
     }
-  }, [userId, user?.email, setLoading, setError]);
+  }, [userId, user, setLoading, setError]);
 
   useEffect(() => {
     if (userId) {

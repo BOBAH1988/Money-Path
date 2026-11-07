@@ -1,33 +1,38 @@
 import { describe, it, expect } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import Budget from './Budget';
-import { PageTitleContext } from '../components/Layout';
+import { PageTitleContext } from '../components/PageTitleContext';
 import { AuthProvider } from '../context/AuthContext';
+import { ToastProvider } from '../ui/Toast';
 
 describe('Budget page', () => {
-  it('renders without crashing and shows budget sections', async () => {
-    let pageTitle = '';
+  it('renders table structure when no items', async () => {
     render(
-      <AuthProvider>
-        <PageTitleContext.Provider value={{ pageTitle, setPageTitle: (t: string) => { pageTitle = t; } }}>
-          <Budget />
-        </PageTitleContext.Provider>
-      </AuthProvider>
+      <ToastProvider>
+        <AuthProvider>
+          <PageTitleContext.Provider value={{ pageTitle: '', setPageTitle: () => {} }}>
+            <Budget />
+          </PageTitleContext.Provider>
+        </AuthProvider>
+      </ToastProvider>
     );
     await new Promise((r) => setTimeout(r, 100));
     expect(screen.getByText('Ежемесячные расходы')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Добавить строку' })).toBeInTheDocument();
   });
 
-  it('shows empty totals without auth', async () => {
+  it('renders without crashing', async () => {
     render(
-      <AuthProvider>
-        <PageTitleContext.Provider value={{ pageTitle: '', setPageTitle: () => {} }}>
-          <Budget />
-        </PageTitleContext.Provider>
-      </AuthProvider>
+      <ToastProvider>
+        <AuthProvider>
+          <PageTitleContext.Provider value={{ pageTitle: '', setPageTitle: () => {} }}>
+            <Budget />
+          </PageTitleContext.Provider>
+        </AuthProvider>
+      </ToastProvider>
     );
     await new Promise((r) => setTimeout(r, 100));
-    const totalAll = screen.getAllByText('0 ₽');
-    expect(totalAll.length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText('Общее итого').length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText('0 ₽').length).toBeGreaterThanOrEqual(1);
   });
 });

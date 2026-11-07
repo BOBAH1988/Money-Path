@@ -1,5 +1,8 @@
 import { useState, useEffect } from 'react';
 import type { BudgetPlanItem } from '../../types';
+import { ConfirmDialog } from '../../ui/ConfirmDialog';
+import { useToast } from '../../ui/Toast';
+import { format } from './format';
 
 interface Props {
   item: BudgetPlanItem;
@@ -12,34 +15,19 @@ interface Props {
   onFinishEdit?: () => void;
 }
 
-export const format = (value: number | undefined | null) => {
-  const v = value ?? 0;
-  if (Object.is(v, -0)) return '0';
-  return v.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
-};
-
 export const BudgetRow = ({ item, onUpdate, onRemove, onToggle, isPlannedCollapsed, isEditing = false, onStartEdit, onFinishEdit }: Props) => {
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [name, setName] = useState(item.name);
   const [amount, setAmount] = useState(String(item.amount ?? 0));
   const [plan, setPlan] = useState(String(item.plan ?? 0));
+  const { success: toastSuccess } = useToast();
 
   const isSubtotal = item.type === 'subtotal';
   const isTotal = item.type === 'total';
 
-  // Initialize local state when entering edit mode
-  useEffect(() => {
-    if (isEditing) {
-      setName(item.name);
-      setAmount(String(item.amount ?? 0));
-      setPlan(String(item.plan ?? 0));
-    }
-  }, [isEditing, item]);
-
   // Save when exiting edit mode via external trigger (Готово button)
   useEffect(() => {
     if (!isEditing) {
-      // Only save if we were editing before
       const wasEditing = name !== item.name || amount !== String(item.amount ?? 0) || plan !== String(item.plan ?? 0);
       if (wasEditing) {
         onUpdate(item.id, {
@@ -49,7 +37,7 @@ export const BudgetRow = ({ item, onUpdate, onRemove, onToggle, isPlannedCollaps
         });
       }
     }
-  }, [isEditing]);
+  }, [isEditing, name, amount, plan, item, onUpdate]);
 
   const handleSave = () => {
     onUpdate(item.id, {
@@ -92,15 +80,16 @@ export const BudgetRow = ({ item, onUpdate, onRemove, onToggle, isPlannedCollaps
 
   if (confirmDelete) {
     return (
-      <div className="confirm-overlay" onClick={(e) => e.stopPropagation()}>
-        <div className="confirm-card">
-          <p>Удалить строку "{item.name}"?</p>
-          <div className="confirm-actions">
-            <button className="btn-cancel" onClick={() => setConfirmDelete(false)}>Отмена</button>
-            <button className="btn-delete-confirm" onClick={() => { onRemove(item.id); setConfirmDelete(false); }}>Удалить</button>
-          </div>
-        </div>
-      </div>
+      <ConfirmDialog
+        open={confirmDelete}
+        onClose={() => setConfirmDelete(false)}
+        onConfirm={() => { onRemove(item.id); setConfirmDelete(false); toastSuccess('Удалено', 'Строка удалена'); }}
+        title="Удалить строку?"
+        description={`Удаление "${item.name}" необратимо`}
+        confirmLabel="Удалить"
+        cancelLabel="Отмена"
+        confirmVariant="danger"
+      />
     );
   }
 

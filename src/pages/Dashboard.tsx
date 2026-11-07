@@ -1,11 +1,13 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useContext } from 'react';
-import { PageTitleContext } from '../components/Layout';
+import { PageTitleContext } from '../components/PageTitleContext';
 import { useBudget } from '../hooks/useBudget';
 import { computeBudgetPageTotals } from '../lib/budget';
 import { useAuth } from '../context/AuthContext';
 import { loadFromFirestore, COLLECTIONS } from '../lib/firestore';
 import { safeNegate } from '../lib/budget';
+
+const CURRENT_YEAR = new Date().getFullYear();
 
 interface AssetRow {
   id: string;
@@ -35,15 +37,15 @@ interface IncomeArchiveRow {
   months: number[];
 }
 
-const migrateArchiveRow = (raw: any): IncomeArchiveRow => {
+const migrateArchiveRow = (raw: { id?: string; name?: string; year?: number; months?: number[]; amount?: number; monthly?: number }): IncomeArchiveRow => {
   const year = typeof raw?.year === 'number' ? raw.year : new Date().getFullYear();
   if (raw && Array.isArray(raw.months) && raw.months.length === 12) {
-    return { id: raw.id, name: raw.name ?? '', year, months: raw.months.map((v: any) => (typeof v === 'number' ? v : 0)) };
+    return { id: raw.id ?? crypto.randomUUID(), name: raw.name ?? '', year, months: raw.months.map((v) => (typeof v === 'number' ? v : 0)) };
   }
   const months = new Array(12).fill(0);
   if (typeof raw?.amount === 'number') months[0] = raw.amount;
   if (typeof raw?.monthly === 'number') months[1] = raw.monthly;
-  return { id: raw?.id ?? crypto.randomUUID(), name: raw?.name ?? '', year, months };
+  return { id: raw.id ?? crypto.randomUUID(), name: raw.name ?? '', year, months };
 };
 
 export default function Dashboard() {
@@ -73,12 +75,12 @@ export default function Dashboard() {
     let cancelled = false;
     (async () => {
       try {
-        const [a, l, i, ia] = await Promise.all([
-          loadFromFirestore<AssetRow>(COLLECTIONS.assets, userId),
-          loadFromFirestore<LiabilityRow>(COLLECTIONS.liabilities, userId),
-          loadFromFirestore<IncomeRow>(COLLECTIONS.income, userId),
-          loadFromFirestore<any>(COLLECTIONS.incomeArchive, userId),
-        ]);
+          const [a, l, i, ia] = await Promise.all([
+            loadFromFirestore<AssetRow>(COLLECTIONS.assets, userId),
+            loadFromFirestore<LiabilityRow>(COLLECTIONS.liabilities, userId),
+            loadFromFirestore<IncomeRow>(COLLECTIONS.income, userId),
+            loadFromFirestore<IncomeArchiveRow>(COLLECTIONS.incomeArchive, userId),
+          ]);
         if (!cancelled) {
           setAssets(a);
           setLiabilities(l);
@@ -106,7 +108,7 @@ export default function Dashboard() {
   const incomeMonthly = useMemo(() => income.reduce((sum, it) => sum + (it.monthly ?? 0), 0), [income]);
 
   // Доходы архив: средний доход за текущий год
-  const currentYear = new Date().getFullYear();
+  const currentYear = CURRENT_YEAR;
   const archiveRows = useMemo(() => incomeArchive.filter((r) => r.year === currentYear), [incomeArchive, currentYear]);
   const archiveTotal = useMemo(() => archiveRows.reduce((s, row) => s + row.months.reduce((a, b) => a + (b || 0), 0), 0), [archiveRows]);
   const archiveFilledMonths = useMemo(() => {

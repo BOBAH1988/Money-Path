@@ -1,10 +1,14 @@
 import { useEffect, useState, useMemo } from 'react';
 import { useContext } from 'react';
-import { PageTitleContext } from '../components/Layout';
+import { PageTitleContext } from '../components/PageTitleContext';
 import { saveToFirestore, loadFromFirestore, COLLECTIONS } from '../lib/firestore';
 import { firestoreDb } from '../lib/firebase';
 import { doc, deleteDoc } from 'firebase/firestore';
 import { useAuth } from '../context/AuthContext';
+import { ConfirmDialog } from '../ui/ConfirmDialog';
+import { useToast } from '../ui/Toast';
+
+const CURRENT_YEAR = new Date().getFullYear();
 
 const MONTHS = [
   'Янв.', 'Фев.', 'Март', 'Апр.', 'Май', 'Июн.',
@@ -20,15 +24,15 @@ interface IncomeArchiveRow {
 
 const emptyMonths = () => new Array(12).fill(0);
 
-const migrateRow = (raw: any): IncomeArchiveRow => {
+const migrateRow = (raw: { id?: string; name?: string; year?: number; months?: number[]; amount?: number; monthly?: number }): IncomeArchiveRow => {
   const year = typeof raw?.year === 'number' ? raw.year : new Date().getFullYear();
   if (raw && Array.isArray(raw.months) && raw.months.length === 12) {
-    return { id: raw.id, name: raw.name ?? '', year, months: raw.months.map((v: any) => (typeof v === 'number' ? v : 0)) };
+    return { id: raw.id ?? crypto.randomUUID(), name: raw.name ?? '', year, months: raw.months.map((v) => (typeof v === 'number' ? v : 0)) };
   }
   const months = emptyMonths();
   if (typeof raw?.amount === 'number') months[0] = raw.amount;
   if (typeof raw?.monthly === 'number') months[1] = raw.monthly;
-  return { id: raw?.id ?? crypto.randomUUID(), name: raw?.name ?? '', year, months };
+  return { id: raw.id ?? crypto.randomUUID(), name: raw.name ?? '', year, months };
 };
 
 const fmt = (v: number) => (v || 0).toLocaleString('ru-RU');
@@ -36,6 +40,7 @@ const fmt = (v: number) => (v || 0).toLocaleString('ru-RU');
 export default function IncomeArchive() {
   const { setPageTitle } = useContext(PageTitleContext)!;
   const { user } = useAuth();
+  const { toast: addToast, success: toastSuccess } = useToast();
   const userId = user?.uid ?? undefined;
 
   useEffect(() => {
@@ -46,7 +51,7 @@ export default function IncomeArchive() {
   const [loaded, setLoaded] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const currentYear = new Date().getFullYear();
+  const currentYear = CURRENT_YEAR;
   const [selectedYear, setSelectedYear] = useState(currentYear);
   const [monthStart, setMonthStart] = useState(() => {
     const now = new Date();
@@ -54,6 +59,7 @@ export default function IncomeArchive() {
     return (cur - 2 + 12) % 12;
   });
 
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [showAddRow, setShowAddRow] = useState(false);
   const [addName, setAddName] = useState('');
@@ -62,25 +68,29 @@ export default function IncomeArchive() {
   useEffect(() => {
     const load = async () => {
       try {
-        const data = await loadFromFirestore<any>(COLLECTIONS.incomeArchive, userId);
+        const data = await loadFromFirestore<IncomeArchiveRow>(COLLECTIONS.incomeArchive, userId);
         if (data.length > 0) {
           setItems(data.map(migrateRow));
         }
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Ошибка загрузки данных');
+        const msg = err instanceof Error ? err.message : 'Ошибка загрузки данных';
+        setError(msg);
+        addToast('error', 'Ошибка загрузки', msg);
       } finally {
         setLoaded(true);
       }
     };
     load();
-  }, [userId]);
+  }, [userId, addToast]);
 
   useEffect(() => {
     if (!loaded) return;
-    saveToFirestore(COLLECTIONS.incomeArchive, items as any, userId).catch((err) => {
-      setError(err instanceof Error ? err.message : 'Ошибка сохранения');
+    saveToFirestore(COLLECTIONS.incomeArchive, items, userId).catch((err) => {
+      const msg = err instanceof Error ? err.message : 'Ошибка сохранения';
+      setError(msg);
+      addToast('error', 'Ошибка сохранения', msg);
     });
-  }, [items, loaded, userId]);
+  }, [items, loaded, userId, addToast]);
 
   const availableYears = useMemo(() => {
     const set = new Set<number>();
@@ -135,40 +145,21 @@ export default function IncomeArchive() {
   };
 
   const handleRemove = (id: string) => {
-    if (!confirm('Удалить строку?')) return;
-    setItems((prev) => prev.filter((it) => it.id !== id));
+    setConfirmDeleteId(id);
+  };
+
+  const confirmDelete = () => {
+    if (!confirmDeleteId) return;
+    setItems((prev) => prev.filter((it) => it.id !== confirmDeleteId));
     if (userId && firestoreDb) {
-      deleteDoc(doc(firestoreDb, `users/${userId}/income_archive`, id)).catch(() => {});
+      deleteDoc(doc(firestoreDb, `users/${userId}/income_archive`, confirmDeleteId)).catch(() => {});
     }
+    setConfirmDeleteId(null);
+    toastSuccess('Удалено', 'Строка удалена');
   };
 
-  const currentMonth = new Date().getMonth();
-  const currentYearNow = new Date().getFullYear();
-
-  const isFutureMonth = (m: number, y: number) =>
-    y > currentYearNow || (y === currentYearNow && m > currentMonth);
-
-  const windowHasFuture = (start: number) => {
-    if (selectedYear < currentYearNow) return false;
-    return [start, (start + 1) % 12, (start + 2) % 12].some((m) => isFutureMonth(m, selectedYear));
-  };
-
-  const canPrev = !windowHasFuture((monthStart - 2 + 12) % 12);
-  const canNext = !windowHasFuture((monthStart + 2) % 12);
-
-  const prevWindow = () => { if (canPrev) setMonthStart((s) => (s - 2 + 12) % 12); };
-  const nextWindow = () => { if (canNext) setMonthStart((s) => (s + 2) % 12); };
-
-  useEffect(() => {
-    if (selectedYear === currentYearNow) {
-      // Подбираем окно, не содержащее будущих месяцев
-      const cur = currentMonth;
-      // старт = cur-2, но не меньше 0 (для ранних месяцев года)
-      let start = cur - 2;
-      if (start < 0) start = 0;
-      setMonthStart(start);
-    }
-  }, [selectedYear, currentYearNow, currentMonth]);
+  const prevWindow = () => setMonthStart((s) => (s - 2 + 12) % 12);
+  const nextWindow = () => setMonthStart((s) => (s + 2) % 12);
 
   const finishEdit = () => setEditingId(null);
 
@@ -242,8 +233,8 @@ export default function IncomeArchive() {
             {editingId && (
               <button className="btn-edit" onClick={finishEdit} aria-label="Сохранить">✓</button>
             )}
-            <button className="btn-edit" onClick={prevWindow} aria-label="Назад" disabled={!canPrev} style={{ opacity: canPrev ? 1 : 0.3, cursor: canPrev ? 'pointer' : 'not-allowed' }}>◀</button>
-            <button className="btn-edit" onClick={nextWindow} aria-label="Вперёд" disabled={!canNext} style={{ opacity: canNext ? 1 : 0.3, cursor: canNext ? 'pointer' : 'not-allowed' }}>▶</button>
+            <button className="btn-edit" onClick={prevWindow} aria-label="Назад">◀</button>
+            <button className="btn-edit" onClick={nextWindow} aria-label="Вперёд">▶</button>
           </div>
         </div>
         <div className="budget-card-body">
@@ -358,6 +349,16 @@ export default function IncomeArchive() {
           </div>
         </div>
       </div>
+      <ConfirmDialog
+        open={confirmDeleteId !== null}
+        onClose={() => setConfirmDeleteId(null)}
+        onConfirm={confirmDelete}
+        title="Удалить строку?"
+        description="Удаление необратимо. Данные будут безвозвратно потеряны."
+        confirmLabel="Удалить"
+        cancelLabel="Отмена"
+        confirmVariant="danger"
+      />
     </div>
   );
 }

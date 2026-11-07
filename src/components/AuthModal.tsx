@@ -1,10 +1,13 @@
 import { useState } from 'react';
-import { useAuth, validatePassword } from '../context/AuthContext';
+import { useAuth } from '../context/AuthContext';
+import { loginSchema, registerSchema, forgotSchema, type LoginFormData, type RegisterFormData, type ForgotFormData } from '../lib/validation';
+import { useToast } from '../ui/Toast';
 
 type Mode = 'login' | 'register' | 'forgot' | 'verify';
 
 export const AuthModal = ({ onClose }: { onClose: () => void }) => {
   const { login, register, sendPasswordReset } = useAuth();
+  const { success: toastSuccess, error: toastError } = useToast();
   const [mode, setMode] = useState<Mode>('login');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -15,11 +18,35 @@ export const AuthModal = ({ onClose }: { onClose: () => void }) => {
   const [agreeTerms, setAgreeTerms] = useState(false);
   const [agreeCookies, setAgreeCookies] = useState(false);
 
-  const passwordErrors = validatePassword(password);
-
   const clearMessages = () => {
     setError(null);
     setSuccess(null);
+  };
+
+  const [validationErrors, setValidationErrors] = useState<string[]>([]);
+
+  const validateForm = (data: LoginFormData | RegisterFormData | ForgotFormData): boolean => {
+    if (mode === 'login') {
+      const result = loginSchema.safeParse(data as LoginFormData);
+      if (!result.success) {
+        setValidationErrors(result.error.issues.map((e) => e.message));
+        return false;
+      }
+    }
+    if (mode === 'forgot') {
+      const result = forgotSchema.safeParse(data as ForgotFormData);
+      if (!result.success) {
+        setValidationErrors(result.error.issues.map((e) => e.message));
+        return false;
+      }
+    }
+    const result = registerSchema.safeParse(data as RegisterFormData);
+    if (!result.success) {
+      setValidationErrors(result.error.issues.map((e) => e.message));
+      return false;
+    }
+    setValidationErrors([]);
+    return true;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -27,49 +54,36 @@ export const AuthModal = ({ onClose }: { onClose: () => void }) => {
     clearMessages();
     setSubmitting(true);
     try {
+      const formData = { email, password, confirmPassword, agreeTerms, agreeCookies };
+      if (!validateForm(formData)) {
+        setError(validationErrors.join(', '));
+        setSubmitting(false);
+        return;
+      }
+
       if (mode === 'login') {
         await login(email, password);
+        toastSuccess('Вход выполнен');
         onClose();
       } else if (mode === 'forgot') {
         await sendPasswordReset(email);
-        setSuccess('Письмо со ссылкой для восстановления пароля отправлено на ' + email);
+        toastSuccess('Письмо отправлено', 'Ссылка для восстановления пароля отправлена на ' + email);
         setSubmitting(false);
       } else {
-        if (!agreeTerms) {
-          setError('Нужно согласиться с правилами использования');
-          setSubmitting(false);
-          return;
-        }
-        if (!agreeCookies) {
-          setError('Нужно согласиться на использование cookie');
-          setSubmitting(false);
-          return;
-        }
-        const errs = validatePassword(password);
-        if (errs.length > 0) {
-          setError('Пароль должен содержать: ' + errs.join(', '));
-          setSubmitting(false);
-          return;
-        }
-        if (password !== confirmPassword) {
-          setError('Пароли не совпадают');
-          setSubmitting(false);
-          return;
-        }
         await register(email, password);
-        setSuccess('Регистрация успешна. Письмо с подтверждением почты отправлено на ' + email);
+        toastSuccess('Регистрация успешна', 'Письмо с подтверждением почты отправлено на ' + email);
         setSubmitting(false);
       }
     } catch (err: any) {
-      setError(
+      const msg =
         err.code === 'auth/email-already-in-use'
           ? 'Пользователь с таким email уже зарегистрирован'
           : err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password'
           ? 'Неверный email или пароль'
           : err.code === 'auth/invalid-email'
           ? 'Некорректный email'
-          : err.message || 'Ошибка'
-      );
+          : err.message || 'Ошибка';
+      toastError('Ошибка авторизации', msg);
       setSubmitting(false);
     }
   };
@@ -148,9 +162,9 @@ export const AuthModal = ({ onClose }: { onClose: () => void }) => {
                   onChange={(e) => setPassword(e.target.value)}
                   autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
                 />
-                {mode === 'register' && passwordErrors.length > 0 && (
+                {mode === 'register' && validationErrors.length > 0 && (
                   <div className="auth-password-hints">
-                    {passwordErrors.map((err, i) => (
+                    {validationErrors.map((err, i) => (
                       <span key={i} className="auth-hint-error">✕ {err}</span>
                     ))}
                   </div>
@@ -290,19 +304,19 @@ export const AnalyticsModal = ({ onClose }: { onClose: () => void }) => {
         <div className="analytics-stats">
           <div className="analytics-stat">
             <span className="analytics-label">Всего зарегистрированных пользователей:</span>
-            <span className="analytics-value">1</span>
+            <span className="analytics-value">—</span>
           </div>
           <div className="analytics-stat">
             <span className="analytics-label">Активных:</span>
-            <span className="analytics-value">1</span>
+            <span className="analytics-value">—</span>
           </div>
           <div className="analytics-stat">
             <span className="analytics-label">Новый за 30 дней:</span>
-            <span className="analytics-value">1</span>
+            <span className="analytics-value">—</span>
           </div>
           <div className="analytics-stat">
             <span className="analytics-label">Новых за 7 дней:</span>
-            <span className="analytics-value">1</span>
+            <span className="analytics-value">—</span>
           </div>
         </div>
       </div>

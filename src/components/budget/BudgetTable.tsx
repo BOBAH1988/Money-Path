@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import type { BudgetPlanItem, BudgetGroup } from '../../types';
-import { BudgetRow, format } from './BudgetRow';
+import { BudgetRow } from './BudgetRow';
+import { format } from './format';
 
 interface Props {
   id?: string;
@@ -200,7 +201,7 @@ export const BudgetTable = ({
                   <td className="budget-cell budget-cell-actions">
                     <button
                       className="btn-edit"
-                      onClick={(e) => { e.stopPropagation(); onToggle && onToggle('planned'); }}
+                      onClick={(e) => { e.stopPropagation(); onToggle?.('planned'); }}
                       aria-label={collapsed ? "Развернуть дополнительные расходы" : "Свернуть дополнительные расходы"}
                     >
                       {collapsed ? "▶" : "▼"}

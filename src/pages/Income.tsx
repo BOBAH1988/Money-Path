@@ -1,10 +1,13 @@
 import { useEffect, useState, useMemo } from 'react';
 import { useContext } from 'react';
-import { PageTitleContext } from '../components/Layout';
+import { PageTitleContext } from '../components/PageTitleContext';
 import { BudgetTable } from '../components/budget/BudgetTable';
 import type { BudgetGroup } from '../types';
 import { saveToFirestore, loadFromFirestore, COLLECTIONS } from '../lib/firestore';
 import { useAuth } from '../context/AuthContext';
+import { useToast } from '../ui/Toast';
+
+const CURRENT_YEAR = new Date().getFullYear();
 
 interface IncomeRow {
   id: string;
@@ -20,19 +23,20 @@ interface IncomeArchiveRow {
   months: number[];
 }
 
-const migrateArchiveRow = (raw: any): IncomeArchiveRow => {
+const migrateArchiveRow = (raw: { id?: string; name?: string; year?: number; months?: number[]; amount?: number; monthly?: number }): IncomeArchiveRow => {
   const year = typeof raw?.year === 'number' ? raw.year : new Date().getFullYear();
   if (raw && Array.isArray(raw.months) && raw.months.length === 12) {
-    return { id: raw.id, name: raw.name ?? '', year, months: raw.months.map((v: any) => (typeof v === 'number' ? v : 0)) };
+    return { id: raw.id ?? crypto.randomUUID(), name: raw.name ?? '', year, months: raw.months.map((v) => (typeof v === 'number' ? v : 0)) };
   }
   const months = new Array(12).fill(0);
   if (typeof raw?.amount === 'number') months[0] = raw.amount;
   if (typeof raw?.monthly === 'number') months[1] = raw.monthly;
-  return { id: raw?.id ?? crypto.randomUUID(), name: raw?.name ?? '', year, months };
+  return { id: raw.id ?? crypto.randomUUID(), name: raw.name ?? '', year, months };
 };
 
 export default function Income() {
   const { setPageTitle } = useContext(PageTitleContext)!;
+  const { toast: addToast } = useToast();
   const { user } = useAuth();
   const userId = user?.uid ?? undefined;
 
@@ -50,27 +54,31 @@ export default function Income() {
       try {
         const [data, archive] = await Promise.all([
           loadFromFirestore<IncomeRow>(COLLECTIONS.income, userId),
-          loadFromFirestore<any>(COLLECTIONS.incomeArchive, userId),
+          loadFromFirestore<IncomeArchiveRow>(COLLECTIONS.incomeArchive, userId),
         ]);
         if (data.length > 0) {
           setItems(data);
         }
         setIncomeArchive(archive.map(migrateArchiveRow));
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Ошибка загрузки данных');
+        const msg = err instanceof Error ? err.message : 'Ошибка загрузки данных';
+        setError(msg);
+        addToast('error', 'Ошибка загрузки', msg);
       } finally {
         setLoaded(true);
       }
     };
     load();
-  }, [userId]);
+  }, [userId, addToast]);
 
   useEffect(() => {
     if (!loaded) return;
     saveToFirestore(COLLECTIONS.income, items, userId).catch((err) => {
-      setError(err instanceof Error ? err.message : 'Ошибка сохранения');
+      const msg = err instanceof Error ? err.message : 'Ошибка сохранения';
+      setError(msg);
+      addToast('error', 'Ошибка сохранения', msg);
     });
-  }, [items, loaded, userId]);
+  }, [items, loaded, userId, addToast]);
 
   const budgetItems = useMemo(
     () =>
@@ -88,8 +96,7 @@ export default function Income() {
   const totalAmount = items.reduce((sum, it) => sum + it.amount, 0);
   const totalMonthly = items.reduce((sum, it) => sum + it.monthly, 0);
 
-  const currentYear = new Date().getFullYear();
-  const archiveRows = incomeArchive.filter((r) => r.year === currentYear);
+  const archiveRows = incomeArchive.filter((r) => r.year === CURRENT_YEAR);
   const archiveTotal = archiveRows.reduce((s, row) => s + row.months.reduce((a, b) => a + (b || 0), 0), 0);
   const archiveFilledMonths = useMemo(() => {
     const set = new Set<number>();

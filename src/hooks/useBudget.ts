@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import type { BudgetPlan, BudgetPlanItem, BudgetGroup } from '../types';
 import {
   loadBudgetPlan,
@@ -7,45 +7,48 @@ import {
   applyComputedFields,
 } from '../lib/budget';
 import { useAuth } from '../context/AuthContext';
+import { useToast } from '../ui/Toast';
 
 export const useBudget = () => {
   const { user } = useAuth();
+  const { toast: addToast } = useToast();
   const userId = user?.uid ?? undefined;
   const [plan, setPlan] = useState<BudgetPlan | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
+  const [error, _setError] = useState<string | null>(null);
   useEffect(() => {
     const load = async () => {
       try {
         const p = await loadBudgetPlan(userId);
         setPlan(p);
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Ошибка загрузки данных');
+        addToast('error', 'Ошибка загрузки', err instanceof Error ? err.message : 'Не удалось загрузить данные');
       } finally {
         setLoading(false);
       }
     };
     load();
-  }, [userId]);
+  }, [userId, addToast]);
 
   const computed = useMemo(() => {
     if (!plan) return { items: [], updatedAt: '' };
     return applyComputedFields(plan.items);
   }, [plan]);
 
+  const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   useEffect(() => {
     if (!plan) return;
-    const prevItems = plan.items;
-    const currentItems = computed.items;
-    const current = JSON.stringify(currentItems);
-    const previous = JSON.stringify(prevItems);
-    if (current !== previous) {
+    if (saveTimer.current) clearTimeout(saveTimer.current);
+    saveTimer.current = setTimeout(() => {
       saveBudgetPlan(computed, userId).catch((err) => {
-        setError(err instanceof Error ? err.message : 'Ошибка сохранения');
+        addToast('error', 'Ошибка сохранения', err instanceof Error ? err.message : 'Не удалось сохранить данные');
       });
-    }
-  }, [computed, plan, userId]);
+    }, 800);
+    return () => {
+      if (saveTimer.current) clearTimeout(saveTimer.current);
+    };
+  }, [computed, plan, userId, addToast]);
 
   const persist = useCallback((updated: BudgetPlan) => {
     setPlan(updated);
@@ -97,9 +100,9 @@ export const useBudget = () => {
       const def = await resetBudgetPlan(empty, userId);
       setPlan(def);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Ошибка сброса');
+      addToast('error', 'Ошибка сброса', err instanceof Error ? err.message : 'Не удалось сбросить данные');
     }
-  }, [userId]);
+  }, [userId, addToast]);
 
   const groupTotal = useCallback(
     (group: BudgetGroup) => {

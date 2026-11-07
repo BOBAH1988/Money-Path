@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
 import { useBudget } from './useBudget';
 import { AuthProvider } from '../context/AuthContext';
+import { ToastProvider } from '../ui/Toast';
 
 const localStorageMock = (() => {
   let store: Record<string, string> = {};
@@ -25,7 +26,9 @@ Object.defineProperty(window, 'localStorage', {
 });
 
 const wrap = ({ children }: { children: React.ReactNode }) => (
-  <AuthProvider>{children}</AuthProvider>
+  <ToastProvider>
+    <AuthProvider>{children}</AuthProvider>
+  </ToastProvider>
 );
 
 describe('useBudget', () => {
