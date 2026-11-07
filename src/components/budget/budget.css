@@ -203,12 +203,14 @@
 .btn-done {
   background: var(--bp-accent, #059669);
   color: #fff;
-  width: auto;
-  height: auto;
-  padding: 4px 8px;
-  min-width: 44px;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  min-width: 0;
   border-radius: 10px;
   white-space: nowrap;
+  font-size: 16px;
+  font-weight: 600;
 }
 .btn-done:hover { background: var(--bp-accent-hover, #047857); }
 .btn-done:active { transform: scale(0.92); }

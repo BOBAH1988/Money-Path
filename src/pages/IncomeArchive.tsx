@@ -2,11 +2,13 @@ import { useEffect, useState, useMemo } from 'react';
 import { useContext } from 'react';
 import { PageTitleContext } from '../components/Layout';
 import { saveToFirestore, loadFromFirestore, COLLECTIONS } from '../lib/firestore';
+import { firestoreDb } from '../lib/firebase';
+import { doc, deleteDoc } from 'firebase/firestore';
 import { useAuth } from '../context/AuthContext';
 
 const MONTHS = [
-  'Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь',
-  'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь',
+  'Янв.', 'Фев.', 'Март', 'Апр.', 'Май', 'Июн.',
+  'Июл.', 'Авг.', 'Сент.', 'Окт.', 'Нояб.', 'Дек.',
 ];
 
 interface IncomeArchiveRow {
@@ -124,7 +126,7 @@ export default function IncomeArchive() {
 
   const handleAdd = () => {
     const name = addName.trim();
-    if (!name) return;
+    if (!name) { setShowAddRow(false); setAddName(''); setAddMonths(emptyMonths()); return; }
     const months = addMonths.map((v) => (typeof v === 'number' ? v : 0));
     setItems((prev) => [...prev, { id: crypto.randomUUID(), name, year: selectedYear, months }]);
     setAddName('');
@@ -133,7 +135,11 @@ export default function IncomeArchive() {
   };
 
   const handleRemove = (id: string) => {
-    setItems((prev) => (prev.length <= 1 ? prev.map((it) => (it.id === id ? { ...it, name: '', months: emptyMonths() } : it)) : prev.filter((it) => it.id !== id)));
+    if (!confirm('Удалить строку?')) return;
+    setItems((prev) => prev.filter((it) => it.id !== id));
+    if (userId && firestoreDb) {
+      deleteDoc(doc(firestoreDb, `users/${userId}/income_archive`, id)).catch(() => {});
+    }
   };
 
   const currentMonth = new Date().getMonth();
@@ -233,6 +239,9 @@ export default function IncomeArchive() {
             </select>
           </div>
           <div style={{ display: 'flex', gap: 8 }}>
+            {editingId && (
+              <button className="btn-edit" onClick={finishEdit} aria-label="Сохранить">✓</button>
+            )}
             <button className="btn-edit" onClick={prevWindow} aria-label="Назад" disabled={!canPrev} style={{ opacity: canPrev ? 1 : 0.3, cursor: canPrev ? 'pointer' : 'not-allowed' }}>◀</button>
             <button className="btn-edit" onClick={nextWindow} aria-label="Вперёд" disabled={!canNext} style={{ opacity: canNext ? 1 : 0.3, cursor: canNext ? 'pointer' : 'not-allowed' }}>▶</button>
           </div>
@@ -247,7 +256,11 @@ export default function IncomeArchive() {
                     <th key={idx} className="budget-head budget-head-amount">{MONTHS[idx]}</th>
                   ))}
                   <th className="budget-head budget-head-actions">
-                    <button className="btn-add btn-add-header" onClick={() => setShowAddRow((v) => !v)} aria-label="Добавить строку">+</button>
+                    {showAddRow || editingId ? (
+                    <button className="btn-done btn-done-header" onClick={() => { if (showAddRow) setShowAddRow(false); if (editingId) setEditingId(null); }} aria-label="ОК">✓</button>
+                  ) : (
+                    <button className="btn-add btn-add-header" onClick={() => setShowAddRow(true)} aria-label="Добавить строку">+</button>
+                  )}
                   </th>
                 </tr>
               </thead>
@@ -262,7 +275,6 @@ export default function IncomeArchive() {
                             className="budget-input"
                             value={row.name}
                             onChange={(e) => updateName(row.id, e.target.value)}
-                            onBlur={finishEdit}
                             onKeyDown={(e) => e.key === 'Enter' && finishEdit()}
                             autoFocus
                           />
@@ -277,7 +289,6 @@ export default function IncomeArchive() {
                             className="budget-input budget-input-amount"
                             value={row.months[idx] || ''}
                             onChange={(e) => updateCell(row.id, idx, Number(e.target.value.replace(/[^\d]/g, '')) || 0)}
-                            onBlur={finishEdit}
                             onKeyDown={(e) => e.key === 'Enter' && finishEdit()}
                           />
                         ) : (
@@ -290,7 +301,7 @@ export default function IncomeArchive() {
                           <button className="btn-edit" onClick={() => setEditingId(row.id)} aria-label="Редактировать">✎</button>
                         )}
                         {isEditing && (
-                          <button className="btn-delete" onClick={() => handleRemove(row.id)} aria-label="Удалить">🗑️</button>
+                          <button className="btn-delete" onClick={() => { handleRemove(row.id); setEditingId(null); }} aria-label="Удалить">🗑️</button>
                         )}
                       </td>
                     </tr>
@@ -328,7 +339,7 @@ export default function IncomeArchive() {
                       </td>
                     ))}
                       <td className="budget-cell budget-cell-actions">
-                        <button className="btn-delete" onClick={() => setShowAddRow(false)} aria-label="Отмена">×</button>
+                        <button className="btn-edit" onClick={handleAdd} aria-label="Сохранить">OK</button>
                       </td>
                   </tr>
                 )}
@@ -337,7 +348,7 @@ export default function IncomeArchive() {
                   <td className="budget-cell budget-cell-name"><span className="footer-label">Итого:</span></td>
                   {visibleMonths.map((idx) => (
                     <td key={idx} className="budget-cell budget-cell-amount" style={{ whiteSpace: 'nowrap', fontWeight: 700 }}>
-                      {colTotal(idx).toLocaleString('ru-RU')} ₽
+                      {colTotal(idx).toLocaleString('ru-RU')}
                     </td>
                   ))}
                   <td className="budget-cell budget-cell-actions" />

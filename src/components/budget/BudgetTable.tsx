@@ -84,14 +84,14 @@ export const BudgetTable = ({
                 <th className="budget-head budget-head-name">{headers?.name ?? 'Наименование'}</th>
                 <th className="budget-head budget-head-amount">{headers?.amount ?? 'Сумма'}</th>
                 <th className="budget-head budget-head-plan">{headers?.plan ?? 'План'}</th>
-                <th className="budget-head budget-head-actions">
-                  {editingId ? (
+<th className="budget-head budget-head-actions">
+                  {editingId || showAddRow ? (
                     <button
                       className="btn-done btn-done-header"
-                      onClick={finishEdit}
+                      onClick={() => { if (editingId) finishEdit(); if (showAddRow) setShowAddRow(false); }}
                       aria-label="ОК"
                     >
-                      ОК
+                      ✓
                     </button>
                   ) : (
                     <button
