@@ -3,12 +3,12 @@ import { getFirestore, type Firestore } from 'firebase/firestore';
 import { getAuth, type Auth } from 'firebase/auth';
 
 const firebaseConfig = {
-  apiKey: 'REDACTED',
-  authDomain: 'money-path-af37c.firebaseapp.com',
-  projectId: 'money-path-af37c',
-  storageBucket: 'money-path-af37c.firebasestorage.app',
-  messagingSenderId: '1093832828420',
-  appId: '1:1093832828420:web:0d02feeb8adc2dab16b751',
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+  appId: import.meta.env.VITE_FIREBASE_APP_ID,
 };
 
 let app: FirebaseApp | null = null;
