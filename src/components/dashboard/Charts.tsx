@@ -150,30 +150,9 @@ export const LineChart = ({
 interface BarChartProps {
   /** Шаблон данных: { labels: string[], values: number[] } */
   series: { labels: string[]; values: number[] }[];
-  /** Смещение по оси X для каждой серии */
-  xOffset?: number[];
-  /** Смещение по оси Y (обратное) для каждой серии */
-  yOffset?: number[];
 }
 
-export const BarChart = ({ series, xOffset, yOffset }: BarChartProps) => {
-  const max = useMemo(() => {
-    const values = series.flatMap((s) => s.values);
-    return getMaxValue(values);
-  }, [series]);
-
-  const chartHeight = 110;
-  const rows = 13;
-  const rowHeight = chartHeight / rows;
-
-  const computeRowHeight = (value: number): number => {
-    const ratio = Math.max(Math.min(value / max, 1), 0);
-    return Math.max(ratio * (rowHeight - 2), 2);
-  };
-
-  const xOffsets = xOffset ?? series.map(() => 0);
-  const yOffsets = yOffset ?? series.map(() => 0);
-
+export const BarChart = ({ series }: BarChartProps) => {
   return (
     <div
       style={{
@@ -201,8 +180,6 @@ export const BarChart = ({ series, xOffset, yOffset }: BarChartProps) => {
             }}
           >
             {s.values.map((value, vIndex) => {
-              const row = rows - Math.min(Math.ceil(vIndex / 4) + 1, rows);
-              const height = computeRowHeight(value);
               return (
                 <div
                   key={vIndex}
@@ -245,7 +222,7 @@ export const BarChart = ({ series, xOffset, yOffset }: BarChartProps) => {
                     <div
                       style={{
                         width: 14,
-                        height: height,
+                        height: 20,
                         borderRadius: 2,
                         background: 'var(--dp-color-success, #059669)',
                       }}

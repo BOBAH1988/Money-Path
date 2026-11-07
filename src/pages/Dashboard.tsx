@@ -6,9 +6,8 @@ import { computeBudgetPageTotals } from '../lib/budget';
 import { useAuth } from '../context/AuthContext';
 import { loadFromFirestore, COLLECTIONS } from '../lib/firestore';
 import { safeNegate } from '../lib/budget';
-import { format } from '../components/budget/format';
 import { EmptyState } from '../ui/EmptyState';
-import { LineChart, BarChart, EmptyChart } from '../components/dashboard/Charts';
+import { LineChart, BarChart } from '../components/dashboard/Charts';
 import { YearMonthPicker } from '../components/dashboard/YearMonthPicker';
 
 const CURRENT_YEAR = new Date().getFullYear();
@@ -83,8 +82,6 @@ const MONTHS = [
   'Нояб.',
   'Дек.',
 ];
-
-const getPeriod = (year: number, month: number) => [month, month + 1];
 
 export default function Dashboard() {
   const { setPageTitle } = useContext(PageTitleContext)!;
@@ -165,20 +162,6 @@ export default function Dashboard() {
     return (cur - 2 + 12) % 12;
   });
 
-  const availableYears = useMemo(() => {
-    const set = new Set<number>();
-    set.add(currentYear);
-    incomeArchive.forEach((row) => {
-      if (row.months.some((v) => v && v !== 0)) set.add(row.year);
-    });
-    return Array.from(set).sort((a, b) => b - a);
-  }, [incomeArchive, currentYear]);
-
-  const [chartData, setChartData] = useState<number[]>(() =>
-    new Array(12).fill(0)
-  );
-  const [chartLabels, setChartLabels] = useState<string[]>(MONTHS);
-
   const averageIncome = useMemo(() => {
     const rows = incomeArchive.filter((r) => r.year === selectedYear);
     if (rows.length === 0) return 0;
@@ -203,12 +186,7 @@ export default function Dashboard() {
   const summaryOk = summaryExpenses <= summaryIncome;
   const summaryEqual = summaryExpenses === summaryIncome;
 
-  const period = getPeriod(selectedYear, selectedMonth);
-  const visibleMonths = useMemo(() => period, [period]);
-
-  const [selectedYearArchive, setSelectedYearArchive] = useState<number | null>(
-    null
-  );
+  const [selectedYearArchive] = useState<number | null>(null);
 
   const incomeChartData = useMemo(() => {
     const targetYear =
@@ -219,9 +197,6 @@ export default function Dashboard() {
       selectedYear;
     const rows = incomeArchive.filter((r) => r.year === targetYear);
     if (rows.length === 0) {
-      setChartData(() => new Array(12).fill(0));
-      setChartLabels(MONTHS);
-      setSelectedYearArchive(null);
       return new Array(12).fill(0);
     }
     const totalByMonth = new Array(12).fill(0);
@@ -235,9 +210,6 @@ export default function Dashboard() {
       if (v === 0) return 0;
       return Math.round((v / max) * 100);
     });
-    setChartData(normalized);
-    setChartLabels(MONTHS);
-    setSelectedYearArchive(targetYear);
     return normalized;
   }, [incomeArchive, selectedYear, selectedYearArchive]);
 
@@ -286,7 +258,6 @@ export default function Dashboard() {
               setLiabilities([]);
               setIncome([]);
               setIncomeArchive([]);
-              setChartData(() => new Array(12).fill(0));
               setArchiveSummary({ income: 0, plan: 0, expense: 0 });
             }}
           >
@@ -334,7 +305,7 @@ export default function Dashboard() {
                 </div>
               </div>
               <div className="budget-table-wrap">
-                <LineChart data={incomeChartData} labels={chartLabels} />
+                <LineChart data={incomeChartData} labels={MONTHS} />
               </div>
             </div>
           </div>
