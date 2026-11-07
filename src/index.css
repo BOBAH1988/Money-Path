@@ -1292,6 +1292,20 @@ body { margin: 0; font-family: system-ui, sans-serif; background: var(--theme-bg
   box-shadow: 0 2px 8px rgba(56, 189, 248, 0.3);
 }
 
+.menu-theme-label {
+  margin-top: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--theme-text-muted);
+  text-align: center;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.dark .menu-theme-label {
+  color: var(--theme-text-muted);
+}
+
 .dark .account-email {
   color: var(--theme-text);
 }

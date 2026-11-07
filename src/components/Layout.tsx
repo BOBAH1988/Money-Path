@@ -225,6 +225,7 @@ export default function Layout() {
                     Темная
                   </button>
                 </div>
+                <p className="menu-theme-label">Выбор темы</p>
               </li>
             </ul>
           </div>
