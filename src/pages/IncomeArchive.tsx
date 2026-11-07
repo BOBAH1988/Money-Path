@@ -104,6 +104,19 @@ export default function IncomeArchive() {
 
   const grandTotal = yearItems.reduce((s, row) => s + rowTotal(row), 0);
 
+  // Количество месяцев в выбранном году, в которых есть хотя бы одно заполненное значение
+  const filledMonthsCount = useMemo(() => {
+    const set = new Set<number>();
+    yearItems.forEach((row) => {
+      row.months.forEach((v, idx) => {
+        if (v && v !== 0) set.add(idx);
+      });
+    });
+    return set.size;
+  }, [yearItems]);
+
+  const averageIncome = filledMonthsCount > 0 ? Math.round(grandTotal / filledMonthsCount) : 0;
+
   const updateCell = (id: string, monthIdx: number, value: number) => {
     setItems((prev) => prev.map((it) => {
       if (it.id !== id) return it;
@@ -161,6 +174,17 @@ export default function IncomeArchive() {
 
   return (
     <div className="page page-budget">
+      <div className="budget-summary" style={{ margin: '0 4px 12px' }}>
+        <div className="summary-item summary-item-total">
+          <span className="summary-label">Итого за год</span>
+          <span className="summary-value">{grandTotal.toLocaleString('ru-RU')} ₽</span>
+        </div>
+        <div className="summary-item">
+          <span className="summary-label">Средний Доход</span>
+          <span className="summary-value">{averageIncome.toLocaleString('ru-RU')} ₽</span>
+        </div>
+      </div>
+
       <div className="budget-card">
         <div className="budget-card-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
