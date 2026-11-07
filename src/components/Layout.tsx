@@ -210,9 +210,10 @@ export default function Layout() {
                       setTheme('light');
                       setMenuOpen(false);
                     }}
+                    aria-label="Светлая тема"
                   >
-                    <span className="menu-icon">☀️</span>
-                    Светлая тема
+                    <span className="menu-icon">🌞</span>
+                    Светлая
                   </button>
                   <button
                     className={`menu-item menu-theme-btn ${theme === 'dark' ? 'theme-active' : ''}`}
@@ -220,9 +221,10 @@ export default function Layout() {
                       setTheme('dark');
                       setMenuOpen(false);
                     }}
+                    aria-label="Темная тема"
                   >
-                    <span className="menu-icon">🌙</span>
-                    Темная тема
+                    <span className="menu-icon">🌚</span>
+                    Темная
                   </button>
                 </div>
               </li>

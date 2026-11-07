@@ -1253,32 +1253,55 @@ body { margin: 0; font-family: system-ui, sans-serif; background: var(--theme-bg
   background: #991b1b;
 }
 
-.dark .menu-theme-item {
-  padding: 8px 12px;
+.menu-theme-item {
+  padding: 10px 12px;
   border-top: 1px solid var(--theme-border);
   margin-top: 8px;
 }
 
-.dark .menu-theme-row {
+.menu-theme-row {
   display: flex;
   gap: 8px;
-}
-
-.dark .menu-theme-btn {
-  flex: 1;
   justify-content: center;
-  gap: 6px;
 }
 
-.dark .menu-theme-btn.theme-active {
+.menu-theme-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  border-radius: 10px;
+  border: 1px solid var(--theme-border);
+  background: var(--theme-surface);
+  color: var(--theme-text);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  min-width: 90px;
+  justify-content: center;
+}
+
+.menu-theme-btn .menu-icon {
+  font-size: 20px;
+  width: auto;
+  height: auto;
+  background: transparent;
+  border: none;
+  color: inherit;
+}
+
+.menu-theme-btn:hover {
+  background: var(--theme-menu-item-hover);
+  transform: translateY(-1px);
+}
+
+.menu-theme-btn.theme-active {
   background: var(--theme-accent);
   color: var(--theme-inverse-text);
   border-color: var(--theme-accent);
+  box-shadow: 0 2px 8px rgba(56, 189, 248, 0.3);
 }
 
-.dark .menu-theme-btn.theme-active .menu-icon {
-  background: rgba(255, 255, 255, 0.2);
-  border-color: var(--theme-accent);
+.menu-theme-btn.theme-active .menu-icon {
   color: var(--theme-inverse-text);
 }
 
