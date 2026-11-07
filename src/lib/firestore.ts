@@ -195,32 +195,33 @@ export const clearCollectionData = (
 
 export const cleanupResetPendingFirestore = async (userId: string): Promise<boolean> => {
   if (!firestoreDb || !userId) {
-    clearResetPending();
     return true;
   }
   let hadError = false;
   const collections = [COLLECTIONS.assets, COLLECTIONS.liabilities, COLLECTIONS.income, COLLECTIONS.incomeArchive];
-  await Promise.all(
-    collections.map(async (c) => {
-      try {
-        const colRef = collection(firestoreDb!, colPath(c, userId));
-        const snapshot = await getDocs(colRef);
-        await Promise.all(snapshot.docs.map((docSnap) => deleteDoc(docSnap.ref)));
-      } catch (e) {
+  for (const c of collections) {
+    try {
+      const colRef = collection(firestoreDb!, colPath(c, userId));
+      const snapshot = await getDocs(colRef);
+      console.log('[cleanup] ' + c + ': found ' + snapshot.docs.length + ' docs');
+      await Promise.all(snapshot.docs.map((docSnap) => deleteDoc(docSnap.ref)));
+      const after = await getDocs(colRef);
+      console.log('[cleanup] ' + c + ': after delete ' + after.docs.length + ' docs remain');
+      if (after.docs.length > 0) {
         hadError = true;
-        console.error('cleanup failed for', c, e);
+        console.error('[cleanup] ' + c + ': docs still remain!');
       }
-    })
-  );
+    } catch (e) {
+      hadError = true;
+      console.error('cleanup failed for', c, e);
+    }
+  }
   // budget plan
   try {
     await deleteDoc(doc(firestoreDb!, colPath(COLLECTIONS.budgetPlan, userId), 'budget_plan'));
   } catch (e) {
-    hadError = true;
     console.error('budget cleanup failed', e);
   }
-  // Флаг не снимаем здесь — его снимет saveToFirestore при добавлении новых данных
-  // (или вручную). Это защищает от повторного чтения устаревшего Firestore.
   return !hadError;
 };
 
