@@ -45,7 +45,7 @@ export default function Layout() {
   const [importModalOpen, setImportModalOpen] = useState(false);
   const { reset } = useBudget();
   const { user, isAuthenticated } = useAuth();
-  const userId = isAuthenticated ? user?.uid ?? undefined : undefined;
+  const userId = user?.uid ?? undefined;
 
   const ctxValue = { pageTitle, setPageTitle };
 
