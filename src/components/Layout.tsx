@@ -1,4 +1,4 @@
-import { useState, createContext } from 'react';
+import { useState, createContext, useEffect, useMemo } from 'react';
 import { NavLink, Outlet } from 'react-router-dom';
 import packageJson from '../../package.json';
 import { useBudget } from '../hooks/useBudget';
@@ -43,11 +43,42 @@ export default function Layout() {
   const [accountMenuOpen, setAccountMenuOpen] = useState(false);
   const [analyticsOpen, setAnalyticsOpen] = useState(false);
   const [importModalOpen, setImportModalOpen] = useState(false);
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+  const [installModalOpen, setInstallModalOpen] = useState(false);
+
+  const isInstalled = useMemo(
+    () => window.matchMedia('(display-mode: standalone)').matches,
+    []
+  );
+  const isIOS = useMemo(
+    () => /iPad|iPhone|iPod/.test(navigator.userAgent),
+    []
+  );
   const { reset } = useBudget();
   const { user, isAuthenticated } = useAuth();
   const userId = user?.uid ?? undefined;
 
   const ctxValue = { pageTitle, setPageTitle };
+
+  useEffect(() => {
+    const promptHandler = (e: any) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+    };
+    const installedHandler = () => setDeferredPrompt(null);
+    const media = window.matchMedia('(display-mode: standalone)');
+    const mediaHandler = () => {};
+
+    window.addEventListener('beforeinstallprompt', promptHandler);
+    window.addEventListener('appinstalled', installedHandler);
+    media.addEventListener('change', mediaHandler);
+
+    return () => {
+      window.removeEventListener('beforeinstallprompt', promptHandler);
+      window.removeEventListener('appinstalled', installedHandler);
+      media.removeEventListener('change', mediaHandler);
+    };
+  }, []);
 
   return (
     <PageTitleContext.Provider value={ctxValue}>
@@ -122,9 +153,33 @@ export default function Layout() {
                   </NavLink>
                 </li>
               ))}
-              <li>
-                <button
-                  className="menu-item menu-reset-btn"
+               <li>
+                 <button
+                   className="menu-item menu-install-btn"
+                   onClick={async () => {
+                     setMenuOpen(false);
+                     if (isIOS) {
+                       setInstallModalOpen(true);
+                       return;
+                     }
+                     if (deferredPrompt) {
+                       try {
+                         deferredPrompt.prompt();
+                         await deferredPrompt.userChoice;
+                       } catch {}
+                       setDeferredPrompt(null);
+                       return;
+                     }
+                     setInstallModalOpen(true);
+                   }}
+                 >
+                   <span className="menu-icon">📱</span>
+                   Установить приложение
+                 </button>
+               </li>
+               <li>
+                 <button
+                   className="menu-item menu-reset-btn"
                   onClick={() => {
                     setConfirmReset(true);
                     setMenuOpen(false);
@@ -198,6 +253,30 @@ export default function Layout() {
 
       {importModalOpen && (
         <ImportModal onClose={() => setImportModalOpen(false)} />
+      )}
+
+      {installModalOpen && (
+        <div className="install-overlay" onClick={() => setInstallModalOpen(false)}>
+          <div className="install-card" onClick={(e) => e.stopPropagation()}>
+            <button className="install-close" onClick={() => setInstallModalOpen(false)} aria-label="Закрыть">
+              ×
+            </button>
+            <div className="install-icon">📱</div>
+            <h3 className="install-title">Установить приложение</h3>
+            <p className="install-text">
+              {isIOS
+                ? 'Откройте страницу в Safari, нажмите кнопку «Поделиться» и выберите «На экран «Домой»».'
+                : isInstalled
+                ? 'Приложение уже установлено на вашем устройстве.'
+                : 'Откройте меню браузера и выберите «Установить приложение» или «Добавить на главный экран».'}
+            </p>
+            <div className="install-actions">
+              <button className="btn-cancel" onClick={() => setInstallModalOpen(false)}>
+                Закрыть
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
       </PageTitleContext.Provider>

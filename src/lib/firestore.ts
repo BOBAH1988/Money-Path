@@ -40,6 +40,13 @@ export const COLLECTIONS = {
 
 export type FirestoreCollection = string;
 
+export const ALL_COLLECTIONS: FirestoreCollection[] = [
+  COLLECTIONS.assets,
+  COLLECTIONS.liabilities,
+  COLLECTIONS.income,
+  COLLECTIONS.incomeArchive,
+];
+
 const storageKey = (collectionName: string, userId?: string) =>
   userId ? `denegnyj_put_${userId}_${collectionName}` : `denegnyj_put_${collectionName}`;
 
@@ -238,3 +245,34 @@ export const cleanupResetPendingFirestore = async (userId: string): Promise<bool
 };
 
 export { firestoreDb, firebaseError };
+
+/**
+ * Синхронизирует неотправленные изменения из локального кэша (localStorage)
+ * в Firestore при появлении интернета. Вызывается из основного приложения
+ * на событии online.
+ */
+export const syncPendingToFirestore = async (): Promise<void> => {
+  if (!firestoreDb) return;
+  const prefix = `denegnyj_put_`;
+  const seen = new Set<string>();
+  for (let i = 0; i < localStorage.length; i++) {
+    const key = localStorage.key(i);
+    if (!key || !key.startsWith(prefix)) continue;
+    const rest = key.slice(prefix.length);
+    // denegnyj_put_<userId>_<collection>
+    const matched = ALL_COLLECTIONS.find((c) => rest.endsWith(`_${c}`));
+    if (!matched) continue;
+    const userId = rest.slice(0, rest.length - matched.length - 1);
+    if (!userId || seen.has(userId)) continue;
+    seen.add(userId);
+    for (const collectionName of ALL_COLLECTIONS) {
+      try {
+        const items = loadFromLocalStorage<{ id: string }>(collectionName, userId);
+        if (items.length === 0) continue;
+        await saveToFirestore(collectionName, items, userId);
+      } catch {
+        // игнорируем ошибки отдельных коллекций
+      }
+    }
+  }
+};

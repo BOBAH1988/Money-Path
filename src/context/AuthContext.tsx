@@ -78,7 +78,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
     const unsub = onAuthStateChanged(auth, async (u) => {
       setUser(u);
-      // Не помечаем как аутентифицированного автоматически — только после явного входа
+      setIsAuthenticated(!!u);
       if (u) {
         await migrateAllToUser(u.uid);
       }
