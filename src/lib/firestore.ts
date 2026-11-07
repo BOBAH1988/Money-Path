@@ -188,6 +188,18 @@ export const clearCollectionData = (
   try {
     localStorage.removeItem(storageKey(collectionName, userId));
     localStorage.removeItem(storageKey(collectionName, undefined));
+    // Чистим ключи, оставшиеся от предыдущих пользователей (после выхода из аккаунта)
+    const prefix = `denegnyj_put_`;
+    const suffix = `_${collectionName}`;
+    const keysToRemove: string[] = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (!key) continue;
+      if ((key.startsWith(prefix) && key.endsWith(suffix)) || key === `${prefix}${collectionName}`) {
+        keysToRemove.push(key);
+      }
+    }
+    keysToRemove.forEach((key) => localStorage.removeItem(key));
   } catch {
     // ignore
   }
