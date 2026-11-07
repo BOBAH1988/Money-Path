@@ -14,6 +14,7 @@ const RESET_FLAG_KEY = 'denegnyj_put_reset_pending';
 export const markResetPending = (userId?: string) => {
   try {
     localStorage.setItem(RESET_FLAG_KEY, userId ?? '');
+    console.log('[reset-flag] markResetPending set:', userId ?? '');
   } catch {
     // ignore
   }
@@ -21,7 +22,9 @@ export const markResetPending = (userId?: string) => {
 
 export const isResetPending = (): boolean => {
   try {
-    return localStorage.getItem(RESET_FLAG_KEY) !== null;
+    const v = localStorage.getItem(RESET_FLAG_KEY);
+    console.log('[reset-flag] isResetPending:', v !== null, 'value:', v);
+    return v !== null;
   } catch {
     return false;
   }
@@ -121,6 +124,7 @@ export const loadFromFirestore = async <T extends { id: string } = { id: string 
 ): Promise<T[]> => {
   // После сброса — возвращаем пустой массив, не читаем Firestore/LocalStorage
   if (isResetPending()) {
+    console.log('[loadFromFirestore] reset pending, returning [] for', collectionName);
     return [];
   }
   // Без авторизации — данные недоступны, возвращаем пустой массив
