@@ -13,26 +13,15 @@ const RESET_FLAG_KEY = 'denegnyj_put_reset_pending';
 
 export const markResetPending = (userId?: string) => {
   try {
-    localStorage.setItem(RESET_FLAG_KEY, `${userId ?? ''}|${Date.now()}`);
+    localStorage.setItem(RESET_FLAG_KEY, userId ?? '');
   } catch {
     // ignore
   }
 };
 
-const RESET_FLAG_TTL = 60_000;
-
 export const isResetPending = (): boolean => {
   try {
-    const v = localStorage.getItem(RESET_FLAG_KEY);
-    if (v === null) return false;
-    const parts = v.split('|');
-    const ts = Number(parts[1]);
-    if (!ts || Date.now() - ts > RESET_FLAG_TTL) {
-      // истёк — убираем
-      localStorage.removeItem(RESET_FLAG_KEY);
-      return false;
-    }
-    return true;
+    return localStorage.getItem(RESET_FLAG_KEY) !== null;
   } catch {
     return false;
   }
@@ -42,10 +31,7 @@ export const getResetPendingUserId = (): string | undefined => {
   try {
     const v = localStorage.getItem(RESET_FLAG_KEY);
     if (v === null) return undefined;
-    const parts = v.split('|');
-    const ts = Number(parts[1]);
-    if (!ts || Date.now() - ts > RESET_FLAG_TTL) return undefined;
-    return parts[0] === '' ? undefined : parts[0];
+    return v === '' ? undefined : v;
   } catch {
     return undefined;
   }
@@ -243,11 +229,12 @@ export const clearCollectionData = async (
   }
 };
 
-export const cleanupResetPendingFirestore = async (userId: string): Promise<void> => {
+export const cleanupResetPendingFirestore = async (userId: string): Promise<boolean> => {
   if (!firestoreDb || !userId) {
     clearResetPending();
-    return;
+    return true;
   }
+  let hadError = false;
   const collections = [COLLECTIONS.assets, COLLECTIONS.liabilities, COLLECTIONS.income, COLLECTIONS.incomeArchive];
   await Promise.all(
     collections.map(async (c) => {
@@ -255,18 +242,23 @@ export const cleanupResetPendingFirestore = async (userId: string): Promise<void
         const colRef = collection(firestoreDb!, colPath(c, userId));
         const snapshot = await getDocs(colRef);
         await Promise.all(snapshot.docs.map((docSnap) => deleteDoc(docSnap.ref)));
-      } catch {
-        // ignore
+      } catch (e) {
+        hadError = true;
+        console.error('cleanup failed for', c, e);
       }
     })
   );
   // budget plan
   try {
     await deleteDoc(doc(firestoreDb!, colPath(COLLECTIONS.budgetPlan, userId), 'budget_plan'));
-  } catch {
-    // ignore
+  } catch (e) {
+    hadError = true;
+    console.error('budget cleanup failed', e);
   }
-  clearResetPending();
+  if (!hadError) {
+    clearResetPending();
+  }
+  return !hadError;
 };
 
 export { firestoreDb, firebaseError };
