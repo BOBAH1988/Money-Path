@@ -364,9 +364,10 @@ body { margin: 0; font-family: system-ui, sans-serif; background: var(--theme-bg
 }
 
 .top-bar-left {
+
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
 }
 
 .app-title {
@@ -388,8 +389,10 @@ body { margin: 0; font-family: system-ui, sans-serif; background: var(--theme-bg
 }
 
 .app-icon {
-  width: 22px;
-  height: 22px;
+  width: 34px;
+  height: 34px;
+  margin-right: 12px;
+  flex-shrink: 0;
   margin-right: 4px;
   display: block;
 }
@@ -1012,7 +1015,7 @@ body { margin: 0; font-family: system-ui, sans-serif; background: var(--theme-bg
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 10px;
+  gap: 12px;
   margin-bottom: 20px;
   padding-bottom: 16px;
   border-bottom: 1px solid var(--border, #e5e7eb);
@@ -1257,7 +1260,7 @@ body { margin: 0; font-family: system-ui, sans-serif; background: var(--theme-bg
 .install-actions {
   display: flex;
   justify-content: center;
-  gap: 10px;
+  gap: 12px;
 }
 
 .btn-cancel {
@@ -1676,7 +1679,7 @@ body { margin: 0; font-family: system-ui, sans-serif; background: var(--theme-bg
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
   pointer-events: none;
 }
 
@@ -1853,7 +1856,7 @@ body { margin: 0; font-family: system-ui, sans-serif; background: var(--theme-bg
 
 .confirm-actions {
   display: flex;
-  gap: 10px;
+  gap: 12px;
   justify-content: center;
 }
 
