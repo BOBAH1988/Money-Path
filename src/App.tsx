@@ -18,21 +18,68 @@ export default function App() {
     <AuthProvider>
       <ToastProvider>
         <BrowserRouter basename="/Money-Path/">
-          <ErrorBoundary>
-            <Suspense fallback={<div className="page">Загрузка…</div>}>
-              <Routes>
-                <Route element={<Layout />}>
-                  <Route path="/" element={<Dashboard />} />
-                  <Route path="/import" element={<Import />} />
-                  <Route path="/budget" element={<Budget />} />
-                  <Route path="/assets" element={<Assets />} />
-                  <Route path="/liabilities" element={<Liabilities />} />
-                  <Route path="/income" element={<Income />} />
-                  <Route path="/income-archive" element={<IncomeArchive />} />
-                </Route>
-              </Routes>
-            </Suspense>
-          </ErrorBoundary>
+          <Suspense fallback={<div className="page">Загрузка…</div>}>
+            <Routes>
+              <Route element={<Layout />}>
+                <Route
+                  path="/"
+                  element={
+                    <ErrorBoundary>
+                      <Dashboard />
+                    </ErrorBoundary>
+                  }
+                />
+                <Route
+                  path="/import"
+                  element={
+                    <ErrorBoundary>
+                      <Import />
+                    </ErrorBoundary>
+                  }
+                />
+                <Route
+                  path="/budget"
+                  element={
+                    <ErrorBoundary>
+                      <Budget />
+                    </ErrorBoundary>
+                  }
+                />
+                <Route
+                  path="/assets"
+                  element={
+                    <ErrorBoundary>
+                      <Assets />
+                    </ErrorBoundary>
+                  }
+                />
+                <Route
+                  path="/liabilities"
+                  element={
+                    <ErrorBoundary>
+                      <Liabilities />
+                    </ErrorBoundary>
+                  }
+                />
+                <Route
+                  path="/income"
+                  element={
+                    <ErrorBoundary>
+                      <Income />
+                    </ErrorBoundary>
+                  }
+                />
+                <Route
+                  path="/income-archive"
+                  element={
+                    <ErrorBoundary>
+                      <IncomeArchive />
+                    </ErrorBoundary>
+                  }
+                />
+              </Route>
+            </Routes>
+          </Suspense>
         </BrowserRouter>
       </ToastProvider>
     </AuthProvider>
