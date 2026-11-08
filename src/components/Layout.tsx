@@ -223,21 +223,19 @@ export default function Layout() {
 
       {/* Нижняя навигация PWA */}
       <nav className="bottom-nav">
-        <div
-          className="bottom-nav-buttons"
-          ref={navRef}
-          style={{ visibility: measured ? 'visible' : 'hidden' }}
-        >
-          {items.map((item, idx) => (
-            <button
-              key={item.to}
-              className={`bottom-nav-item ${location.pathname === item.to ? 'active' : ''} ${hiddenIndices.has(idx) ? 'hidden' : ''}`}
-              onClick={() => navigate(item.to)}
-            >
-              <span className="nav-icon">{item.icon}</span>
-              <span>{item.label}</span>
-            </button>
-          ))}
+        <div className="bottom-nav-center" ref={navRef} style={{ visibility: measured ? 'visible' : 'hidden' }}>
+          <div className="bottom-nav-buttons">
+            {items.map((item, idx) => (
+              <button
+                key={item.to}
+                className={`bottom-nav-item ${location.pathname === item.to ? 'active' : ''} ${hiddenIndices.has(idx) ? 'hidden' : ''}`}
+                onClick={() => navigate(item.to)}
+              >
+                <span className="nav-icon">{item.icon}</span>
+                <span>{item.label}</span>
+              </button>
+            ))}
+          </div>
         </div>
         <div className="bottom-nav-footer">
           <span className="footer-text">{footerText}</span>

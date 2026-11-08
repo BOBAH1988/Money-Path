@@ -1896,13 +1896,18 @@ body { margin: 0; font-family: system-ui, sans-serif; background: var(--theme-bg
   gap: 8px;
 }
 
+.bottom-nav-center {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+  overflow: hidden;
+}
+
 .bottom-nav-buttons {
   display: flex;
   align-items: center;
-  justify-content: center;
   gap: 4px;
   flex-wrap: nowrap;
-  overflow: hidden;
   width: 100%;
 }
 
