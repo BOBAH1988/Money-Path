@@ -162,13 +162,22 @@ export const BudgetRow = ({ item, onUpdate, onRemove, onToggle, isPlannedCollaps
         </button>
       )}
         {!isSubtotal && !isTotal && (
-          <button
-            className="btn-edit"
-            onClick={(e) => { e.stopPropagation(); startEdit(); }}
-            aria-label="Редактировать строку"
-          >
-            ✎
-          </button>
+          <>
+            <button
+              className="btn-edit"
+              onClick={(e) => { e.stopPropagation(); startEdit(); }}
+              aria-label="Редактировать строку"
+            >
+              ✎
+            </button>
+            <button
+              className="btn-delete"
+              onClick={(e) => { e.stopPropagation(); setConfirmDelete(true); }}
+              aria-label="Удалить строку"
+            >
+              🗑️
+            </button>
+          </>
         )}
       </td>
     </tr>

@@ -49,7 +49,7 @@ describe('BudgetRow', () => {
     expect(screen.queryAllByRole('textbox')).toHaveLength(0);
   });
 
-  it('renders only edit button in actions cell by default', () => {
+  it('renders edit and delete buttons in actions cell by default', () => {
     const { container } = renderRow({
       id: '1',
       name: 'Ипотека',
@@ -59,7 +59,7 @@ describe('BudgetRow', () => {
       type: 'item',
     });
     expect(container.querySelector('.btn-edit')).toBeInTheDocument();
-    expect(container.querySelector('.btn-delete')).toBeNull();
+    expect(container.querySelector('.btn-delete')).toBeInTheDocument();
   });
 
   it('shows delete button in edit mode', () => {
