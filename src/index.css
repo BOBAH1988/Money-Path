@@ -1894,8 +1894,26 @@ body { margin: 0; font-family: system-ui, sans-serif; background: var(--theme-bg
   gap: 12px;
   font-size: 11px;
   color: var(--theme-text-muted);
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
+  overflow: hidden;
   justify-content: center;
+  width: 100%;
+}
+
+.footer-text {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex-shrink: 1;
+  min-width: 0;
+}
+
+.footer-link {
+  flex-shrink: 0;
+}
+
+.footer-version {
+  flex-shrink: 0;
 }
 
 .bottom-nav-item {

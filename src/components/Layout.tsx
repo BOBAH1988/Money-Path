@@ -12,11 +12,7 @@ import { ConfirmDialog } from '../ui/ConfirmDialog';
 import { useToast } from '../ui/Toast';
 
 const pkgVersion = packageJson.version;
-const currentYear = new Date().getFullYear();
-const footerText =
-  currentYear === 2026
-    ? `project by Vladimir Sokolov 2026`
-    : `project by Vladimir Sokolov 2026 - ${currentYear}`;
+const footerText = `Vladimir Sokolov 2026`;
 
 const items = [
   { to: '/', label: 'Главная', icon: '📊' },
