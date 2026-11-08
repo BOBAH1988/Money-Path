@@ -1,5 +1,17 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 48 48" fill="none">
-  <rect width="48" height="48" rx="12" fill="#0ea5e9"/>
-  <path fill="white" d="M14 14h4v2h-4zM20 14h4v2h-4zM26 14h4v2h-4zM14 18h4v2h-4zM20 18h4v2h-4zM26 18h4v2h-4zM14 22h4v2h-4zM20 22h4v2h-4zM26 22h4v2h-4zM32 14h4v2h-4zM32 18h4v2h-4zM32 22h4v2h-4z"/>
-  <path fill="#1e3a8a" d="M12 34h24v2H12zM14 30h20v2H14z"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#1e3a8a"/>
+      <stop offset="100%" stop-color="#2563eb"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="130" fill="url(#g)"/>
+  <polyline points="150,340 230,250 310,300 410,160 470,110" fill="none" stroke="#fff" stroke-width="18" stroke-linejoin="round" stroke-linecap="round"/>
+  <circle cx="150" cy="340" r="22" fill="#fff"/>
+  <circle cx="230" cy="250" r="22" fill="#fff"/>
+  <circle cx="310" cy="300" r="22" fill="#fff"/>
+  <circle cx="410" cy="160" r="22" fill="#fff"/>
+  <circle cx="470" cy="110" r="22" fill="#fff"/>
+  <line x1="430" y1="140" x2="470" y2="110" stroke="#fff" stroke-width="16" stroke-linecap="round"/>
+  <line x1="450" y1="125" x2="470" y2="110" stroke="#fff" stroke-width="16" stroke-linecap="round"/>
 </svg>
