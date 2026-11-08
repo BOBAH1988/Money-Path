@@ -99,16 +99,16 @@ export function useCollection<T extends { id: string }>(
     (id: string) => {
       setItems((prev) => {
         const filtered = prev.filter((it) => it.id !== id);
+        saveToFirestore(collectionName, filtered, userId).catch((err) => {
+          const msg = err instanceof Error ? err.message : 'Ошибка сохранения';
+          setError(msg);
+          setFirestoreOffline(true);
+          toastError('Ошибка сохранения', msg);
+        });
         return filtered;
       });
-      saveToFirestore(collectionName, items, userId).catch((err) => {
-        const msg = err instanceof Error ? err.message : 'Ошибка сохранения';
-        setError(msg);
-        setFirestoreOffline(true);
-        toastError('Ошибка сохранения', msg);
-      });
     },
-    [items, collectionName, userId, toastError]
+    [collectionName, userId, toastError]
   );
 
   return {
