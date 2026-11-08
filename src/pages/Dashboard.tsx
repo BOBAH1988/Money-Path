@@ -88,9 +88,9 @@ const MONTHS = [
 export default function Dashboard() {
   const { setPageTitle } = useContext(PageTitleContext)!;
   const { items } = useBudget();
-  const { user } = useAuth();
+  const { uid } = useAuth();
   const [authOpen, setAuthOpen] = useState(false);
-  const userId = user?.uid;
+  const userId = uid;
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(true);
   const totals = useMemo(() => computeBudgetPageTotals(items), [items]);

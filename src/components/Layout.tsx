@@ -100,8 +100,8 @@ export default function Layout() {
   );
   const { reset } = useBudget();
   const { error: toastError, success: toastSuccess } = useToast();
-  const { user, isAuthenticated } = useAuth();
-  const userId = user?.uid ?? undefined;
+  const { uid, isAuthenticated } = useAuth();
+  const userId = uid;
   const navigate = useNavigate();
   const location = useLocation();
   const ctx = useContext(PageTitleContext);

@@ -11,9 +11,9 @@ import { useAuth } from '../context/AuthContext';
 import { useToast } from '../ui/Toast';
 
 export const useBudget = () => {
-  const { user } = useAuth();
+  const { uid } = useAuth();
   const { toast: addToast, warning: addWarning } = useToast();
-  const userId = user?.uid ?? undefined;
+  const userId = uid;
   const [plan, setPlan] = useState<BudgetPlan | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, _setError] = useState<string | null>(null);

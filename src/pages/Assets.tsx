@@ -16,8 +16,8 @@ interface AssetRow {
 
 export default function Assets() {
   const { setPageTitle } = useContext(PageTitleContext)!;
-  const { user } = useAuth();
-  const userId = user?.uid ?? undefined;
+  const { uid } = useAuth();
+  const userId = uid;
 
   useEffect(() => {
     setPageTitle('Активы');
