@@ -69,8 +69,9 @@ export const trackUser = async (uid: string, email: string): Promise<void> => {
     } else {
       await setDoc(userRef, { ...snap.data(), email, lastActive: now }, { merge: true });
     }
-  } catch {
-    // Firestore недоступен — игнорируем
+  } catch (err) {
+    // eslint-disable-next-line no-console
+    console.error('[firestore] trackUser ошибка:', err);
   }
 };
 
@@ -90,7 +91,9 @@ export const getAllUsers = async (): Promise<UserStat[]> => {
         lastActive: String(data.lastActive ?? ''),
       };
     });
-  } catch {
+  } catch (err) {
+    // eslint-disable-next-line no-console
+    console.error('[firestore] getAllUsers ошибка:', err);
     return [];
   }
 };
