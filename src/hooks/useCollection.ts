@@ -99,18 +99,18 @@ export function useCollection<T extends { id: string }>(
     (id: string) => {
       setItems((prev) => {
         const filtered = prev.filter((it) => it.id !== id);
-        // Прямое сохранение в localStorage — удаление сработает мгновенно,
-        // даже если Firestore недоступен или пустой массив вызывает ошибку в облаке
         try {
           const now = new Date().toISOString();
           const stamped = filtered.map((item) => ({ ...item, updatedAt: now }));
           const key = userId ? `denegnyj_put_${userId}_${collectionName}` : `denegnyj_put_${collectionName}`;
-          localStorage.setItem(key, JSON.stringify(stamped));
+          if (filtered.length > 0) {
+            localStorage.setItem(key, JSON.stringify(stamped));
+          } else {
+            localStorage.removeItem(key);
+          }
         } catch {}
-        // Синхронизация с Firestore в фоне — не блокируем UI
-        if (filtered.length > 0) {
-          saveToFirestore(collectionName, filtered, userId).catch(() => {});
-        }
+        // Всегда синхронизируем с Firestore — пустой массив очистит облако, и строка не вернётся
+        saveToFirestore(collectionName, filtered, userId).catch(() => {});
         return filtered;
       });
     },
