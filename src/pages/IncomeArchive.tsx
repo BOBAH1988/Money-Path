@@ -209,7 +209,7 @@ export default function IncomeArchive() {
 
       <div className="budget-card">
         <div className="budget-card-header" style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'nowrap', overflow: 'hidden', minWidth: 0 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0, flexShrink: 1 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0, flex: 1 }}>
             <h2 className="budget-card-title" style={{ margin: 0 }}>Доходы архив</h2>
             <select
               value={selectedYear}
