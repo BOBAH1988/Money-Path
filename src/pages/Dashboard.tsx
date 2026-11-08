@@ -92,6 +92,7 @@ export default function Dashboard() {
   const [authOpen, setAuthOpen] = useState(false);
   const userId = user?.uid;
   const navigate = useNavigate();
+  const [isLoading, setIsLoading] = useState(true);
   const totals = useMemo(() => computeBudgetPageTotals(items), [items]);
 
   const [assets, setAssets] = useState<AssetRow[]>([]);
@@ -118,6 +119,7 @@ export default function Dashboard() {
       setLiabilities([]);
       setIncome([]);
       setIncomeArchive([]);
+      setIsLoading(false);
       return;
     }
     let cancelled = false;
@@ -142,6 +144,8 @@ export default function Dashboard() {
           setIncome([]);
           setIncomeArchive([]);
         }
+      } finally {
+        if (!cancelled) setIsLoading(false);
       }
     })();
     return () => {
@@ -252,6 +256,18 @@ export default function Dashboard() {
                  </>
                }
             />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (isLoading) {
+    return (
+      <div className="page page-budget">
+        <div className="budget-card">
+          <div className="budget-card-body" style={{ padding: 40, textAlign: 'center', color: 'var(--theme-text-muted)' }}>
+            Загрузка данных…
           </div>
         </div>
       </div>
