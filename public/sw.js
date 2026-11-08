@@ -1,23 +1,17 @@
 // Service Worker для офлайн-работы PWA "Денежный путь".
-// Кэширует оболочку приложения, чтобы оно загружалось без интернета.
-// Данные хранятся в localStorage (реализовано в lib/firestore.ts) и
-// синхронизируются с Firestore при появлении соединения.
-
-const CACHE_NAME = 'denegnyj-put-v12';
+const CACHE_NAME = 'denegnyj-put-v13';
 const ASSETS = [
   '/Money-Path/',
   '/Money-Path/index.html',
   '/Money-Path/manifest.json',
 ];
 
-// Установка SW — кэшируем оболочку.
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => cache.addAll(ASSETS)).then(() => self.skipWaiting())
   );
 });
 
-// Активация — чистим старые кэши.
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((keys) =>
@@ -26,32 +20,30 @@ self.addEventListener('activate', (event) => {
   );
 });
 
-// Стратегия: для навигации — всегда index.html (SPA); для остальных — сеть-first с кэш-фолбэком.
 self.addEventListener('fetch', (event) => {
   const { request } = event;
   const url = new URL(request.url);
 
-  // Не кэшируем Firebase запросы.
   if (url.hostname.includes('firebaseio.com') || url.hostname.includes('googleapis.com')) {
     return;
   }
 
+  // Для навигаций — сеть primero, кэш как фолбэк (SPA fallback).
   if (request.mode === 'navigate') {
     event.respondWith(
-      caches.match('/Money-Path/index.html').then((cached) => cached || fetch(request))
+      fetch(request).catch(() => caches.match('/Money-Path/index.html'))
     );
     return;
   }
 
+  // Для остальных ресурсов — кэш primero с сетевым обновлением.
   event.respondWith(
     caches.match(request).then((cached) =>
       fetch(request).then((networkResponse) => {
-        if (!networkResponse.ok) {
-          return cached || networkResponse;
-        }
+        if (!networkResponse.ok) return cached || networkResponse;
         try {
-          const responseClone = networkResponse.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put(request, responseClone));
+          const clone = networkResponse.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
         } catch {}
         return networkResponse;
       }).catch(() => cached)

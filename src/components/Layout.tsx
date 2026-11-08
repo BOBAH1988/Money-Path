@@ -1,15 +1,18 @@
-import { useContext, useState, useEffect, useMemo, useRef, useLayoutEffect } from 'react';
+import { useContext, useState, useEffect, useMemo, useRef, useLayoutEffect, lazy, Suspense } from 'react';
 import { NavLink, Outlet, useNavigate, useLocation } from 'react-router-dom';
 import packageJson from '../../package.json';
 import { useBudget } from '../hooks/useBudget';
 import { clearCollectionData, cleanupResetPendingFirestore, COLLECTIONS, saveToFirestore } from '../lib/firestore';
 import { AppIcon } from './AppIcon';
-import { AuthModal, AccountButton, AccountMenu, AnalyticsModal } from './AuthModal';
-import { ImportModal } from './ImportModal';
+import { AccountButton, AccountMenu } from './AuthModal';
 import { PageTitleProvider, PageTitleContext } from './PageTitleContext';
 import { useAuth } from '../context/AuthContext';
-import { ConfirmDialog } from '../ui/ConfirmDialog';
 import { useToast } from '../ui/Toast';
+
+const AuthModalLazy = lazy(() => import('./AuthModal').then((m) => ({ default: m.AuthModal })));
+const ImportModalLazy = lazy(() => import('./ImportModal').then((m) => ({ default: m.ImportModal })));
+const ConfirmDialogLazy = lazy(() => import('../ui/ConfirmDialog').then((m) => ({ default: m.ConfirmDialog })));
+const AnalyticsModalLazy = lazy(() => import('./AuthModal').then((m) => ({ default: m.AnalyticsModal })));
 
 const pkgVersion = packageJson.version;
 const currentYear = new Date().getFullYear();
@@ -368,20 +371,24 @@ export default function Layout() {
       )}
 
       {confirmReset && (
-        <ConfirmDialog
-          open={confirmReset}
-          onClose={() => setConfirmReset(false)}
-          onConfirm={handleConfirmReset}
-          title="Сброс данных"
-          description="Все ваши данные будут безвозвратно удалены. Действие необратимо."
-          confirmLabel="Сбросить"
-          cancelLabel="Отмена"
-          confirmVariant="danger"
-        />
+        <Suspense fallback={null}>
+          <ConfirmDialogLazy
+            open={confirmReset}
+            onClose={() => setConfirmReset(false)}
+            onConfirm={handleConfirmReset}
+            title="Сброс данных"
+            description="Все ваши данные будут безвозвратно удалены. Действие необратимо."
+            confirmLabel="Сбросить"
+            cancelLabel="Отмена"
+            confirmVariant="danger"
+          />
+        </Suspense>
       )}
 
       {authModalOpen && (
-        <AuthModal onClose={() => setAuthModalOpen(false)} />
+        <Suspense fallback={null}>
+          <AuthModalLazy onClose={() => setAuthModalOpen(false)} />
+        </Suspense>
       )}
 
       {accountMenuOpen && (
@@ -389,11 +396,15 @@ export default function Layout() {
       )}
 
       {analyticsOpen && (
-        <AnalyticsModal onClose={() => setAnalyticsOpen(false)} />
+        <Suspense fallback={null}>
+          <AnalyticsModalLazy onClose={() => setAnalyticsOpen(false)} />
+        </Suspense>
       )}
 
       {importModalOpen && (
-        <ImportModal onClose={() => setImportModalOpen(false)} />
+        <Suspense fallback={null}>
+          <ImportModalLazy onClose={() => setImportModalOpen(false)} />
+        </Suspense>
       )}
 
       {installModalOpen && (
