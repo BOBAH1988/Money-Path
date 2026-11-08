@@ -1899,6 +1899,7 @@ body { margin: 0; font-family: system-ui, sans-serif; background: var(--theme-bg
 .bottom-nav-buttons {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 4px;
   flex-wrap: nowrap;
   overflow: hidden;
