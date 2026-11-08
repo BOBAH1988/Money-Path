@@ -102,9 +102,9 @@ export default function Dashboard() {
 
   const hasData = useMemo(
     () =>
-      assets.length > 0 ||
-      liabilities.length > 0 ||
-      income.length > 0 ||
+      assets.some((a) => (a.amount ?? 0) > 0) ||
+      liabilities.some((l) => (l.amount ?? 0) > 0) ||
+      income.some((i) => (i.amount ?? 0) > 0) ||
       incomeArchive.some((r) => r.months.some((v) => v && v !== 0)),
     [assets, liabilities, income, incomeArchive]
   );
