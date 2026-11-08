@@ -12,7 +12,14 @@ import { ConfirmDialog } from '../ui/ConfirmDialog';
 import { useToast } from '../ui/Toast';
 
 const pkgVersion = packageJson.version;
-const footerText = `Vladimir Sokolov 2026`;
+const currentYear = new Date().getFullYear();
+
+const formatYearRange = (start: number, end?: number): string => {
+  if (!end || end === start) return String(start);
+  return `${start}-${String(end).slice(-2)}`;
+};
+
+const footerText = `Vladimir Sokolov ${formatYearRange(currentYear)}`;
 
 const items = [
   { to: '/', label: 'Главная', icon: '📊' },
