@@ -45,15 +45,16 @@ self.addEventListener('fetch', (event) => {
 
   event.respondWith(
     caches.match(request).then((cached) =>
-      fetch(request)
-        .then((networkResponse) => {
-          try {
-            const responseClone = networkResponse.clone();
-            caches.open(CACHE_NAME).then((cache) => cache.put(request, responseClone));
-          } catch {}
-          return networkResponse;
-        })
-        .catch(() => cached || new Response('', { status: 404 }))
+      fetch(request).then((networkResponse) => {
+        if (!networkResponse.ok) {
+          return cached || networkResponse;
+        }
+        try {
+          const responseClone = networkResponse.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(request, responseClone));
+        } catch {}
+        return networkResponse;
+      }).catch(() => cached)
     )
   );
 });
