@@ -20,7 +20,7 @@ interface ToastContextValue {
   dismiss: (id: string) => void;
 }
 
-const DEFAULT_DURATION = 4000;
+const DEFAULT_DURATION = 1333;
 
 const ToastContext = createContext<ToastContextValue | undefined>(undefined);
 
