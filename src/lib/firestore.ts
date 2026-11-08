@@ -189,8 +189,17 @@ export const loadFromFirestore = async <T extends { id: string } = { id: string 
   if (!userId) {
     return [];
   }
+
+  // Локальное хранилище — источник истины для текущей сессии.
+  // Сначала читаем его, чтобы удалённые пользователем строки не восстанавливались
+  // из устаревших данных в Firestore / IndexedDB кэше.
+  const localData = loadFromLocalStorage<T>(collectionName, userId);
+  if (localData.length > 0) {
+    return localData;
+  }
+
   if (!firestoreDb) {
-    return loadFromLocalStorage<T>(collectionName, userId);
+    return [];
   }
   try {
     const colRef = collection(firestoreDb, colPath(collectionName, userId));
@@ -201,16 +210,10 @@ export const loadFromFirestore = async <T extends { id: string } = { id: string 
     );
     if (data.length > 0) {
       saveToLocalStorage(collectionName, data, userId);
-      return data;
     }
-    // Firestore пуст — проверяем локальное хранилище (мигрированные данные)
-    const localData = loadFromLocalStorage<T>(collectionName, userId);
-    if (localData.length > 0) {
-      return localData;
-    }
-    return [];
+    return data;
   } catch {
-    return loadFromLocalStorage<T>(collectionName, userId);
+    return [];
   }
 };
 
