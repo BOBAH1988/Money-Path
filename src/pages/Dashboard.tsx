@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useContext } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { PageTitleContext } from '../components/PageTitleContext';
 import { useBudget } from '../hooks/useBudget';
 import { computeBudgetPageTotals } from '../lib/budget';
@@ -90,6 +91,7 @@ export default function Dashboard() {
   const { user } = useAuth();
   const [authOpen, setAuthOpen] = useState(false);
   const userId = user?.uid;
+  const navigate = useNavigate();
   const totals = useMemo(() => computeBudgetPageTotals(items), [items]);
 
   const [assets, setAssets] = useState<AssetRow[]>([]);
@@ -357,7 +359,7 @@ export default function Dashboard() {
           title="Нет данных для визуализации"
           description="Добавьте доходы в архиве или доходы/расходы, чтобы графики отобразили данные."
           action={
-            <button className="auth-btn" type="button">
+            <button className="auth-btn" type="button" onClick={() => navigate('/income')}>
               Перейти к доходам
             </button>
           }
