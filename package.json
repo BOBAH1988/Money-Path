@@ -1,7 +1,7 @@
 {
   "name": "denegnyj-put",
   "private": true,
-  "version": "0.0.260",
+  "version": "1.0.2",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -11,7 +11,11 @@
     "test": "vitest run",
     "check": "npm run lint && npm test && npm run build",
     "bump": "node scripts/bump-version.js",
-    "prepare": "node scripts/install-hooks.js"
+    "prepare": "node scripts/install-hooks.js",
+    "backup": "node scripts/backup.cjs backup",
+    "backup:all": "node scripts/backup.cjs backup --all",
+    "backup:restore": "node scripts/backup.cjs restore",
+    "backup:list": "node scripts/backup.cjs list"
   },
   "dependencies": {
     "firebase": "^13.2.0",
@@ -27,6 +31,7 @@
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
     "@vitejs/plugin-react": "^6.1.2",
+    "firebase-admin": "^14.5.0",
     "jsdom": "^30.1.3",
     "oxlint": "^1.89.0",
     "typescript": "~7.0.2",

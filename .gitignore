@@ -27,3 +27,8 @@ dist-ssr
 .env
 *.env
 !.env.example
+
+# Резервные копии и сервисные аккаунты (не в репозиторий)
+backups/
+serviceAccount.json
+*.service-account.json
