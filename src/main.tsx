@@ -59,12 +59,18 @@ window.addEventListener('online', async () => {
 });
 
 // При загрузке через 404.html fallback (GitHub Pages + BrowserRouter)
-// путь хранится в хеше — восстанавливаем его в URL без хеша.
+// путь хранится в хеше — восстанавливаем его в URL с базой сайта.
 const hash = window.location.hash;
-if (hash && hash.startsWith('#/')) {
-  const path = hash.slice(1); // убрать #
-  window.history.replaceState(null, '', path);
+const base = (import.meta.env.BASE_URL || '').replace(/\/+$/, '');
+if (hash) {
+  let route = hash.slice(1); // убрать #
+  if (!route.startsWith('/')) route = '/' + route;
+  window.history.replaceState(null, '', base + route);
   window.location.hash = '';
+}
+// Если открыли index.html напрямую — вести на корень сайта.
+if (!hash && window.location.pathname.endsWith('/index.html')) {
+  window.history.replaceState(null, '', base || '/');
 }
 
 createRoot(document.getElementById('root')!).render(
