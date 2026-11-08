@@ -7,6 +7,19 @@ interface Props extends ButtonHTMLAttributes<HTMLButtonElement> {
   fullWidth?: boolean;
 }
 
+const variantClasses: Record<string, string> = {
+  primary: 'btn-ui btn-ui-primary',
+  secondary: 'btn-ui btn-ui-secondary',
+  danger: 'btn-ui btn-ui-danger',
+  ghost: 'btn-ui btn-ui-ghost',
+};
+
+const sizeClasses: Record<string, string> = {
+  sm: 'btn-ui-sm',
+  md: 'btn-ui-md',
+  lg: 'btn-ui-lg',
+};
+
 export const Button = ({
   variant = 'primary',
   size = 'md',
@@ -17,25 +30,12 @@ export const Button = ({
   children,
   ...rest
 }: Props) => {
-  const base =
-    'inline-flex items-center justify-center gap-2 rounded-xl font-medium transition-all disabled:opacity-65 disabled:pointer-events-none';
-
-  const variants = {
-    primary: 'bg-[#007aff] text-white hover:bg-[#005bb5] active:scale-95',
-    secondary: 'bg-[#f3f4f6] text-[#111827] border border-[#e5e7eb] hover:bg-[#e5e7eb] active:scale-95',
-    danger: 'bg-[#dc2626] text-white hover:bg-[#b91c1c] active:scale-95',
-    ghost: 'text-[#6b7280] hover:bg-[#f3f4f6] active:scale-95',
-  };
-
-  const sizes = {
-    sm: 'px-3 py-1.5 text-sm',
-    md: 'px-4 py-2.5 text-base',
-    lg: 'px-6 py-3 text-lg',
-  };
+  const base = variantClasses[variant] ?? variantClasses.primary;
+  const sizeClass = sizeClasses[size] ?? sizeClasses.md;
 
   return (
     <button
-      className={[base, variants[variant], sizes[size], fullWidth ? 'w-full' : '', className].filter(Boolean).join(' ')}
+      className={[base, sizeClass, fullWidth ? 'btn-ui-full' : '', className].filter(Boolean).join(' ')}
       disabled={disabled || loading}
       {...rest}
     >

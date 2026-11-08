@@ -757,6 +757,16 @@ body { margin: 0; font-family: system-ui, sans-serif; background: var(--theme-bg
   --theme-menu-item-hover: linear-gradient(180deg, #334155 0%, #475569 100%);
   --theme-overlay: rgba(0, 0, 0, 0.65);
   --theme-inverse-text: #ffffff;
+
+  /* Бюджет-токены (тёмная) */
+  --bp-bg: #1e293b;
+  --bp-card: #1e293b;
+  --bp-border: #334155;
+  --bp-text: #f8fafc;
+  --bp-muted: #94a3b8;
+  --bp-accent: #34d399;
+  --bp-accent-hover: #10b981;
+  --bp-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
 }
 
 .dark {

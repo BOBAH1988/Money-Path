@@ -51,7 +51,7 @@ export default function Liabilities() {
         <div className="budget-card">
           <div className="budget-card-body">
             <div className="budget-table-wrap">
-              <div style={{ padding: 40, textAlign: 'center', color: '#dc2626' }}>
+              <div style={{ padding: 40, textAlign: 'center', color: 'var(--dp-color-danger)' }}>
                 <div style={{ fontSize: 18, fontWeight: 600, marginBottom: 12 }}>
                   Ошибка загрузки данных
                 </div>
@@ -70,7 +70,7 @@ export default function Liabilities() {
         <div className="budget-card">
           <div className="budget-card-body">
             <div className="budget-table-wrap">
-              <div style={{ padding: 40, textAlign: 'center', color: '#64748b' }}>
+              <div style={{ padding: 40, textAlign: 'center', color: 'var(--theme-text-muted)' }}>
                 Загрузка данных
               </div>
             </div>

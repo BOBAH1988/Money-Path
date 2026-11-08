@@ -75,12 +75,12 @@ export default function Import() {
       <div className="budget-card">
         <div className="budget-card-body">
           <h1>Импорт / Экспорт данных</h1>
-          <p style={{ marginBottom: 20, color: '#64748b' }}>
+          <p style={{ marginBottom: 20, color: 'var(--theme-text-muted)' }}>
             Скачайте все ваши данные в файл JSON для передачи аналитику или наставнику.
           </p>
 
           {!userId && (
-            <div style={{ padding: 20, textAlign: 'center', color: '#dc2626' }}>
+            <div style={{ padding: 20, textAlign: 'center', color: 'var(--dp-color-danger)' }}>
               <div style={{ fontSize: 16, fontWeight: 600, marginBottom: 8 }}>
                 Вход в аккаунт необходим
               </div>
@@ -106,11 +106,11 @@ export default function Import() {
             </div>
           )}
 
-          <div style={{ marginTop: 24, padding: 16, background: '#f8fafc', borderRadius: 8, border: '1px solid #e2e8f0' }}>
-            <h3 style={{ margin: '0 0 12px 0', fontSize: 14, color: '#374151' }}>
+          <div style={{ marginTop: 24, padding: 16, background: 'var(--theme-surface)', borderRadius: 8, border: '1px solid var(--theme-border)' }}>
+            <h3 style={{ margin: '0 0 12px 0', fontSize: 14, color: 'var(--theme-text)' }}>
               Что включается в файл:
             </h3>
-            <ul style={{ margin: 0, paddingLeft: 20, color: '#64748b', fontSize: 13 }}>
+            <ul style={{ margin: 0, paddingLeft: 20, color: 'var(--theme-text-muted)', fontSize: 13 }}>
               <li>Активы</li>
               <li>Пассивы</li>
               <li>Доход</li>
