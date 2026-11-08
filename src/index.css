@@ -1883,7 +1883,9 @@ body { margin: 0; font-family: system-ui, sans-serif; background: var(--theme-bg
   align-items: center;
   justify-content: center;
   gap: 4px;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  width: 100%;
 }
 
 .bottom-nav-footer {
@@ -1913,6 +1915,8 @@ body { margin: 0; font-family: system-ui, sans-serif; background: var(--theme-bg
   background: transparent;
   border: none;
   font-family: inherit;
+  flex-shrink: 0;
+  white-space: nowrap;
 }
 
 .bottom-nav-item .nav-icon {
