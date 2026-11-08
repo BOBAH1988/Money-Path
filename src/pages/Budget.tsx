@@ -39,7 +39,7 @@ export default function Budget() {
         <div className="budget-card">
           <div className="budget-card-body">
             <div className="budget-table-wrap">
-              <div style={{ padding: 40, textAlign: 'center', color: '#64748b' }}>
+              <div style={{ padding: 40, textAlign: 'center', color: 'var(--theme-text-muted)' }}>
                 Загрузка данных
               </div>
             </div>
@@ -55,12 +55,12 @@ export default function Budget() {
         <div className="budget-card">
           <div className="budget-card-body">
             <div className="budget-table-wrap">
-              <div style={{ padding: 40, textAlign: 'center', color: '#dc2626' }}>
+              <div style={{ padding: 40, textAlign: 'center', color: 'var(--dp-color-danger)' }}>
                 <div style={{ fontSize: 18, fontWeight: 600, marginBottom: 12 }}>
                   Ошибка загрузки данных
                 </div>
                 <div style={{ fontSize: 14, marginBottom: 16 }}>{error}</div>
-                <div style={{ fontSize: 13, color: '#64748b' }}>
+                <div style={{ fontSize: 13, color: 'var(--theme-text-muted)' }}>
                   Убедитесь, что база Firestore создана в консоли Firebase и правила доступа открыты.
                 </div>
               </div>

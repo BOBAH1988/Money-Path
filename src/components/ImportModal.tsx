@@ -67,7 +67,7 @@ export const ImportModal = ({ onClose }: { onClose: () => void }) => {
         <h2 className="auth-title">Скачать данные</h2>
 
         {!userId && (
-          <div style={{ padding: 20, textAlign: 'center', color: '#dc2626' }}>
+          <div style={{ padding: 20, textAlign: 'center', color: 'var(--dp-color-danger)' }}>
             <div style={{ fontSize: 16, fontWeight: 600, marginBottom: 8 }}>
               Вход в аккаунт необходим
             </div>
@@ -85,11 +85,11 @@ export const ImportModal = ({ onClose }: { onClose: () => void }) => {
           </div>
         )}
 
-        <div style={{ marginTop: 20, padding: 16, background: '#f8fafc', borderRadius: 8, border: '1px solid #e2e8f0' }}>
-          <h3 style={{ margin: '0 0 10px 0', fontSize: 13, color: '#374151' }}>
+        <div style={{ marginTop: 20, padding: 16, background: 'var(--theme-surface)', borderRadius: 8, border: '1px solid var(--theme-border)' }}>
+          <h3 style={{ margin: '0 0 10px 0', fontSize: 13, color: 'var(--theme-text)' }}>
             Что включается в файл:
           </h3>
-          <ul style={{ margin: 0, paddingLeft: 18, color: '#64748b', fontSize: 13 }}>
+          <ul style={{ margin: 0, paddingLeft: 18, color: 'var(--theme-text-muted)', fontSize: 13 }}>
             <li style={{ marginBottom: 4 }}>Активы</li>
             <li style={{ marginBottom: 4 }}>Пассивы</li>
             <li style={{ marginBottom: 4 }}>Доход</li>

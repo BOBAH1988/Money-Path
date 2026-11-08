@@ -169,7 +169,7 @@ export default function IncomeArchive() {
         <div className="budget-card">
           <div className="budget-card-body">
             <div className="budget-table-wrap">
-              <div style={{ padding: 40, textAlign: 'center', color: '#dc2626' }}>
+              <div style={{ padding: 40, textAlign: 'center', color: 'var(--dp-color-danger)' }}>
                 <div style={{ fontSize: 18, fontWeight: 600, marginBottom: 12 }}>Ошибка загрузки данных</div>
                 <div style={{ fontSize: 14, marginBottom: 16 }}>{error}</div>
               </div>
@@ -186,7 +186,7 @@ export default function IncomeArchive() {
         <div className="budget-card">
           <div className="budget-card-body">
             <div className="budget-table-wrap">
-              <div style={{ padding: 40, textAlign: 'center', color: '#64748b' }}>Загрузка данных</div>
+              <div style={{ padding: 40, textAlign: 'center', color: 'var(--theme-text-muted)' }}>Загрузка данных</div>
             </div>
           </div>
         </div>
@@ -217,8 +217,9 @@ export default function IncomeArchive() {
               style={{
                 padding: '6px 10px',
                 borderRadius: 8,
-                border: '1px solid var(--bp-border, #e2e8f0)',
-                background: 'var(--bp-card, #fff)',
+                border: '1px solid var(--theme-border)',
+                background: 'var(--theme-card)',
+                color: 'var(--theme-text)',
                 fontSize: 14,
                 fontWeight: 600,
                 cursor: 'pointer',

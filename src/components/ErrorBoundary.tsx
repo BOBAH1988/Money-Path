@@ -39,7 +39,7 @@ export class ErrorBoundary extends Component<Props, State> {
           style={{
             padding: 24,
             textAlign: 'center',
-            color: '#dc2626',
+            color: 'var(--dp-color-danger)',
             fontFamily: 'system-ui, sans-serif',
           }}
         >
@@ -47,16 +47,16 @@ export class ErrorBoundary extends Component<Props, State> {
           <p>{this.state.error?.message ?? 'Неизвестная ошибка'}</p>
           <button
             onClick={this.resetError}
-            style={{
-              marginTop: 12,
-              padding: '8px 16px',
-              background: '#007aff',
-              color: '#fff',
-              border: 'none',
-              borderRadius: 8,
-              cursor: 'pointer',
-            }}
-          >
+              style={{
+                marginTop: 12,
+                padding: '8px 16px',
+                background: 'var(--theme-accent)',
+                color: 'var(--theme-inverse-text)',
+                border: 'none',
+                borderRadius: 8,
+                cursor: 'pointer',
+              }}
+            >
             Попробовать ещё раз
           </button>
         </div>
