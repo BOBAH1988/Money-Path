@@ -12,7 +12,7 @@ const emptyBudgetPlan: BudgetPlan = {
   items: [],
 };
 
-const loadBudgetPlanFromLocalStorage = (userId?: string): BudgetPlan => {
+export const loadBudgetPlanFromLocalStorage = (userId?: string): BudgetPlan => {
   try {
     const raw = localStorage.getItem(BUDGET_STORAGE_KEY(userId));
     if (!raw) return emptyBudgetPlan;

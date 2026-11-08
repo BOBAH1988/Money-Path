@@ -1,11 +1,11 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import type { BudgetPlan, BudgetPlanItem, BudgetGroup } from '../types';
-import { firestoreDb } from '../lib/firebase';
 import {
   loadBudgetPlan,
   saveBudgetPlan,
   resetBudgetPlan,
   applyComputedFields,
+  loadBudgetPlanFromLocalStorage,
 } from '../lib/budget';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../ui/Toast';
@@ -14,31 +14,30 @@ export const useBudget = () => {
   const { uid } = useAuth();
   const { toast: addToast, warning: addWarning } = useToast();
   const userId = uid;
-  const [plan, setPlan] = useState<BudgetPlan | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [plan, setPlan] = useState<BudgetPlan | null>(() => loadBudgetPlanFromLocalStorage(userId));
+  const [loading, setLoading] = useState(false);
   const [error, _setError] = useState<string | null>(null);
   const offlineWarnedRef = useRef(false);
+
+  // Загружаем из localStorage синхронно — сразу показываем данные, без ожидания Firebase
   useEffect(() => {
-    const load = async () => {
-      try {
-        const p = await loadBudgetPlan(userId);
-        setPlan(p);
-        if (!firestoreDb && !offlineWarnedRef.current) {
-          addWarning('База данных недоступна', 'Данные хранятся локально и синхронизируются при восстановлении связи');
-          offlineWarnedRef.current = true;
+    setLoading(false);
+
+    // Фоновая синхронизация с Firestore — не блокирует UI
+    if (userId) {
+      void (async () => {
+        try {
+          const p = await loadBudgetPlan(userId);
+          setPlan(p);
+        } catch {
+          if (!offlineWarnedRef.current) {
+            addWarning('База данных недоступна', 'Данные хранятся локально и синхронизируются при восстановлении связи');
+            offlineWarnedRef.current = true;
+          }
         }
-      } catch (err) {
-        if (!offlineWarnedRef.current) {
-          addWarning('База данных недоступна', 'Данные хранятся локально и синхронизируются при восстановлении связи');
-          offlineWarnedRef.current = true;
-        }
-        addToast('error', 'Ошибка загрузки', err instanceof Error ? err.message : 'Не удалось загрузить данные');
-      } finally {
-        setLoading(false);
-      }
-    };
-    load();
-  }, [userId, addToast, addWarning]);
+      })();
+    }
+  }, [userId, addWarning, offlineWarnedRef]);
 
   const computed = useMemo(() => {
     if (!plan) return { items: [], updatedAt: '' };
