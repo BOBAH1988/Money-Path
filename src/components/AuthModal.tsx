@@ -32,6 +32,8 @@ export const AuthModal = ({ onClose }: { onClose: () => void }) => {
         setValidationErrors(result.error.issues.map((e) => e.message));
         return false;
       }
+      setValidationErrors([]);
+      return true;
     }
     if (mode === 'forgot') {
       const result = forgotSchema.safeParse(data as ForgotFormData);
@@ -39,11 +41,17 @@ export const AuthModal = ({ onClose }: { onClose: () => void }) => {
         setValidationErrors(result.error.issues.map((e) => e.message));
         return false;
       }
+      setValidationErrors([]);
+      return true;
     }
-    const result = registerSchema.safeParse(data as RegisterFormData);
-    if (!result.success) {
-      setValidationErrors(result.error.issues.map((e) => e.message));
-      return false;
+    if (mode === 'register') {
+      const result = registerSchema.safeParse(data as RegisterFormData);
+      if (!result.success) {
+        setValidationErrors(result.error.issues.map((e) => e.message));
+        return false;
+      }
+      setValidationErrors([]);
+      return true;
     }
     setValidationErrors([]);
     return true;
