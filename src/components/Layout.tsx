@@ -132,9 +132,9 @@ export default function Layout() {
       for (const name of cacheNames) {
         await caches.delete(name);
       }
-      toastSuccess('Кэш очищен', 'Приложение перезагрузится');
+      toastSuccess('Кэш очищен', 'Перезагрузка приложения...');
       setMenuOpen(false);
-      window.location.reload();
+      window.location.replace(window.location.pathname + '?clear-cache=' + Date.now());
     } catch (err) {
       toastError('Ошибка кэша', err instanceof Error ? err.message : 'Не удалось очистить кэш');
       setMenuOpen(false);
