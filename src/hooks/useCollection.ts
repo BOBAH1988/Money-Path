@@ -7,6 +7,7 @@ import {
   COLLECTIONS,
   type FirestoreCollection,
 } from '../lib/firestore';
+import { collection, deleteDoc, getDocs } from 'firebase/firestore';
 
 interface UseCollectionOptions {
   collectionName: FirestoreCollection;
@@ -97,22 +98,33 @@ export function useCollection<T extends { id: string }>(
 
   const removeItem = useCallback(
     (id: string) => {
+      let isEmpty = false;
       setItems((prev) => {
         const filtered = prev.filter((it) => it.id !== id);
+        isEmpty = filtered.length === 0;
         try {
           const now = new Date().toISOString();
           const stamped = filtered.map((item) => ({ ...item, updatedAt: now }));
           const key = userId ? `denegnyj_put_${userId}_${collectionName}` : `denegnyj_put_${collectionName}`;
-          if (filtered.length > 0) {
-            localStorage.setItem(key, JSON.stringify(stamped));
-          } else {
+          if (isEmpty) {
             localStorage.removeItem(key);
+          } else {
+            localStorage.setItem(key, JSON.stringify(stamped));
           }
         } catch {}
-        // Всегда синхронизируем с Firestore — пустой массив очистит облако, и строка не вернётся
-        saveToFirestore(collectionName, filtered, userId).catch(() => {});
         return filtered;
       });
+      // Когда удалена последняя строка — прямо очищаем Firestore, чтобы данные не вернулись
+      if (isEmpty && userId && firestoreDb) {
+        void (async () => {
+          try {
+            const colRef = collection(firestoreDb, `users/${userId}/${collectionName}`);
+            const snapshot = await getDocs(colRef);
+            await Promise.all(snapshot.docs.map((d) => deleteDoc(d.ref)));
+          } catch {}
+        })();
+      }
+      saveToFirestore(collectionName, [], userId).catch(() => {});
     },
     [collectionName, userId]
   );
