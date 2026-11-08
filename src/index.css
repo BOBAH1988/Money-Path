@@ -1884,7 +1884,7 @@ body { margin: 0; font-family: system-ui, sans-serif; background: var(--theme-bg
   justify-content: center;
   gap: 4px;
   flex-wrap: nowrap;
-  overflow-x: auto;
+  overflow: hidden;
   width: 100%;
 }
 
