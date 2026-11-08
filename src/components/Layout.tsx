@@ -27,7 +27,7 @@ const items = [
   { to: '/assets', label: 'Активы', icon: '📈' },
   { to: '/liabilities', label: 'Пассивы', icon: '🏦' },
   { to: '/income', label: 'Доходы', icon: '💵' },
-  { to: '/income-archive', label: 'Доходы архив', icon: '📂' },
+  { to: '/income-archive', label: 'Архив', icon: '📂' },
 ];
 
 
