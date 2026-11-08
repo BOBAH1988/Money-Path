@@ -97,6 +97,19 @@ export default function Layout() {
   const pageTitle = ctx?.pageTitle ?? '';
 
   useEffect(() => {
+    const clearFlag = sessionStorage.getItem('denegnyj_clear_cache');
+    if (clearFlag) {
+      sessionStorage.removeItem('denegnyj_clear_cache');
+      document.querySelectorAll<HTMLLinkElement>('link[rel="icon"], link[rel="apple-touch-icon"], link[rel="manifest"]').forEach((link) => {
+        const url = new URL(link.href, window.location.origin);
+        url.searchParams.set('t', Date.now().toString());
+        link.href = url.href;
+      });
+      window.location.reload();
+    }
+  }, []);
+
+  useEffect(() => {
     const promptHandler = (e: any) => {
       e.preventDefault();
       setDeferredPrompt(e);
@@ -163,9 +176,10 @@ export default function Layout() {
       for (const name of cacheNames) {
         await caches.delete(name);
       }
+      sessionStorage.setItem('denegnyj_clear_cache', '1');
       toastSuccess('Кэш очищен', 'Перезагрузка приложения...');
       setMenuOpen(false);
-      window.location.replace(window.location.pathname + '?clear-cache=' + Date.now());
+      window.location.reload();
     } catch (err) {
       toastError('Ошибка кэша', err instanceof Error ? err.message : 'Не удалось очистить кэш');
       setMenuOpen(false);
