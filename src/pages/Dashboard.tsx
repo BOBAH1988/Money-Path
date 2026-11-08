@@ -99,12 +99,14 @@ export default function Dashboard() {
   const [income, setIncome] = useState<IncomeRow[]>([]);
   const [incomeArchive, setIncomeArchive] = useState<IncomeArchiveRow[]>([]);
 
-  const hasData =
-    assets.length > 0 ||
-    liabilities.length > 0 ||
-    income.length > 0 ||
-    incomeArchive.some((r) => r.months.some((v) => v && v !== 0)) ||
-    totals.totalAll > 0;
+  const hasData = useMemo(
+    () =>
+      assets.length > 0 ||
+      liabilities.length > 0 ||
+      income.length > 0 ||
+      incomeArchive.some((r) => r.months.some((v) => v && v !== 0)),
+    [assets, liabilities, income, incomeArchive]
+  );
 
   useEffect(() => {
     setPageTitle('Главная');
