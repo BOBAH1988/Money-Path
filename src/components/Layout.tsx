@@ -122,6 +122,25 @@ export default function Layout() {
     }
   };
 
+  const handleClearCache = async () => {
+    try {
+      const registrations = await navigator.serviceWorker.getRegistrations();
+      for (const registration of registrations) {
+        await registration.unregister();
+      }
+      const cacheNames = await caches.keys();
+      for (const name of cacheNames) {
+        await caches.delete(name);
+      }
+      toastSuccess('Кэш очищен', 'Приложение перезагрузится');
+      setMenuOpen(false);
+      window.location.reload();
+    } catch (err) {
+      toastError('Ошибка кэша', err instanceof Error ? err.message : 'Не удалось очистить кэш');
+      setMenuOpen(false);
+    }
+  };
+
   return (
     <PageTitleProvider>
       <div className="layout">
@@ -242,42 +261,39 @@ export default function Layout() {
                 </li>
               ))}
                <li>
-                 <button
-                   className="menu-item menu-install-btn"
-                   onClick={async () => {
-                     setMenuOpen(false);
-                     if (isIOS) {
-                       setInstallModalOpen(true);
-                       return;
-                     }
-                     if (deferredPrompt) {
-                       try {
-                         deferredPrompt.prompt();
-                         await deferredPrompt.userChoice;
-                       } catch {}
-                       setDeferredPrompt(null);
-                       return;
-                     }
-                     setInstallModalOpen(true);
-                   }}
-                 >
-                   <span className="menu-icon">📱</span>
-                   Установить приложение
-                 </button>
-               </li>
+                  <button
+                    className="menu-item menu-cache-btn"
+                    onClick={handleClearCache}
+                  >
+                   <span className="menu-icon">🗑️</span>
+                    Сбросить кэш
+                  </button>
+                </li>
                <li>
-                 <button
-                   className="menu-item menu-reset-btn"
-                  onClick={() => {
-                    setConfirmReset(true);
-                    setMenuOpen(false);
-                  }}
-                >
-                  <span className="menu-icon">🔄</span>
-                  Сброс на стандартные
-                </button>
-              </li>
-              <li className="menu-theme-item">
+                  <button
+                    className="menu-item menu-install-btn"
+                    onClick={async () => {
+                      setMenuOpen(false);
+                      if (isIOS) {
+                        setInstallModalOpen(true);
+                        return;
+                      }
+                      if (deferredPrompt) {
+                        try {
+                          deferredPrompt.prompt();
+                          await deferredPrompt.userChoice;
+                        } catch {}
+                        setDeferredPrompt(null);
+                        return;
+                      }
+                      setInstallModalOpen(true);
+                    }}
+                  >
+                    <span className="menu-icon">📱</span>
+                    Установить приложение
+                  </button>
+                </li>
+               <li className="menu-theme-item">
                 <div className="menu-theme-row">
                   <button
                     className={`menu-item menu-theme-btn ${theme === 'light' ? 'theme-active' : ''}`}
