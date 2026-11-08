@@ -1905,6 +1905,10 @@ body { margin: 0; font-family: system-ui, sans-serif; background: var(--theme-bg
   width: 100%;
 }
 
+.bottom-nav-item.hidden {
+  display: none;
+}
+
 .bottom-nav-footer {
   display: flex;
   align-items: center;

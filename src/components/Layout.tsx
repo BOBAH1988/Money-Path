@@ -48,7 +48,7 @@ export default function Layout() {
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const [installModalOpen, setInstallModalOpen] = useState(false);
   const navRef = useRef<HTMLDivElement>(null);
-  const [visibleCount, setVisibleCount] = useState(items.length);
+  const [hiddenIndices, setHiddenIndices] = useState<Set<number>>(new Set());
 
   useEffect(() => {
     const container = navRef.current;
@@ -56,19 +56,17 @@ export default function Layout() {
 
     const check = () => {
       const buttons = Array.from(container.querySelectorAll<HTMLElement>('.bottom-nav-item'));
-      if (buttons.length === 0) {
-        setVisibleCount(0);
-        return;
-      }
       const containerRect = container.getBoundingClientRect();
-      let count = buttons.length;
-      while (count > 0) {
-        const last = buttons[count - 1];
-        const lastRect = last.getBoundingClientRect();
-        if (lastRect.right <= containerRect.right + 1) break;
-        count--;
-      }
-      setVisibleCount(count);
+      const newHidden = new Set<number>();
+
+      buttons.forEach((btn, idx) => {
+        const rect = btn.getBoundingClientRect();
+        if (rect.right > containerRect.right + 1) {
+          newHidden.add(idx);
+        }
+      });
+
+      setHiddenIndices(newHidden);
     };
 
     check();
@@ -211,10 +209,10 @@ export default function Layout() {
       {/* Нижняя навигация PWA */}
       <nav className="bottom-nav">
         <div className="bottom-nav-buttons" ref={navRef}>
-          {items.slice(0, visibleCount).map((item) => (
+          {items.map((item, idx) => (
             <button
               key={item.to}
-              className={`bottom-nav-item ${location.pathname === item.to ? 'active' : ''}`}
+              className={`bottom-nav-item ${location.pathname === item.to ? 'active' : ''} ${hiddenIndices.has(idx) ? 'hidden' : ''}`}
               onClick={() => navigate(item.to)}
             >
               <span className="nav-icon">{item.icon}</span>
