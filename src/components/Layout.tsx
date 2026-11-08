@@ -28,7 +28,6 @@ const items = [
   { to: '/liabilities', label: 'Пассивы', icon: '🏦' },
   { to: '/income', label: 'Доходы', icon: '💵' },
   { to: '/income-archive', label: 'Доходы архив', icon: '📂' },
-  { to: '/import', label: 'Импорт', icon: '📥' },
 ];
 
 
