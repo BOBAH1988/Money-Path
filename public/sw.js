@@ -10,7 +10,6 @@ const ASSETS = [
   '/Money-Path/src/main.tsx',
   '/Money-Path/src/index.css',
   '/Money-Path/app-icon.svg',
-  '/Money-Path/favicon.svg',
   '/Money-Path/icons/icon-192.png',
   '/Money-Path/icons/icon-512.png',
   '/Money-Path/manifest.json',

@@ -464,7 +464,7 @@ body { margin: 0; font-family: system-ui, sans-serif; background: var(--theme-bg
   inset: 0;
   background: rgba(0, 0, 0, 0.45);
   backdrop-filter: blur(6px);
-  z-index: 100;
+  z-index: var(--dp-z-modal);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -642,7 +642,7 @@ body { margin: 0; font-family: system-ui, sans-serif; background: var(--theme-bg
   inset: 0;
   background: rgba(0, 0, 0, 0.45);
   backdrop-filter: blur(6px);
-  z-index: 100;
+  z-index: var(--dp-z-modal);
   display: flex;
   align-items: center;
   justify-content: center;
