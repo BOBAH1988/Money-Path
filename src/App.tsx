@@ -1,5 +1,5 @@
 import { lazy, Suspense } from 'react';
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { HashRouter, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import Layout from './components/Layout';
 import { ErrorBoundary } from './components/ErrorBoundary';
@@ -17,7 +17,7 @@ export default function App() {
   return (
     <AuthProvider>
       <ToastProvider>
-        <BrowserRouter basename="/Money-Path/">
+        <HashRouter>
           <Suspense fallback={<div className="page">Загрузка…</div>}>
             <Routes>
               <Route element={<ErrorBoundary><Layout /></ErrorBoundary>}>
@@ -80,7 +80,7 @@ export default function App() {
               </Route>
             </Routes>
           </Suspense>
-        </BrowserRouter>
+        </HashRouter>
       </ToastProvider>
     </AuthProvider>
   );
