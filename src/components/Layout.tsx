@@ -1,4 +1,4 @@
-import { useContext, useState, useEffect, useMemo, useRef } from 'react';
+import { useContext, useState, useEffect, useMemo, useRef, useLayoutEffect } from 'react';
 import { NavLink, Outlet, useNavigate, useLocation } from 'react-router-dom';
 import packageJson from '../../package.json';
 import { useBudget } from '../hooks/useBudget';
@@ -48,8 +48,9 @@ export default function Layout() {
   const [installModalOpen, setInstallModalOpen] = useState(false);
   const navRef = useRef<HTMLDivElement>(null);
   const [hiddenIndices, setHiddenIndices] = useState<Set<number>>(new Set());
+  const [measured, setMeasured] = useState(false);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const container = navRef.current;
     if (!container) return;
 
@@ -66,6 +67,7 @@ export default function Layout() {
       });
 
       setHiddenIndices(newHidden);
+      setMeasured(true);
     };
 
     check();
@@ -207,7 +209,11 @@ export default function Layout() {
 
       {/* Нижняя навигация PWA */}
       <nav className="bottom-nav">
-        <div className="bottom-nav-buttons" ref={navRef}>
+        <div
+          className="bottom-nav-buttons"
+          ref={navRef}
+          style={{ visibility: measured ? 'visible' : 'hidden' }}
+        >
           {items.map((item, idx) => (
             <button
               key={item.to}
