@@ -4,19 +4,28 @@ import { PageTitleContext } from '../components/PageTitleContext';
 import { useAuth } from '../context/AuthContext';
 import {
   loadFromFirestore,
+  saveToFirestore,
   COLLECTIONS,
+  ALL_COLLECTIONS,
 } from '../lib/firestore';
 import { loadBudgetPlan } from '../lib/budget';
+import { useToast } from '../ui/Toast';
 
 export default function Import() {
   const { setPageTitle } = useContext(PageTitleContext)!;
   const { user } = useAuth();
   const userId = user?.uid;
+  const { success: toastSuccess, error: toastError } = useToast();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [importFile, setImportFile] = useState<File | null>(null);
+  const [parsedData, setParsedData] = useState<any>(null);
+  const [importError, setImportError] = useState<string | null>(null);
+  const [importing, setImporting] = useState(false);
+  const [importedCollections, setImportedCollections] = useState<Record<string, number>>({});
 
   useEffect(() => {
-    setPageTitle('Импорт / Экспорт');
+    setPageTitle('Импорт / Экспорт данных');
   }, [setPageTitle]);
 
   const handleDownload = useCallback(async () => {
@@ -57,12 +66,15 @@ export default function Import() {
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
+      toastSuccess('Экспорт завершён', 'Данные сохранены в файл JSON');
     } catch (err: any) {
-      setError(err.message || 'Ошибка скачивания данных');
+      const msg = err.message || 'Ошибка скачивания данных';
+      setError(msg);
+      toastError('Ошибка экспорта', msg);
     } finally {
       setLoading(false);
     }
-  }, [userId, user, setLoading, setError]);
+  }, [userId, user, setLoading, setError, toastSuccess, toastError]);
 
   useEffect(() => {
     if (userId) {
@@ -70,13 +82,78 @@ export default function Import() {
     }
   }, [userId, handleDownload]);
 
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0] ?? null;
+    setImportFile(file);
+    setImportError(null);
+    if (!file) {
+      setParsedData(null);
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      try {
+        const data = JSON.parse(String(ev.target?.result));
+        setParsedData(data);
+      } catch (err: any) {
+        setImportError('Не удалось прочитать JSON-файл: ' + (err?.message ?? 'ошибка парсинга'));
+        setParsedData(null);
+      }
+    };
+    reader.onerror = () => {
+      setImportError('Ошибка чтения файла');
+      setParsedData(null);
+    };
+    reader.readAsText(file);
+  };
+
+  const handleImport = async () => {
+    const data = parsedData;
+    if (!data) {
+      setImportError('Нет данных для импорта');
+      return;
+    }
+    if (!userId) {
+      setImportError('Нужно войти в аккаунт');
+      return;
+    }
+    setImporting(true);
+    setImportError(null);
+    const results: Record<string, number> = {};
+    try {
+      for (const collectionName of ALL_COLLECTIONS) {
+        const items = data[collectionName];
+        if (!Array.isArray(items)) continue;
+        await saveToFirestore(collectionName, items, userId);
+        results[collectionName] = items.length;
+      }
+      // бюджет-план отдельным документом
+      if (data.budgetPlan) {
+        await saveToFirestore(COLLECTIONS.budgetPlan, [data.budgetPlan], userId);
+        results[COLLECTIONS.budgetPlan] = 1;
+      }
+      setImportedCollections(results);
+      toastSuccess('Импорт завершён', `Загружено коллекций: ${Object.keys(results).length}`);
+    } catch (err: any) {
+      const msg = err.message || 'Ошибка импорта данных';
+      setImportError(msg);
+      toastError('Ошибка импорта', msg);
+    } finally {
+      setImporting(false);
+    }
+  };
+
+  const preview = parsedData ?? {};
+  const hasPreview = preview && typeof preview === 'object' && Object.keys(preview).length > 0;
+
   return (
     <div className="page page-budget">
       <div className="budget-card">
         <div className="budget-card-body">
           <h1>Импорт / Экспорт данных</h1>
           <p style={{ marginBottom: 20, color: 'var(--theme-text-muted)' }}>
-            Скачайте все ваши данные в файл JSON для передачи аналитику или наставнику.
+            Скачайте все ваши данные в файл JSON для резервной копии или передачи аналитику.
+            Загрузите ранее сохранённый файл, чтобы восстановить данные.
           </p>
 
           {!userId && (
@@ -85,13 +162,13 @@ export default function Import() {
                 Вход в аккаунт необходим
               </div>
               <div style={{ fontSize: 14 }}>
-                Войдите в аккаунт, чтобы скачать свои данные
+                Войдите в аккаунт, чтобы скачать или загрузить свои данные
               </div>
             </div>
           )}
 
           {userId && (
-            <div style={{ display: 'flex', gap: 12, flexDirection: 'column' }}>
+            <div style={{ display: 'flex', gap: 12, flexDirection: 'column', marginBottom: 24 }}>
               <button
                 onClick={handleDownload}
                 disabled={loading}
@@ -118,6 +195,60 @@ export default function Import() {
               <li>План бюджета</li>
             </ul>
           </div>
+
+          {userId && (
+            <div style={{ marginTop: 24, padding: 16, background: 'var(--theme-surface)', borderRadius: 8, border: '1px solid var(--theme-border)' }}>
+              <h3 style={{ margin: '0 0 12px 0', fontSize: 14, color: 'var(--theme-text)' }}>
+                Импорт из файла JSON
+              </h3>
+              <p style={{ fontSize: 13, color: 'var(--theme-text-muted)', marginBottom: 12 }}>
+                Выберите файл экспорта, ранее скачанный из этого приложения. Данные заменят текущие коллекции.
+              </p>
+              <input
+                type="file"
+                accept=".json"
+                onChange={handleFileSelect}
+                disabled={!userId}
+                style={{
+                  marginBottom: 12,
+                  padding: 8,
+                  border: '1px solid var(--theme-border)',
+                  borderRadius: 8,
+                  background: 'var(--theme-input-bg)',
+                  color: 'var(--theme-text)',
+                  fontSize: 13,
+                  width: '100%',
+                }}
+              />
+              {importFile && (
+                <div style={{ fontSize: 13, color: 'var(--theme-text-muted)', marginBottom: 8 }}>
+                  Файл: {importFile.name} ({(importFile.size / 1024).toFixed(1)} КБ)
+                </div>
+              )}
+              {importError && (
+                <div className="auth-error" style={{ marginBottom: 8 }}>{importError}</div>
+              )}
+              {hasPreview && !importError && (
+                <div style={{ fontSize: 13, color: 'var(--theme-text-muted)', marginBottom: 12 }}>
+                  Найдено коллекций:{' '}
+                  {Object.keys(preview).filter((k) => ALL_COLLECTIONS.includes(k) || k === 'budgetPlan').length}
+                </div>
+              )}
+              <button
+                onClick={handleImport}
+                disabled={importing || !hasPreview || !!importError || !userId}
+                className="auth-btn"
+                style={{ width: 'fit-content', padding: '12px 24px' }}
+              >
+                {importing ? 'Импортируем…' : 'Загрузить из файла'}
+              </button>
+              {Object.keys(importedCollections).length > 0 && (
+                <div style={{ marginTop: 10, fontSize: 13, color: 'var(--dp-color-success)' }}>
+                  Импортировано: {Object.entries(importedCollections).map(([c, n]) => `${c}: ${n}`).join(', ')}
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
     </div>
