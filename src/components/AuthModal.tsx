@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { loginSchema, registerSchema, forgotSchema, type LoginFormData, type RegisterFormData, type ForgotFormData } from '../lib/validation';
 import { useToast } from '../ui/Toast';
+import { getAllUsers, type UserStat } from '../lib/firestore';
 
 type Mode = 'login' | 'register' | 'forgot' | 'verify';
 
@@ -316,6 +317,81 @@ export const AccountMenu = ({ onClose, onAnalytics }: { onClose: () => void; onA
 };
 
 export const AnalyticsModal = ({ onClose }: { onClose: () => void }) => {
+  const { isAdmin } = useAuth();
+  const [users, setUsers] = useState<UserStat[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    const load = async () => {
+      if (!isAdmin) {
+        setLoading(false);
+        return;
+      }
+      try {
+        setLoading(true);
+        setError(null);
+        const data = await getAllUsers();
+        if (!cancelled) setUsers(data);
+      } catch (err) {
+        if (!cancelled) setError(err instanceof Error ? err.message : 'Ошибка загрузки статистики');
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    };
+    load();
+    return () => {
+      cancelled = true;
+    };
+  }, [isAdmin]);
+
+  const now = new Date();
+  const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+  const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+
+  const total = users.length;
+  const active = users.filter((u) => {
+    const d = u.lastActive ? new Date(u.lastActive) : null;
+    return Boolean(d && d >= thirtyDaysAgo);
+  }).length;
+  const new30 = users.filter((u) => {
+    const d = u.createdAt ? new Date(u.createdAt) : null;
+    return Boolean(d && d >= thirtyDaysAgo);
+  }).length;
+  const new7 = users.filter((u) => {
+    const d = u.createdAt ? new Date(u.createdAt) : null;
+    return Boolean(d && d >= sevenDaysAgo);
+  }).length;
+
+  if (loading) {
+    return (
+      <div className="auth-overlay" onClick={onClose}>
+        <div className="auth-card" onClick={(e) => e.stopPropagation()}>
+          <button className="auth-close" onClick={onClose} aria-label="Закрыть">
+            ×
+          </button>
+          <h2 className="auth-title">Аналитика</h2>
+          <p>Загрузка статистики...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="auth-overlay" onClick={onClose}>
+        <div className="auth-card" onClick={(e) => e.stopPropagation()}>
+          <button className="auth-close" onClick={onClose} aria-label="Закрыть">
+            ×
+          </button>
+          <h2 className="auth-title">Аналитика</h2>
+          <div className="auth-error">{error}</div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="auth-overlay" onClick={onClose}>
       <div className="auth-card" onClick={(e) => e.stopPropagation()}>
@@ -326,19 +402,19 @@ export const AnalyticsModal = ({ onClose }: { onClose: () => void }) => {
         <div className="analytics-stats">
           <div className="analytics-stat">
             <span className="analytics-label">Всего зарегистрированных пользователей:</span>
-            <span className="analytics-value">—</span>
+            <span className="analytics-value">{total}</span>
           </div>
           <div className="analytics-stat">
             <span className="analytics-label">Активных:</span>
-            <span className="analytics-value">—</span>
+            <span className="analytics-value">{active}</span>
           </div>
           <div className="analytics-stat">
             <span className="analytics-label">Новый за 30 дней:</span>
-            <span className="analytics-value">—</span>
+            <span className="analytics-value">{new30}</span>
           </div>
           <div className="analytics-stat">
             <span className="analytics-label">Новых за 7 дней:</span>
-            <span className="analytics-value">—</span>
+            <span className="analytics-value">{new7}</span>
           </div>
         </div>
       </div>

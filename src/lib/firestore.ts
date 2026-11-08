@@ -3,6 +3,7 @@ import {
   collection,
   doc,
   setDoc,
+  getDoc,
   getDocs,
   deleteDoc,
   query,
@@ -43,6 +44,55 @@ export const COLLECTIONS = {
   income: 'income',
   incomeArchive: 'income_archive',
   budgetPlan: 'budget_plan',
+  users: 'users',
+};
+
+export type UserStat = {
+  uid: string;
+  email: string;
+  createdAt: string;
+  lastActive: string;
+};
+
+/**
+ * Создаёт или обновляет профиль пользователя в коллекции users.
+ * createdAt фиксируется только при первом создании, lastActive обновляется при каждом входе.
+ */
+export const trackUser = async (uid: string, email: string): Promise<void> => {
+  if (!firestoreDb) return;
+  try {
+    const userRef = doc(firestoreDb, 'users', uid);
+    const snap = await getDoc(userRef);
+    const now = new Date().toISOString();
+    if (!snap.exists()) {
+      await setDoc(userRef, { uid, email, createdAt: now, lastActive: now });
+    } else {
+      await setDoc(userRef, { ...snap.data(), email, lastActive: now }, { merge: true });
+    }
+  } catch {
+    // Firestore недоступен — игнорируем
+  }
+};
+
+/**
+ * Возвращает профили всех пользователей (для админ-статистики).
+ */
+export const getAllUsers = async (): Promise<UserStat[]> => {
+  if (!firestoreDb) return [];
+  try {
+    const snapshot = await getDocs(collection(firestoreDb, 'users'));
+    return snapshot.docs.map((docSnap) => {
+      const data = docSnap.data() as Record<string, unknown>;
+      return {
+        uid: docSnap.id,
+        email: String(data.email ?? ''),
+        createdAt: String(data.createdAt ?? ''),
+        lastActive: String(data.lastActive ?? ''),
+      };
+    });
+  } catch {
+    return [];
+  }
 };
 
 export type FirestoreCollection = string;
