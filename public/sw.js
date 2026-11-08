@@ -1,5 +1,5 @@
 // Service Worker для офлайн-работы PWA "Денежный путь".
-const CACHE_NAME = 'denegnyj-put-v13';
+const CACHE_NAME = 'denegnyj-put-v14';
 const ASSETS = [
   '/Money-Path/',
   '/Money-Path/index.html',
