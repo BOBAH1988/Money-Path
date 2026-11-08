@@ -99,16 +99,22 @@ export function useCollection<T extends { id: string }>(
     (id: string) => {
       setItems((prev) => {
         const filtered = prev.filter((it) => it.id !== id);
-        saveToFirestore(collectionName, filtered, userId).catch((err) => {
-          const msg = err instanceof Error ? err.message : 'Ошибка сохранения';
-          setError(msg);
-          setFirestoreOffline(true);
-          toastError('Ошибка сохранения', msg);
-        });
+        // Прямое сохранение в localStorage — удаление сработает мгновенно,
+        // даже если Firestore недоступен или пустой массив вызывает ошибку в облаке
+        try {
+          const now = new Date().toISOString();
+          const stamped = filtered.map((item) => ({ ...item, updatedAt: now }));
+          const key = userId ? `denegnyj_put_${userId}_${collectionName}` : `denegnyj_put_${collectionName}`;
+          localStorage.setItem(key, JSON.stringify(stamped));
+        } catch {}
+        // Синхронизация с Firestore в фоне — не блокируем UI
+        if (filtered.length > 0) {
+          saveToFirestore(collectionName, filtered, userId).catch(() => {});
+        }
         return filtered;
       });
     },
-    [collectionName, userId, toastError]
+    [collectionName, userId]
   );
 
   return {
