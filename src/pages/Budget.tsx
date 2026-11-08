@@ -22,9 +22,10 @@ export default function Budget() {
   );
 
   const totals = useMemo(() => computeBudgetPageTotals(items), [items]);
-  const totalPlanned = totals.totalPlanned;
   const totalAll = totals.totalAll;
+  const totalMonthly = totals.totalMonthly;
   const totalMonthlyPlan = totals.totalMonthlyPlan;
+  const totalPlanned = totals.totalPlanned;
   const totalPlannedPlan = totals.totalPlannedPlan;
 
   const [plannedVisible, setPlannedVisible] = useState(false);
@@ -90,8 +91,8 @@ export default function Budget() {
           title="Ежемесячные расходы"
           items={monthlyItems}
           plannedItems={plannedItems}
-          total={totalAll}
-          totalPlan={totalPlanned}
+          total={totalMonthly}
+          totalPlan={totalMonthlyPlan}
           onUpdate={updateItem}
           onAdd={(group, name, amount, plan) => addItem(group, name, amount, plan)}
           onRemove={removeItem}
