@@ -4,8 +4,10 @@ import './index.css'
 import App from './App.tsx'
 import { syncPendingToFirestore } from './lib/firestore'
 
-// Автоматически удаляем старые регистрации Service Worker, кэш и IndexedDB Firebase
-// при каждой загрузке, чтобы изменения в коде сразу вступали в силу без ручной очистки браузера.
+// Автоматически удаляем старые регистрации Service Worker и кэш
+// при каждой загрузке, чтобы изменения в коде сразу вступали в силу
+// без ручной очистки браузера. IndexedDB Firebase не трогаем —
+// он нужен для хранения сессии авторизации и офлайн-кэша Firestore.
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', async () => {
     try {
@@ -15,18 +17,9 @@ if ('serviceWorker' in navigator) {
         const keys = await caches.keys();
         await Promise.all(keys.map((key) => caches.delete(key)));
       }
-      // Чистим IndexedDB кэш Firebase, чтобы старые данные не возвращались после перезагрузки
-      if ('indexedDB' in window) {
-        const dbNames = await indexedDB.databases?.() ?? [];
-        for (const db of dbNames) {
-          if (db.name && (db.name.includes('firestore') || db.name.includes('firebase'))) {
-            indexedDB.deleteDatabase(db.name);
-          }
-        }
-      }
       if (registrations.length > 0) {
         // eslint-disable-next-line no-console
-        console.log('[PWA] Старые Service Workers, кэш и IndexedDB Firebase очищены');
+        console.log('[PWA] Старые Service Workers и кэш очищены');
       }
     } catch {
       // ignore
