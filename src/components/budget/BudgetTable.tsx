@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import type { BudgetPlanItem, BudgetGroup } from '../../types';
 import { BudgetRow } from './BudgetRow';
 import { format } from './format';
@@ -65,6 +65,14 @@ export const BudgetTable = ({
     setEditingId(null);
   };
 
+  const handleRemove = useCallback(
+    (id: string) => {
+      setEditingId(null);
+      onRemove(id);
+    },
+    [onRemove]
+  );
+
   const regularItems = groupItems.filter((it) => it.type === 'item');
   const subtotalItem = groupItems.find((it) => it.type === 'subtotal');
   const totalItem = groupItems.find((it) => it.type === 'total');
@@ -120,7 +128,7 @@ export const BudgetTable = ({
                   key={item.id}
                   item={item}
                   onUpdate={onUpdate}
-                  onRemove={onRemove}
+                  onRemove={handleRemove}
                   onToggle={onToggle}
                   isPlannedCollapsed={collapsed}
                   isEditing={editingId === item.id}
@@ -180,7 +188,7 @@ export const BudgetTable = ({
                   key={subtotalItem.id}
                   item={subtotalItem}
                   onUpdate={onUpdate}
-                  onRemove={onRemove}
+                  onRemove={handleRemove}
                   onToggle={onToggle}
                   isPlannedCollapsed={collapsed}
                   isEditing={editingId === subtotalItem.id}
@@ -223,7 +231,7 @@ export const BudgetTable = ({
                   key={totalItem.id}
                   item={totalItem}
                   onUpdate={onUpdate}
-                  onRemove={onRemove}
+                  onRemove={handleRemove}
                   isEditing={editingId === totalItem.id}
                   onFinishEdit={finishEdit}
                 />
