@@ -183,28 +183,32 @@ export const AuthModal = ({ onClose }: { onClose: () => void }) => {
                 />
               </div>
             )}
-            <div className="auth-field auth-checkbox-field">
-              <label className="auth-checkbox-label">
-                <input
-                  type="checkbox"
-                  checked={agreeTerms}
-                  onChange={(e) => setAgreeTerms(e.target.checked)}
-                  required
-                />
-                Я ознакомлен с правилами использования и согласен с ними
-              </label>
-            </div>
-            <div className="auth-field auth-checkbox-field">
-              <label className="auth-checkbox-label">
-                <input
-                  type="checkbox"
-                  checked={agreeCookies}
-                  onChange={(e) => setAgreeCookies(e.target.checked)}
-                  required
-                />
-                Я согласен на использование cookie-файлов
-              </label>
-            </div>
+            {mode === 'register' && (
+              <>
+                <div className="auth-field auth-checkbox-field">
+                  <label className="auth-checkbox-label">
+                    <input
+                      type="checkbox"
+                      checked={agreeTerms}
+                      onChange={(e) => setAgreeTerms(e.target.checked)}
+                      required
+                    />
+                    Я ознакомлен с правилами использования и согласен с ними
+                  </label>
+                </div>
+                <div className="auth-field auth-checkbox-field">
+                  <label className="auth-checkbox-label">
+                    <input
+                      type="checkbox"
+                      checked={agreeCookies}
+                      onChange={(e) => setAgreeCookies(e.target.checked)}
+                      required
+                    />
+                    Я согласен на использование cookie-файлов
+                  </label>
+                </div>
+              </>
+            )}
             {mode === 'register' && (
               <div className="auth-field">
                 <label>Подтвердите пароль</label>
