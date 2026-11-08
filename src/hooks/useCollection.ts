@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useToast } from '../ui/Toast';
 import { firestoreDb } from '../lib/firebase';
 import {
+  loadLocalCollection,
   loadFromFirestore,
   saveToFirestore,
   COLLECTIONS,
@@ -29,41 +30,40 @@ export function useCollection<T extends { id: string }>(
 ): UseCollectionReturn<T> {
   const { collectionName, userId } = options;
   const { error: toastError, warning: toastWarning } = useToast();
-  const [items, setItems] = useState<T[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [items, setItems] = useState<T[]>(() => loadLocalCollection<T>(collectionName, userId));
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [firestoreOffline, setFirestoreOffline] = useState(false);
   const isLoadedRef = useRef(false);
   const offlineWarnedRef = useRef(false);
 
+  // Загружаем из localStorage синхронно — сразу показываем данные, без ожидания Firebase
   useEffect(() => {
-    const load = async () => {
-      try {
-        setError(null);
-        const data = await loadFromFirestore<T>(collectionName, userId);
-        setItems(data);
-        if (!firestoreDb) {
+    const localData = loadLocalCollection<T>(collectionName, userId);
+    if (localData.length > 0) {
+      setItems(localData);
+    }
+    setLoading(false);
+    isLoadedRef.current = true;
+
+    // Фоновая синхронизация с Firestore — не блокирует UI
+    if (userId && firestoreDb) {
+      void (async () => {
+        try {
+          const data = await loadFromFirestore<T>(collectionName, userId);
+          if (data.length > 0) {
+            setItems(data);
+          }
+        } catch {
           setFirestoreOffline(true);
           if (!offlineWarnedRef.current) {
             toastWarning('База данных недоступна', 'Данные хранятся локально и синхронизируются при восстановлении связи');
             offlineWarnedRef.current = true;
           }
         }
-      } catch (err) {
-        const msg = err instanceof Error ? err.message : 'Ошибка загрузки данных';
-        setError(msg);
-        setFirestoreOffline(true);
-        if (!offlineWarnedRef.current) {
-          toastWarning('База данных недоступна', 'Данные хранятся локально и синхронизируются при восстановлении связи');
-          offlineWarnedRef.current = true;
-        }
-      } finally {
-        setLoading(false);
-        isLoadedRef.current = true;
-      }
-    };
-    load();
-  }, [collectionName, userId, toastError, toastWarning]);
+      })();
+    }
+  }, [collectionName, userId, toastWarning, offlineWarnedRef]);
 
   useEffect(() => {
     if (!isLoadedRef.current) return;
