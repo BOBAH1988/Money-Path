@@ -159,10 +159,21 @@ export const saveToFirestore = async <T extends { id: string }>(
   if (!firestoreDb) return;
   try {
     const colRef = collection(firestoreDb, colPath(collectionName, userId));
+    // Сохраняем/обновляем существующие документы
     const batch = stamped.map((item) =>
       setDoc(doc(colRef, item.id), { ...item, userId } as Record<string, unknown>)
     );
     await Promise.all(batch);
+    // Удаляем из Firestore документы, которых больше нет в локальном массиве,
+    // иначе при следующей загрузке они восстановятся (строка «возвращается назад»)
+    const currentIds = new Set(stamped.map((item) => item.id));
+    const snapshot = await getDocs(query(colRef, orderBy('id')));
+    const toDelete = snapshot.docs
+      .filter((docSnap) => !currentIds.has(docSnap.id))
+      .map((docSnap) => deleteDoc(docSnap.ref));
+    if (toDelete.length > 0) {
+      await Promise.all(toDelete);
+    }
     // После успешного сохранения новых данных — снимаем флаг сброса
     clearResetPending();
   } catch {
