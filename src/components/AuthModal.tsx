@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { loginSchema, registerSchema, forgotSchema, type LoginFormData, type RegisterFormData, type ForgotFormData } from '../lib/validation';
 import { useToast } from '../ui/Toast';
@@ -18,6 +18,21 @@ export const AuthModal = ({ onClose }: { onClose: () => void }) => {
   const [submitting, setSubmitting] = useState(false);
   const [agreeTerms, setAgreeTerms] = useState(false);
   const [agreeCookies, setAgreeCookies] = useState(false);
+  const previousAuthActive = useRef<HTMLElement | null>(null);
+
+  useEffect(() => {
+    previousAuthActive.current = document.activeElement as HTMLElement;
+    document.body.style.overflow = 'hidden';
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    document.addEventListener('keydown', handler);
+    return () => {
+      document.body.style.overflow = '';
+      document.removeEventListener('keydown', handler);
+      if (previousAuthActive.current) previousAuthActive.current.focus();
+    };
+  }, [onClose]);
 
   const clearMessages = () => {
     setError(null);
@@ -288,8 +303,8 @@ export const AccountMenu = ({ onClose, onAnalytics }: { onClose: () => void; onA
   };
 
   return (
-    <div className="auth-overlay" onClick={onClose}>
-      <div className="auth-card account-menu-card" onClick={(e) => e.stopPropagation()}>
+    <div className="auth-overlay" onClick={onClose} role="dialog" aria-modal="true">
+      <div className="auth-card" onClick={(e) => e.stopPropagation()}>
         <button className="auth-close" onClick={onClose} aria-label="Закрыть">
           ×
         </button>

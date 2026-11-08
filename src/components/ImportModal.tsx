@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
 import {
   loadFromFirestore,
@@ -11,6 +11,22 @@ export const ImportModal = ({ onClose }: { onClose: () => void }) => {
   const userId = user?.uid;
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const importModalRef = useRef<HTMLDivElement | null>(null);
+  const previousImportActive = useRef<HTMLElement | null>(null);
+
+  useEffect(() => {
+    previousImportActive.current = document.activeElement as HTMLElement;
+    document.body.style.overflow = 'hidden';
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    document.addEventListener('keydown', handler);
+    return () => {
+      document.body.style.overflow = '';
+      document.removeEventListener('keydown', handler);
+      if (previousImportActive.current) previousImportActive.current.focus();
+    };
+  }, [onClose]);
 
   const handleDownload = async () => {
     if (!userId) {
@@ -59,7 +75,7 @@ export const ImportModal = ({ onClose }: { onClose: () => void }) => {
   };
 
   return (
-    <div className="auth-overlay" onClick={onClose}>
+    <div className="auth-overlay" onClick={onClose} ref={importModalRef} role="dialog" aria-modal="true">
       <div className="auth-card" onClick={(e) => e.stopPropagation()}>
         <button className="auth-close" onClick={onClose} aria-label="Закрыть">
           ×
