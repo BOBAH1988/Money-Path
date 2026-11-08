@@ -47,6 +47,38 @@ export default function Layout() {
   });
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const [installModalOpen, setInstallModalOpen] = useState(false);
+  const navRef = useRef<HTMLDivElement>(null);
+  const [visibleCount, setVisibleCount] = useState(items.length);
+
+  useEffect(() => {
+    const container = navRef.current;
+    if (!container) return;
+
+    const check = () => {
+      const buttons = Array.from(container.querySelectorAll<HTMLElement>('.bottom-nav-item'));
+      if (buttons.length === 0) {
+        setVisibleCount(0);
+        return;
+      }
+      const containerRect = container.getBoundingClientRect();
+      let count = buttons.length;
+      while (count > 0) {
+        const last = buttons[count - 1];
+        const lastRect = last.getBoundingClientRect();
+        if (lastRect.right <= containerRect.right + 1) break;
+        count--;
+      }
+      setVisibleCount(count);
+    };
+
+    check();
+
+    if (typeof ResizeObserver !== 'undefined') {
+      const ro = new ResizeObserver(check);
+      ro.observe(container);
+      return () => ro.disconnect();
+    }
+  }, []);
 
   const isInstalled = useMemo(
     () => window.matchMedia('(display-mode: standalone)').matches,
@@ -178,49 +210,17 @@ export default function Layout() {
 
       {/* Нижняя навигация PWA */}
       <nav className="bottom-nav">
-        <div className="bottom-nav-buttons">
-          <button
-            className={`bottom-nav-item ${location.pathname === '/' ? 'active' : ''}`}
-            onClick={() => navigate('/')}
-          >
-            <span className="nav-icon">📊</span>
-            <span>Главная</span>
-          </button>
-          <button
-            className={`bottom-nav-item ${location.pathname === '/budget' ? 'active' : ''}`}
-            onClick={() => navigate('/budget')}
-          >
-            <span className="nav-icon">💰</span>
-            <span>Бюджет</span>
-          </button>
-          <button
-            className={`bottom-nav-item ${location.pathname === '/assets' ? 'active' : ''}`}
-            onClick={() => navigate('/assets')}
-          >
-            <span className="nav-icon">📈</span>
-            <span>Активы</span>
-          </button>
-          <button
-            className={`bottom-nav-item ${location.pathname === '/liabilities' ? 'active' : ''}`}
-            onClick={() => navigate('/liabilities')}
-          >
-            <span className="nav-icon">🏦</span>
-            <span>Пассивы</span>
-          </button>
-          <button
-            className={`bottom-nav-item ${location.pathname === '/income' ? 'active' : ''}`}
-            onClick={() => navigate('/income')}
-          >
-            <span className="nav-icon">💵</span>
-            <span>Доходы</span>
-          </button>
-          <button
-            className={`bottom-nav-item ${location.pathname === '/income-archive' ? 'active' : ''}`}
-            onClick={() => navigate('/income-archive')}
-          >
-            <span className="nav-icon">📂</span>
-            <span>Архив</span>
-          </button>
+        <div className="bottom-nav-buttons" ref={navRef}>
+          {items.slice(0, visibleCount).map((item) => (
+            <button
+              key={item.to}
+              className={`bottom-nav-item ${location.pathname === item.to ? 'active' : ''}`}
+              onClick={() => navigate(item.to)}
+            >
+              <span className="nav-icon">{item.icon}</span>
+              <span>{item.label}</span>
+            </button>
+          ))}
         </div>
         <div className="bottom-nav-footer">
           <span className="footer-text">{footerText}</span>
