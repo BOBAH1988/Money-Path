@@ -79,13 +79,11 @@ export const Modal = ({ children, onClose, closeOnOverlayClick = true, className
     };
   }, [handleKeyDown, trapFocus, focusFirstFocusable]);
 
-  const handleOverlayClickStable = useCallback(handleOverlayClick, [onClose, closeOnOverlayClick]);
-
   return createPortal(
     <div
       ref={modalRef}
       className={`modal-overlay ${className}`}
-      onClick={handleOverlayClickStable}
+      onClick={handleOverlayClick}
       role="dialog"
       aria-modal="true"
       style={{ position: 'fixed', inset: 0, zIndex: 999 }}

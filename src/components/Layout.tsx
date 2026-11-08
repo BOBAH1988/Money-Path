@@ -40,10 +40,9 @@ export default function Layout() {
   const [accountMenuOpen, setAccountMenuOpen] = useState(false);
   const [analyticsOpen, setAnalyticsOpen] = useState(false);
   const [importModalOpen, setImportModalOpen] = useState(false);
-  const themeExplicitRef = useRef(false);
+  const themeExplicitRef = useRef(!!localStorage.getItem('denegnyj_put_theme'));
   const [theme, setTheme] = useState<'light' | 'dark'>(() => {
     const saved = localStorage.getItem('denegnyj_put_theme') as 'light' | 'dark' | null;
-    themeExplicitRef.current = !!saved;
     return saved ?? (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
   });
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
