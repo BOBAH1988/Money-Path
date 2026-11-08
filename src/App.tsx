@@ -20,7 +20,7 @@ export default function App() {
         <HashRouter>
           <Suspense fallback={<div className="page">Загрузка…</div>}>
             <Routes>
-              <Route element={<ErrorBoundary><Layout /></ErrorBoundary>}>
+              <Route element={<Layout />}>
                 <Route
                   path="/"
                   element={
