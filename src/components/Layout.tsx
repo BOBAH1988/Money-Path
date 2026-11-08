@@ -2,7 +2,7 @@ import { useContext, useState, useEffect, useMemo, useRef, useLayoutEffect } fro
 import { NavLink, Outlet, useNavigate, useLocation } from 'react-router-dom';
 import packageJson from '../../package.json';
 import { useBudget } from '../hooks/useBudget';
-import { clearCollectionData, cleanupResetPendingFirestore, COLLECTIONS } from '../lib/firestore';
+import { clearCollectionData, cleanupResetPendingFirestore, COLLECTIONS, saveToFirestore } from '../lib/firestore';
 import { AppIcon } from './AppIcon';
 import { AuthModal, AccountButton, AccountMenu, AnalyticsModal } from './AuthModal';
 import { ImportModal } from './ImportModal';
@@ -160,7 +160,13 @@ export default function Layout() {
       clearCollectionData(COLLECTIONS.liabilities, userId);
       clearCollectionData(COLLECTIONS.income, userId);
       clearCollectionData(COLLECTIONS.incomeArchive, userId);
+      // Также чистим Firestore, иначе после перезагрузки loadFromFirestore
+      // подтянет старые данные из облака, так как localStorage уже пуст
       if (userId) {
+        await saveToFirestore(COLLECTIONS.assets, [], userId);
+        await saveToFirestore(COLLECTIONS.liabilities, [], userId);
+        await saveToFirestore(COLLECTIONS.income, [], userId);
+        await saveToFirestore(COLLECTIONS.incomeArchive, [], userId);
         const ok = await cleanupResetPendingFirestore(userId);
         if (!ok) {
           toastError('Ошибка сброса', 'Не удалось полностью очистить данные в облаке');
