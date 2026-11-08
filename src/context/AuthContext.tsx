@@ -9,7 +9,7 @@ import {
   type User,
 } from 'firebase/auth';
 import { auth } from '../lib/firebase';
-import { COLLECTIONS, migrateCollectionToUser } from '../lib/firestore';
+import { COLLECTIONS, migrateCollectionToUser, trackUser } from '../lib/firestore';
 
 import { ADMIN_EMAIL } from './auth-constants';
 
@@ -57,6 +57,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setIsAuthenticated(!!u);
       if (u) {
         await migrateAllToUser(u.uid);
+        await trackUser(u.uid, u.email ?? '');
       }
     });
     return () => unsub();
@@ -73,6 +74,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const credential = await createUserWithEmailAndPassword(auth, email, password);
     try {
       await sendEmailVerification(credential.user);
+    } catch {
+      // ignore
+    }
+    try {
+      await trackUser(credential.user.uid, email);
     } catch {
       // ignore
     }
