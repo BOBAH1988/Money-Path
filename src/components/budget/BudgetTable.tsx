@@ -71,6 +71,14 @@ export const BudgetTable = ({
 
   const collapsed = isPlannedCollapsed ?? false;
 
+  // Итог по запланированным расходам (группа 'planned') для строки «Дополнительные расходы»
+  const plannedTotal = plannedItems
+    ?.filter((it) => it.type === 'item')
+    .reduce((sum, it) => sum + (it.amount ?? 0), 0) ?? 0;
+  const plannedTotalPlan = plannedItems
+    ?.filter((it) => it.type === 'item')
+    .reduce((sum, it) => sum + (it.plan ?? 0), 0) ?? 0;
+
   return (
     <section className="budget-card" id={id}>
       <div className="budget-card-header">
@@ -191,11 +199,11 @@ export const BudgetTable = ({
                     <span className="row-hint">сумма дополнительных расходов</span>
                   </td>
                   <td className="budget-cell budget-cell-amount">
-                    <span className="row-amount">{format(0)}</span>
+                    <span className="row-amount">{format(plannedTotal)}</span>
                     <span className="row-currency">₽</span>
                   </td>
                   <td className="budget-cell budget-cell-plan">
-                    <span className="row-amount">{format(totalPlan ?? 0)}</span>
+                    <span className="row-amount">{format(plannedTotalPlan)}</span>
                     <span className="row-currency">₽</span>
                   </td>
                   <td className="budget-cell budget-cell-actions">
