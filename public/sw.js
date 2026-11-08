@@ -3,16 +3,16 @@
 // Данные хранятся в localStorage (уже реализовано в lib/firestore.ts) и
 // синхронизируются с Firestore при появлении соединения.
 
-const CACHE_NAME = 'denegnyj-put-v4';
+const CACHE_NAME = 'denegnyj-put-v5';
 const ASSETS = [
   '/Money-Path/',
   '/Money-Path/index.html',
   '/Money-Path/src/main.tsx',
   '/Money-Path/src/index.css',
-  '/Money-Path/app-icon-v2.svg',
-  '/Money-Path/icons/icon-180-v2.png',
-  '/Money-Path/icons/icon-192-v2.png',
-  '/Money-Path/icons/icon-512-v2.png',
+  '/Money-Path/app-icon.svg',
+  '/Money-Path/icons/icon-180.png',
+  '/Money-Path/icons/icon-192.png',
+  '/Money-Path/icons/icon-512.png',
   '/Money-Path/manifest.json',
 ];
 
