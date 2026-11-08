@@ -48,7 +48,6 @@ export default function Layout() {
   const [installModalOpen, setInstallModalOpen] = useState(false);
   const navRef = useRef<HTMLDivElement>(null);
   const [hiddenIndices, setHiddenIndices] = useState<Set<number>>(new Set());
-  const [measured, setMeasured] = useState(false);
 
   useLayoutEffect(() => {
     const container = navRef.current;
@@ -59,15 +58,25 @@ export default function Layout() {
       const containerRect = container.getBoundingClientRect();
       const newHidden = new Set<number>();
 
-      buttons.forEach((btn, idx) => {
-        const rect = btn.getBoundingClientRect();
-        if (rect.right > containerRect.right + 1) {
+      // Находим последнюю кнопку, которая целиком помещается в контейнер
+      let lastFullyVisible = buttons.length;
+      for (let i = buttons.length - 1; i >= 0; i--) {
+        const rect = buttons[i].getBoundingClientRect();
+        if (rect.right > containerRect.right + 1 || rect.left < containerRect.left - 1) {
+          lastFullyVisible = i;
+        } else {
+          break;
+        }
+      }
+
+      // Скрываем все кнопки от последней неполностью видимой до конца
+      buttons.forEach((_btn, idx) => {
+        if (idx >= lastFullyVisible) {
           newHidden.add(idx);
         }
       });
 
       setHiddenIndices(newHidden);
-      setMeasured(true);
     };
 
     check();
@@ -223,7 +232,7 @@ export default function Layout() {
 
       {/* Нижняя навигация PWA */}
       <nav className="bottom-nav">
-        <div className="bottom-nav-center" ref={navRef} style={{ visibility: measured ? 'visible' : 'hidden' }}>
+        <div className="bottom-nav-center" ref={navRef}>
           <div className="bottom-nav-buttons">
             {items.map((item, idx) => (
               <button
