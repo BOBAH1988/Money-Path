@@ -99,6 +99,13 @@ export default function Dashboard() {
   const [income, setIncome] = useState<IncomeRow[]>([]);
   const [incomeArchive, setIncomeArchive] = useState<IncomeArchiveRow[]>([]);
 
+  const hasData =
+    assets.length > 0 ||
+    liabilities.length > 0 ||
+    income.length > 0 ||
+    incomeArchive.some((r) => r.months.some((v) => v && v !== 0)) ||
+    totals.totalAll > 0;
+
   useEffect(() => {
     setPageTitle('Главная');
   }, [setPageTitle]);
@@ -249,6 +256,27 @@ export default function Dashboard() {
     );
   }
 
+  if (!hasData) {
+    return (
+      <div className="page page-budget">
+        <div className="budget-card">
+          <div className="budget-card-body">
+            <EmptyState
+              icon="📊"
+              title="Нет данных для визуализации"
+              description="Добавьте доходы в архиве или доходы/расходы, чтобы графики отобразили данные."
+              action={
+                <button className="auth-btn" type="button" onClick={() => navigate('/income')}>
+                  Перейти к доходам
+                </button>
+              }
+            />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="page page-budget">
       <div className="budget-page-header">
@@ -290,7 +318,7 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {showChart ? (
+      {showChart && (
         <>
           <div className="budget-card" style={{ margin: '0 4px' }}>
             <div className="budget-card-header">
@@ -353,17 +381,6 @@ export default function Dashboard() {
             </div>
           </div>
         </>
-      ) : (
-        <EmptyState
-          icon="📊"
-          title="Нет данных для визуализации"
-          description="Добавьте доходы в архиве или доходы/расходы, чтобы графики отобразили данные."
-          action={
-            <button className="auth-btn" type="button" onClick={() => navigate('/income')}>
-              Перейти к доходам
-            </button>
-          }
-        />
       )}
 
       <div className="budget-card" style={{ margin: '0 4px' }}>
