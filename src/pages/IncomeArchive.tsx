@@ -208,7 +208,7 @@ export default function IncomeArchive() {
       </div>
 
       <div className="budget-card">
-        <div className="budget-card-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+        <div className="budget-card-header" style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'nowrap', overflow: 'hidden' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             <h2 className="budget-card-title" style={{ margin: 0 }}>Доходы архив</h2>
             <select
@@ -229,7 +229,7 @@ export default function IncomeArchive() {
               ))}
             </select>
           </div>
-          <div style={{ display: 'flex', gap: 8 }}>
+          <div style={{ display: 'flex', gap: 8, marginLeft: 'auto', flexShrink: 0 }}>
             {editingId && (
               <button className="btn-edit" onClick={finishEdit} aria-label="Сохранить">✓</button>
             )}
