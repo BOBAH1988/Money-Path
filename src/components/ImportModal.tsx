@@ -7,8 +7,8 @@ import {
 import { loadBudgetPlan } from '../lib/budget';
 
 export const ImportModal = ({ onClose }: { onClose: () => void }) => {
-  const { user } = useAuth();
-  const userId = user?.uid;
+  const { user, uid } = useAuth();
+  const userId = uid;
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const importModalRef = useRef<HTMLDivElement | null>(null);

@@ -37,8 +37,8 @@ const migrateArchiveRow = (
 
 export default function Income() {
   const { setPageTitle } = useContext(PageTitleContext)!;
-  const { user } = useAuth();
-  const userId = user?.uid ?? undefined;
+  const { uid } = useAuth();
+  const userId = uid;
 
   useEffect(() => {
     setPageTitle('Доходы');

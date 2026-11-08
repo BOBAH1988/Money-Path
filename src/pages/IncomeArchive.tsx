@@ -39,9 +39,9 @@ const fmt = (v: number) => (v || 0).toLocaleString('ru-RU');
 
 export default function IncomeArchive() {
   const { setPageTitle } = useContext(PageTitleContext)!;
-  const { user } = useAuth();
+  const { uid } = useAuth();
   const { toast: addToast, success: toastSuccess } = useToast();
-  const userId = user?.uid ?? undefined;
+  const userId = uid;
 
   useEffect(() => {
     setPageTitle('Доходы архив');

@@ -14,8 +14,8 @@ import { useToast } from '../ui/Toast';
 
 export default function Import() {
   const { setPageTitle } = useContext(PageTitleContext)!;
-  const { user } = useAuth();
-  const userId = user?.uid;
+  const { user, uid } = useAuth();
+  const userId = uid;
   const { success: toastSuccess, error: toastError } = useToast();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);

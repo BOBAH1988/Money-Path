@@ -15,7 +15,9 @@ import { ADMIN_EMAIL } from './auth-constants';
 
 interface AuthContextValue {
   user: User | null;
+  uid: string | undefined;
   isAuthenticated: boolean;
+  isAuthReady: boolean;
   isAdmin: boolean;
   login: (email: string, password: string) => Promise<void>;
   register: (email: string, password: string) => Promise<void>;
@@ -35,6 +37,9 @@ export const useAuth = () => {
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isAuthReady, setIsAuthReady] = useState(false);
+
+  const uid = user?.uid || localStorage.getItem('denegnyj_put_auth_uid') || undefined;
 
   const isAdmin = isAuthenticated && user ? user.email === ADMIN_EMAIL : false;
 
@@ -49,15 +54,27 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   useEffect(() => {
+    // Быстрая проверка localStorage — не ждём Firebase для отображения данных
+    const savedUid = localStorage.getItem('denegnyj_put_auth_uid');
+    if (savedUid) {
+      setIsAuthenticated(true);
+    }
+    setIsAuthReady(true);
+
     if (!auth) {
       return;
     }
     const unsub = onAuthStateChanged(auth, async (u) => {
       setUser(u);
-      setIsAuthenticated(!!u);
       if (u) {
-        await migrateAllToUser(u.uid);
-        await trackUser(u.uid, u.email ?? '');
+        setIsAuthenticated(true);
+        localStorage.setItem('denegnyj_put_auth_uid', u.uid);
+        // Не ждём Firestore — синхронизируем в фоне
+        migrateAllToUser(u.uid).catch(() => {});
+        trackUser(u.uid, u.email ?? '').catch(() => {});
+      } else {
+        setIsAuthenticated(false);
+        localStorage.removeItem('denegnyj_put_auth_uid');
       }
     });
     return () => unsub();
@@ -104,7 +121,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const value = {
     user,
+    uid,
     isAuthenticated,
+    isAuthReady,
     isAdmin,
     login,
     register,
