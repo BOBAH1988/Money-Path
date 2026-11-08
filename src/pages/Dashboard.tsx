@@ -7,6 +7,7 @@ import { useAuth } from '../context/AuthContext';
 import { loadFromFirestore, COLLECTIONS } from '../lib/firestore';
 import { safeNegate } from '../lib/budget';
 import { EmptyState } from '../ui/EmptyState';
+import { AuthModal } from '../components/AuthModal';
 import { LineChart, BarChart } from '../components/dashboard/Charts';
 import { YearMonthPicker } from '../components/dashboard/YearMonthPicker';
 
@@ -87,6 +88,7 @@ export default function Dashboard() {
   const { setPageTitle } = useContext(PageTitleContext)!;
   const { items } = useBudget();
   const { user } = useAuth();
+  const [authOpen, setAuthOpen] = useState(false);
   const userId = user?.uid;
   const totals = useMemo(() => computeBudgetPageTotals(items), [items]);
 
@@ -230,11 +232,14 @@ export default function Dashboard() {
               icon="👋"
               title="Войдите, чтобы увидеть дашборд"
               description="Авторизуйтесь, чтобы увидеть сводку по доходам, расходам, активам и пассивам."
-              action={
-                <button className="auth-btn" type="button">
-                  Войти
-                </button>
-              }
+               action={
+                 <>
+                   <button className="auth-btn" type="button" onClick={() => setAuthOpen(true)}>
+                     Войти
+                   </button>
+                   {authOpen && <AuthModal onClose={() => setAuthOpen(false)} />}
+                 </>
+               }
             />
           </div>
         </div>
