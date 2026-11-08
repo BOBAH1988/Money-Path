@@ -271,6 +271,18 @@ export default function Layout() {
                 </li>
                <li>
                   <button
+                    className="menu-item menu-reset-btn"
+                   onClick={() => {
+                     setConfirmReset(true);
+                     setMenuOpen(false);
+                   }}
+                 >
+                   <span className="menu-icon">🔄</span>
+                   Сброс на стандартные
+                 </button>
+               </li>
+               <li>
+                  <button
                     className="menu-item menu-install-btn"
                     onClick={async () => {
                       setMenuOpen(false);
