@@ -170,13 +170,6 @@ export const BudgetRow = ({ item, onUpdate, onRemove, onToggle, isPlannedCollaps
             >
               ✎
             </button>
-            <button
-              className="btn-delete"
-              onClick={(e) => { e.stopPropagation(); setConfirmDelete(true); }}
-              aria-label="Удалить строку"
-            >
-              🗑️
-            </button>
           </>
         )}
       </td>
