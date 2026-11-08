@@ -1911,7 +1911,7 @@ body { margin: 0; font-family: system-ui, sans-serif; background: var(--theme-bg
   align-items: center;
   gap: 4px;
   flex-wrap: nowrap;
-  width: 100%;
+  justify-content: center;
 }
 
 .bottom-nav-item.hidden {
