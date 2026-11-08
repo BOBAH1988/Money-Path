@@ -58,10 +58,19 @@ window.addEventListener('online', async () => {
   }
 });
 
-// При загрузке через 404.html fallback (GitHub Pages + HashRouter)
-// путь уже в хеше, роутер прочитает его сам. Восстанавливать в history не нужно.
-if (window.location.hash && window.location.hash.startsWith('#/')) {
+// При загрузке через 404.html fallback (GitHub Pages + BrowserRouter)
+// путь хранится в хеше — восстанавливаем его в URL с базой сайта.
+const hash = window.location.hash;
+const base = (import.meta.env.BASE_URL || '/Money-Path/').replace(/\/+$/, '');
+if (hash) {
+  let route = hash.slice(1); // убрать #
+  if (!route.startsWith('/')) route = '/' + route;
+  window.history.replaceState(null, '', base + route);
   window.location.hash = '';
+}
+// Если открыли index.html напрямую — вести на корень сайта.
+if (!hash && window.location.pathname.endsWith('/index.html')) {
+  window.history.replaceState(null, '', base || '/');
 }
 
 createRoot(document.getElementById('root')!).render(
