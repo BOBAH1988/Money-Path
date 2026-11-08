@@ -1,4 +1,4 @@
-import { useContext, useState, useEffect, useMemo } from 'react';
+import { useContext, useState, useEffect, useMemo, useRef } from 'react';
 import { NavLink, Outlet, useNavigate, useLocation } from 'react-router-dom';
 import packageJson from '../../package.json';
 import { useBudget } from '../hooks/useBudget';
@@ -40,8 +40,10 @@ export default function Layout() {
   const [accountMenuOpen, setAccountMenuOpen] = useState(false);
   const [analyticsOpen, setAnalyticsOpen] = useState(false);
   const [importModalOpen, setImportModalOpen] = useState(false);
+  const themeExplicitRef = useRef(false);
   const [theme, setTheme] = useState<'light' | 'dark'>(() => {
     const saved = localStorage.getItem('denegnyj_put_theme') as 'light' | 'dark' | null;
+    themeExplicitRef.current = !!saved;
     return saved ?? (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
   });
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
@@ -86,8 +88,18 @@ export default function Layout() {
 
   useEffect(() => {
     document.documentElement.classList.toggle('dark', theme === 'dark');
-    localStorage.setItem('denegnyj_put_theme', theme);
+    if (themeExplicitRef.current) {
+      localStorage.setItem('denegnyj_put_theme', theme);
+    }
   }, [theme]);
+
+  useEffect(() => {
+    if (themeExplicitRef.current) return;
+    const media = window.matchMedia('(prefers-color-scheme: dark)');
+    const handler = () => setTheme(media.matches ? 'dark' : 'light');
+    media.addEventListener('change', handler);
+    return () => media.removeEventListener('change', handler);
+  }, []);
 
   const handleConfirmReset = async () => {
     try {
@@ -271,6 +283,7 @@ export default function Layout() {
                   <button
                     className={`menu-item menu-theme-btn ${theme === 'light' ? 'theme-active' : ''}`}
                     onClick={() => {
+                      themeExplicitRef.current = true;
                       setTheme('light');
                       setMenuOpen(false);
                     }}
@@ -281,6 +294,7 @@ export default function Layout() {
                   <button
                     className={`menu-item menu-theme-btn ${theme === 'dark' ? 'theme-active' : ''}`}
                     onClick={() => {
+                      themeExplicitRef.current = true;
                       setTheme('dark');
                       setMenuOpen(false);
                     }}
