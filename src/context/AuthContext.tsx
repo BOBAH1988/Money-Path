@@ -38,8 +38,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isAuthReady, setIsAuthReady] = useState(false);
-
-  const uid = user?.uid || localStorage.getItem('denegnyj_put_auth_uid') || undefined;
+  const [uid, setUid] = useState<string | undefined>(() =>
+    localStorage.getItem('denegnyj_put_auth_uid') || undefined
+  );
 
   const isAdmin = isAuthenticated && user ? user.email === ADMIN_EMAIL : false;
 
@@ -57,6 +58,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     // Быстрая проверка localStorage — не ждём Firebase для отображения данных
     const savedUid = localStorage.getItem('denegnyj_put_auth_uid');
     if (savedUid) {
+      setUid(savedUid);
       setIsAuthenticated(true);
     }
     setIsAuthReady(true);
@@ -67,12 +69,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const unsub = onAuthStateChanged(auth, async (u) => {
       setUser(u);
       if (u) {
+        setUid(u.uid);
         setIsAuthenticated(true);
         localStorage.setItem('denegnyj_put_auth_uid', u.uid);
         // Не ждём Firestore — синхронизируем в фоне
         migrateAllToUser(u.uid).catch(() => {});
         trackUser(u.uid, u.email ?? '').catch(() => {});
       } else {
+        setUid(undefined);
         setIsAuthenticated(false);
         localStorage.removeItem('denegnyj_put_auth_uid');
       }
