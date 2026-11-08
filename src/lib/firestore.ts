@@ -124,17 +124,29 @@ const loadFromLocalStorage = <T extends { id: string }>(
   }
 };
 
+const nowIso = (): string => new Date().toISOString();
+
+const stampItems = <T extends { id: string }>(items: T[]): T[] => {
+  const now = nowIso();
+  return items.map((item) => ({ ...item, updatedAt: now } as T));
+};
+
 const saveToLocalStorage = <T extends { id: string }>(
   collectionName: string,
   items: T[],
   userId?: string
 ): void => {
   try {
-    localStorage.setItem(storageKey(collectionName, userId), JSON.stringify(items));
+    localStorage.setItem(storageKey(collectionName, userId), JSON.stringify(stampItems(items)));
   } catch {
     // ignore quota errors
   }
 };
+
+export const loadLocalCollection = <T extends { id: string }>(
+  collectionName: string,
+  userId?: string
+): T[] => loadFromLocalStorage<T>(collectionName, userId);
 
 export const saveToFirestore = async <T extends { id: string }>(
   collectionName: string,
@@ -142,11 +154,12 @@ export const saveToFirestore = async <T extends { id: string }>(
   userId?: string
 ) => {
   if (!userId) return;
-  saveToLocalStorage(collectionName, items, userId);
+  const stamped = stampItems(items);
+  saveToLocalStorage(collectionName, stamped, userId);
   if (!firestoreDb) return;
   try {
     const colRef = collection(firestoreDb, colPath(collectionName, userId));
-    const batch = items.map((item) =>
+    const batch = stamped.map((item) =>
       setDoc(doc(colRef, item.id), { ...item, userId } as Record<string, unknown>)
     );
     await Promise.all(batch);

@@ -5,6 +5,7 @@ import { useAuth } from '../context/AuthContext';
 import {
   loadFromFirestore,
   saveToFirestore,
+  loadLocalCollection,
   COLLECTIONS,
   ALL_COLLECTIONS,
 } from '../lib/firestore';
@@ -23,6 +24,45 @@ export default function Import() {
   const [importError, setImportError] = useState<string | null>(null);
   const [importing, setImporting] = useState(false);
   const [importedCollections, setImportedCollections] = useState<Record<string, number>>({});
+  const [conflicts, setConflicts] = useState<
+    Record<string, { local: number; imported: number; conflicted: number }>
+  >({});
+  const [importStrategy, setImportStrategy] = useState<'overwrite' | 'keep-local'>('overwrite');
+
+  const collectionLabels: Record<string, string> = {
+    assets: 'Активы',
+    liabilities: 'Пассивы',
+    income: 'Доходы',
+    incomeArchive: 'Доходы архив',
+    budget_plan: 'План бюджета',
+  };
+
+  const computeConflicts = (data: any) => {
+    const result: Record<string, { local: number; imported: number; conflicted: number }> = {};
+    if (!userId) return result;
+    for (const collectionName of ALL_COLLECTIONS) {
+      const imported = data[collectionName];
+      if (!Array.isArray(imported)) continue;
+      const local = loadLocalCollection<any>(collectionName, userId);
+      const localById = new Map(local.map((i) => [i.id, i]));
+      let conflicted = 0;
+      for (const item of imported) {
+        const existing = localById.get(item.id);
+        if (
+          existing &&
+          existing.updatedAt &&
+          item.updatedAt &&
+          new Date(existing.updatedAt).getTime() > new Date(item.updatedAt).getTime()
+        ) {
+          conflicted++;
+        }
+      }
+      if (local.length > 0 || imported.length > 0) {
+        result[collectionName] = { local: local.length, imported: imported.length, conflicted };
+      }
+    }
+    return result;
+  };
 
   useEffect(() => {
     setPageTitle('Импорт / Экспорт данных');
@@ -95,6 +135,8 @@ export default function Import() {
       try {
         const data = JSON.parse(String(ev.target?.result));
         setParsedData(data);
+        setConflicts(computeConflicts(data));
+        setImportStrategy('overwrite');
       } catch (err: any) {
         setImportError('Не удалось прочитать JSON-файл: ' + (err?.message ?? 'ошибка парсинга'));
         setParsedData(null);
@@ -119,6 +161,11 @@ export default function Import() {
     }
     setImporting(true);
     setImportError(null);
+    if (importStrategy === 'keep-local') {
+      setImporting(false);
+      setImportError('Импорт отменён: оставлены локальные данные');
+      return;
+    }
     const results: Record<string, number> = {};
     try {
       for (const collectionName of ALL_COLLECTIONS) {
@@ -232,6 +279,47 @@ export default function Import() {
                 <div style={{ fontSize: 13, color: 'var(--theme-text-muted)', marginBottom: 12 }}>
                   Найдено коллекций:{' '}
                   {Object.keys(preview).filter((k) => ALL_COLLECTIONS.includes(k) || k === 'budgetPlan').length}
+                </div>
+              )}
+              {Object.keys(conflicts).length > 0 && (
+                <div style={{ marginBottom: 12, padding: 10, borderRadius: 8, border: '1px solid var(--dp-color-warning)', background: 'rgba(217, 119, 6, 0.1)' }}>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--dp-color-warning)', marginBottom: 6 }}>
+                    Обнаружены возможные конфликты
+                  </div>
+                  <ul style={{ margin: 0, paddingLeft: 18, fontSize: 12, color: 'var(--theme-text-muted)' }}>
+                    {Object.entries(conflicts).map(([col, c]) => (
+                      <li key={col} style={{ marginBottom: 2 }}>
+                        {collectionLabels[col] || col}: локально {c.local}, в файле {c.imported},{' '}
+                        {c.conflicted > 0 ? (
+                          <span style={{ color: 'var(--dp-color-danger)' }}>конфликтов: {c.conflicted}</span>
+                        ) : (
+                          'без конфликтов'
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                  <div style={{ marginTop: 8 }}>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, cursor: 'pointer', marginRight: 12 }}>
+                      <input
+                        type="radio"
+                        name="importStrategy"
+                        value="overwrite"
+                        checked={importStrategy === 'overwrite'}
+                        onChange={() => setImportStrategy('overwrite')}
+                      />
+                      Заменить локальные данными из файла
+                    </label>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, cursor: 'pointer' }}>
+                      <input
+                        type="radio"
+                        name="importStrategy"
+                        value="keep-local"
+                        checked={importStrategy === 'keep-local'}
+                        onChange={() => setImportStrategy('keep-local')}
+                      />
+                      Оставить локальные данные (импорт отменён)
+                    </label>
+                  </div>
                 </div>
               )}
               <button
