@@ -1585,6 +1585,7 @@ body { margin: 0; font-family: system-ui, sans-serif; background: var(--theme-bg
   display: flex;
   gap: 8px;
   justify-content: center;
+  flex-wrap: wrap;
 }
 
 .menu-theme-btn {
@@ -1598,8 +1599,11 @@ body { margin: 0; font-family: system-ui, sans-serif; background: var(--theme-bg
   color: var(--theme-text);
   cursor: pointer;
   transition: all 0.15s ease;
-  min-width: 90px;
+  min-width: 80px;
+  flex: 1;
+  max-width: 160px;
   justify-content: center;
+  box-sizing: border-box;
 }
 
 .menu-theme-btn:hover {
