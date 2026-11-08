@@ -77,15 +77,7 @@ export function useCollection<T extends { id: string }>(
 
   const removeItem = useCallback(
     (id: string) => {
-      setItems((prev) => {
-        if (prev.length <= 1) {
-          // Вместо удаления последней строки — очищаем её значения
-          return prev.map((it) =>
-            it.id === id ? ({ ...it, name: '' } as T) : it
-          );
-        }
-        return prev.filter((it) => it.id !== id);
-      });
+      setItems((prev) => prev.filter((it) => it.id !== id));
     },
     []
   );
