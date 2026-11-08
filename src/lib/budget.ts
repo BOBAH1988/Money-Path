@@ -37,11 +37,21 @@ const saveBudgetPlanToLocalStorage = (plan: BudgetPlan, userId?: string): void =
 };
 
 export const loadBudgetPlan = async (userId?: string): Promise<BudgetPlan> => {
+  // Локальное хранилище — источник истины для текущей сессии.
+  // Сначала читаем его, чтобы удалённые пользователем строки не восстанавливались
+  // из устаревших данных в Firestore / IndexedDB кэше.
+  const localData = loadBudgetPlanFromLocalStorage(userId);
+
   if (!userId) {
-    return emptyBudgetPlan;
+    return localData;
   }
+
+  if (localData.items.length > 0) {
+    return localData;
+  }
+
   if (!db) {
-    return loadBudgetPlanFromLocalStorage(userId);
+    return localData;
   }
   try {
     const docRef = doc(db, COLLECTIONS.budgetPlan, userId ? `users/${userId}/budget_plan` : 'budget_plan');
@@ -61,12 +71,13 @@ export const loadBudgetPlan = async (userId?: string): Promise<BudgetPlan> => {
   } catch {
     // Firestore недоступен, используем localStorage
   }
-  return loadBudgetPlanFromLocalStorage(userId);
+  return localData;
 };
 
 export const saveBudgetPlan = async (plan: BudgetPlan, userId?: string): Promise<void> => {
-  if (!userId) return;
+  // Сохраняем в локальное хранилище всегда (в т.ч. без авторизации)
   saveBudgetPlanToLocalStorage(plan, userId);
+  if (!userId) return;
   if (!db) return;
   try {
     await setDoc(doc(db, COLLECTIONS.budgetPlan, `users/${userId}/budget_plan`), {

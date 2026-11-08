@@ -153,9 +153,10 @@ export const saveToFirestore = async <T extends { id: string }>(
   items: T[],
   userId?: string
 ) => {
-  if (!userId) return;
   const stamped = stampItems(items);
+  // Сохраняем в локальное хранилище всегда (в т.ч. без авторизации), чтобы данные не пропадали при перезагрузке
   saveToLocalStorage(collectionName, stamped, userId);
+  if (!userId) return;
   if (!firestoreDb) return;
   try {
     const colRef = collection(firestoreDb, colPath(collectionName, userId));
@@ -185,17 +186,15 @@ export const loadFromFirestore = async <T extends { id: string } = { id: string 
   collectionName: string,
   userId?: string
 ): Promise<T[]> => {
-  // Без авторизации — данные недоступны, возвращаем пустой массив
-  if (!userId) {
-    return [];
-  }
-
-  // Локальное хранилище — источник истины для текущей сессии.
-  // Сначала читаем его, чтобы удалённые пользователем строки не восстанавливались
-  // из устаревших данных в Firestore / IndexedDB кэше.
+  // Сначала читаем локальное хранилище (работает с userId или без, для неавторизованных пользователей)
   const localData = loadFromLocalStorage<T>(collectionName, userId);
   if (localData.length > 0) {
     return localData;
+  }
+
+  // Без авторизации и без локальных данных — данные недоступны
+  if (!userId) {
+    return [];
   }
 
   if (!firestoreDb) {
@@ -212,7 +211,13 @@ export const loadFromFirestore = async <T extends { id: string } = { id: string 
       saveToLocalStorage(collectionName, data, userId);
     }
     return data;
-  } catch {
+  } catch (err) {
+    // Firestore недоступен (например, 400 Bad Request) — возвращаем локальные данные,
+    // чтобы не показывать устаревшие данные из IndexedDB кэша
+    const fallback = loadFromLocalStorage<T>(collectionName, userId);
+    if (fallback.length > 0) {
+      return fallback;
+    }
     return [];
   }
 };

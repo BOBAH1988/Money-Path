@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import type { BudgetPlan, BudgetPlanItem, BudgetGroup } from '../types';
+import { firestoreDb } from '../lib/firebase';
 import {
   loadBudgetPlan,
   saveBudgetPlan,
@@ -11,24 +12,33 @@ import { useToast } from '../ui/Toast';
 
 export const useBudget = () => {
   const { user } = useAuth();
-  const { toast: addToast } = useToast();
+  const { toast: addToast, warning: addWarning } = useToast();
   const userId = user?.uid ?? undefined;
   const [plan, setPlan] = useState<BudgetPlan | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, _setError] = useState<string | null>(null);
+  const offlineWarnedRef = useRef(false);
   useEffect(() => {
     const load = async () => {
       try {
         const p = await loadBudgetPlan(userId);
         setPlan(p);
+        if (!firestoreDb && !offlineWarnedRef.current) {
+          addWarning('База данных недоступна', 'Данные хранятся локально и синхронизируются при восстановлении связи');
+          offlineWarnedRef.current = true;
+        }
       } catch (err) {
+        if (!offlineWarnedRef.current) {
+          addWarning('База данных недоступна', 'Данные хранятся локально и синхронизируются при восстановлении связи');
+          offlineWarnedRef.current = true;
+        }
         addToast('error', 'Ошибка загрузки', err instanceof Error ? err.message : 'Не удалось загрузить данные');
       } finally {
         setLoading(false);
       }
     };
     load();
-  }, [userId, addToast]);
+  }, [userId, addToast, addWarning]);
 
   const computed = useMemo(() => {
     if (!plan) return { items: [], updatedAt: '' };
@@ -42,13 +52,17 @@ export const useBudget = () => {
     if (saveTimer.current) clearTimeout(saveTimer.current);
     saveTimer.current = setTimeout(() => {
       saveBudgetPlan(computed, userId).catch((err) => {
+        if (!offlineWarnedRef.current) {
+          addWarning('База данных недоступна', 'Данные сохранены локально и синхронизируются при восстановлении связи');
+          offlineWarnedRef.current = true;
+        }
         addToast('error', 'Ошибка сохранения', err instanceof Error ? err.message : 'Не удалось сохранить данные');
       });
     }, 800);
     return () => {
       if (saveTimer.current) clearTimeout(saveTimer.current);
     };
-  }, [computed, plan, userId, addToast]);
+  }, [computed, plan, userId, addToast, addWarning]);
 
   const persist = useCallback((updated: BudgetPlan) => {
     setPlan(updated);

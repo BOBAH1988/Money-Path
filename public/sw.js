@@ -1,22 +1,12 @@
 // Service Worker для офлайн-работы PWA "Денежный путь".
 // Кэширует оболочку приложения, чтобы оно загружалось без интернета.
-// Данные хранятся в localStorage (уже реализовано в lib/firestore.ts) и
+// Данные хранятся в localStorage (реализовано в lib/firestore.ts) и
 // синхронизируются с Firestore при появлении соединения.
 
-const CACHE_NAME = 'denegnyj-put-v10';
+const CACHE_NAME = 'denegnyj-put-v12';
 const ASSETS = [
   '/Money-Path/',
   '/Money-Path/index.html',
-  '/Money-Path/src/main.tsx',
-  '/Money-Path/src/index.css',
-  '/Money-Path/app-icon-new-16.svg',
-  '/Money-Path/favicon.ico',
-  '/Money-Path/icons/app-icon-new-16-96.png',
-  '/Money-Path/icons/app-icon-new-16-128.png',
-  '/Money-Path/icons/app-icon-new-16-180.png',
-  '/Money-Path/icons/app-icon-new-16-192.png',
-  '/Money-Path/icons/app-icon-new-16-256.png',
-  '/Money-Path/icons/app-icon-new-16-512.png',
   '/Money-Path/manifest.json',
 ];
 
@@ -36,7 +26,7 @@ self.addEventListener('activate', (event) => {
   );
 });
 
-// Стратегия: для навигации — кэш-first с сетевым фолбэком; для остальных — сеть-first с кэш-фолбэком.
+// Стратегия: для навигации — всегда index.html (SPA); для остальных — сеть-first с кэш-фолбэком.
 self.addEventListener('fetch', (event) => {
   const { request } = event;
   const url = new URL(request.url);
@@ -55,13 +45,15 @@ self.addEventListener('fetch', (event) => {
 
   event.respondWith(
     caches.match(request).then((cached) =>
-      fetch(request).then((networkResponse) => {
-        try {
-          const responseClone = networkResponse.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put(request, responseClone));
-        } catch {}
-        return networkResponse;
-      }).catch(() => cached || fetch(request))
+      fetch(request)
+        .then((networkResponse) => {
+          try {
+            const responseClone = networkResponse.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(request, responseClone));
+          } catch {}
+          return networkResponse;
+        })
+        .catch(() => cached || new Response('', { status: 404 }))
     )
   );
 });

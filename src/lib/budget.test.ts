@@ -1,10 +1,45 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { type BudgetPlanItem } from '../types';
 import {
   computeTotals,
   applyComputedFields,
   safeNegate,
+  loadBudgetPlan,
 } from './budget';
+
+const mocks = vi.hoisted(() => ({
+  doc: vi.fn(() => ({})),
+  getDoc: vi.fn(),
+  setDoc: vi.fn(),
+}));
+
+vi.mock('firebase/firestore', () => ({
+  doc: mocks.doc,
+  getDoc: mocks.getDoc,
+  setDoc: mocks.setDoc,
+}));
+
+vi.mock('./firebase', () => ({
+  firestoreDb: {},
+  firebaseError: null,
+}));
+
+const storageKey = (userId: string) => `denegnyj_put_budget_plan_${userId}`;
+
+const item = (id: string, name: string, amount: number): BudgetPlanItem => ({
+  id,
+  name,
+  amount,
+  plan: amount,
+  group: 'monthly',
+  type: 'item',
+});
+
+beforeEach(() => {
+  vi.clearAllMocks();
+  localStorage.clear();
+  mocks.doc.mockReturnValue({} as any);
+});
 
 describe('safeNegate', () => {
   it('negates positive numbers', () => {
@@ -51,5 +86,70 @@ describe('budget lib', () => {
     const applied = applyComputedFields(items);
     expect(applied.items.length).toBe(1);
     expect(applied.items[0].name).toBe('Тест');
+  });
+});
+
+describe('loadBudgetPlan', () => {
+  const userId = 'uid-123';
+
+  it('prioritizes localStorage over Firestore so deleted rows do not reappear', async () => {
+    localStorage.setItem(
+      storageKey(userId),
+      JSON.stringify({ updatedAt: 't1', items: [item('1', 'Актив 1', 100)] })
+    );
+    // В Firestore всё ещё есть удалённая строка '2'
+    mocks.getDoc.mockResolvedValue({
+      exists: () => true,
+      data: () => ({
+        updatedAt: 't0',
+        userId,
+        items: [item('1', 'Актив 1', 100), item('2', 'Актив 2', 200)],
+      }),
+    });
+
+    const plan = await loadBudgetPlan(userId);
+
+    expect(plan.items.length).toBe(1);
+    expect(plan.items[0].id).toBe('1');
+    // Firestore не перезаписал localStorage
+    expect(JSON.parse(localStorage.getItem(storageKey(userId))!).items.length).toBe(1);
+    expect(mocks.getDoc).not.toHaveBeenCalled();
+  });
+
+  it('loads from Firestore when localStorage is empty', async () => {
+    mocks.getDoc.mockResolvedValue({
+      exists: () => true,
+      data: () => ({
+        updatedAt: 't0',
+        userId,
+        items: [item('1', 'Актив 1', 100)],
+      }),
+    });
+
+    const plan = await loadBudgetPlan(userId);
+
+    expect(plan.items.length).toBe(1);
+    expect(plan.items[0].id).toBe('1');
+    expect(JSON.parse(localStorage.getItem(storageKey(userId))!).items.length).toBe(1);
+  });
+
+  it('returns empty plan when both localStorage and Firestore are empty', async () => {
+    mocks.getDoc.mockResolvedValue({ exists: () => false });
+
+    const plan = await loadBudgetPlan(userId);
+
+    expect(plan.items.length).toBe(0);
+  });
+
+  it('returns localStorage-only plan without auth', async () => {
+    localStorage.setItem(
+      'denegnyj_put_budget_plan',
+      JSON.stringify({ updatedAt: 't1', items: [item('1', 'Актив 1', 100)] })
+    );
+
+    const plan = await loadBudgetPlan(undefined);
+
+    expect(plan.items.length).toBe(1);
+    expect(plan.items[0].id).toBe('1');
   });
 });

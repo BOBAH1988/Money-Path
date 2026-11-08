@@ -1,5 +1,5 @@
 import { initializeApp, type FirebaseApp } from 'firebase/app';
-import { getFirestore, type Firestore, enableIndexedDbPersistence } from 'firebase/firestore';
+import { getFirestore, type Firestore } from 'firebase/firestore';
 import { getAuth, type Auth } from 'firebase/auth';
 
 const firebaseConfig = {
@@ -24,11 +24,6 @@ if (!isTestEnv) {
     app = initializeApp(firebaseConfig);
     firestoreDb = getFirestore(app);
     auth = getAuth(app);
-    // Офлайн- persistence: данные доступны без интернета, синхронизируются при возврате связи.
-    enableIndexedDbPersistence(firestoreDb).catch((err) => {
-      // Multiple tabs or already enabled — неcritical.
-      console.warn('[firestore] offline persistence:', err);
-    });
   } catch (err) {
     firebaseError = err instanceof Error ? err : new Error(String(err));
   }

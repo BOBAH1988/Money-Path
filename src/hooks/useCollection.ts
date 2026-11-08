@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useToast } from '../ui/Toast';
+import { firestoreDb } from '../lib/firebase';
 import {
   loadFromFirestore,
   saveToFirestore,
@@ -16,6 +17,7 @@ interface UseCollectionReturn<T extends { id: string }> {
   items: T[];
   loading: boolean;
   error: string | null;
+  firestoreOffline: boolean;
   addItem: (item: Omit<T, 'id'>) => void;
   updateItem: (id: string, patch: Partial<T>) => void;
   removeItem: (id: string) => void;
@@ -25,11 +27,13 @@ export function useCollection<T extends { id: string }>(
   options: UseCollectionOptions
 ): UseCollectionReturn<T> {
   const { collectionName, userId } = options;
-  const { error: toastError } = useToast();
+  const { error: toastError, warning: toastWarning } = useToast();
   const [items, setItems] = useState<T[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [firestoreOffline, setFirestoreOffline] = useState(false);
   const isLoadedRef = useRef(false);
+  const offlineWarnedRef = useRef(false);
 
   useEffect(() => {
     const load = async () => {
@@ -37,26 +41,42 @@ export function useCollection<T extends { id: string }>(
         setError(null);
         const data = await loadFromFirestore<T>(collectionName, userId);
         setItems(data);
+        if (!firestoreDb) {
+          setFirestoreOffline(true);
+          if (!offlineWarnedRef.current) {
+            toastWarning('База данных недоступна', 'Данные хранятся локально и синхронизируются при восстановлении связи');
+            offlineWarnedRef.current = true;
+          }
+        }
       } catch (err) {
         const msg = err instanceof Error ? err.message : 'Ошибка загрузки данных';
         setError(msg);
-        toastError('Ошибка загрузки', msg);
+        setFirestoreOffline(true);
+        if (!offlineWarnedRef.current) {
+          toastWarning('База данных недоступна', 'Данные хранятся локально и синхронизируются при восстановлении связи');
+          offlineWarnedRef.current = true;
+        }
       } finally {
         setLoading(false);
         isLoadedRef.current = true;
       }
     };
     load();
-  }, [collectionName, userId, toastError]);
+  }, [collectionName, userId, toastError, toastWarning]);
 
   useEffect(() => {
     if (!isLoadedRef.current) return;
     saveToFirestore(collectionName, items, userId).catch((err) => {
       const msg = err instanceof Error ? err.message : 'Ошибка сохранения';
       setError(msg);
+      setFirestoreOffline(true);
+      if (!offlineWarnedRef.current) {
+        toastWarning('База данных недоступна', 'Данные сохранены локально и синхронизируются при восстановлении связи');
+        offlineWarnedRef.current = true;
+      }
       toastError('Ошибка сохранения', msg);
     });
-  }, [items, collectionName, userId, toastError]);
+  }, [items, collectionName, userId, toastError, toastWarning]);
 
   const addItem = useCallback(
     (item: Omit<T, 'id'>) => {
@@ -77,7 +97,10 @@ export function useCollection<T extends { id: string }>(
 
   const removeItem = useCallback(
     (id: string) => {
-      setItems((prev) => prev.filter((it) => it.id !== id));
+      setItems((prev) => {
+        const filtered = prev.filter((it) => it.id !== id);
+        return filtered;
+      });
     },
     []
   );
@@ -86,6 +109,7 @@ export function useCollection<T extends { id: string }>(
     items,
     loading,
     error,
+    firestoreOffline,
     addItem,
     updateItem,
     removeItem,
