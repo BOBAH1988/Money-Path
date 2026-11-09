@@ -87,6 +87,48 @@
         <div class="app-loader-text">Загрузка…</div>
       </div>
     </div>
+    <script>
+      (function() {
+        var RECOVERY_KEY = 'denegnyj_put_recovery_v1';
+        function recover() {
+          try {
+            if (sessionStorage.getItem(RECOVERY_KEY)) return;
+            sessionStorage.setItem(RECOVERY_KEY, '1');
+            var tasks = [];
+            if ('serviceWorker' in navigator) {
+              tasks.push(navigator.serviceWorker.getRegistrations().then(function(regs) {
+                return Promise.all(regs.map(function(r) { return r.unregister(); }));
+              }));
+            }
+            if ('caches' in window) {
+              tasks.push(caches.keys().then(function(keys) {
+                return Promise.all(keys.map(function(k) { return caches.delete(k); }));
+              }));
+            }
+            Promise.all(tasks).catch(function() {}).then(function() {
+              var url = new URL(window.location.href);
+              url.searchParams.set('_r', String(Date.now()));
+              window.location.replace(url.toString());
+            });
+          } catch (e) {
+            window.location.reload();
+          }
+        }
+        window.addEventListener('error', function(e) {
+          var msg = String((e && e.message) || '');
+          var src = String((e && e.filename) || '');
+          if (msg.indexOf('Minified React error') !== -1 || msg.indexOf('ChunkLoadError') !== -1 || src.indexOf('/assets/') !== -1) {
+            recover();
+          }
+        });
+        window.addEventListener('unhandledrejection', function(e) {
+          var msg = String((e && e.reason && (e.reason.message || e.reason)) || '');
+          if (msg.indexOf('ChunkLoadError') !== -1 || msg.indexOf('Loading chunk') !== -1 || msg.indexOf('Failed to fetch dynamically imported module') !== -1) {
+            recover();
+          }
+        });
+      })();
+    </script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
