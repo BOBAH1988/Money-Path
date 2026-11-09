@@ -1,15 +1,8 @@
 // Service Worker для офлайн-работы PWA "Денежный путь".
-const CACHE_NAME = 'denegnyj-put-v15';
-const ASSETS = [
-  '/Money-Path/',
-  '/Money-Path/index.html',
-  '/Money-Path/manifest.json',
-];
+const CACHE_NAME = 'denegnyj-put-v16';
 
 self.addEventListener('install', (event) => {
-  event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(ASSETS)).then(() => self.skipWaiting())
-  );
+  self.skipWaiting();
 });
 
 self.addEventListener('activate', (event) => {
@@ -24,29 +17,54 @@ self.addEventListener('fetch', (event) => {
   const { request } = event;
   const url = new URL(request.url);
 
+  if (request.method !== 'GET') return;
+  if (url.origin !== self.location.origin) return;
   if (url.hostname.includes('firebaseio.com') || url.hostname.includes('googleapis.com')) {
     return;
   }
 
-  // Для навигаций — сеть primero, кэш как фолбэк (SPA fallback).
+  // Навигация (HTML) — сеть primero, чтобы PWA не залипал на старом index.html/чанках.
   if (request.mode === 'navigate') {
     event.respondWith(
-      fetch(request).catch(() => caches.match('/Money-Path/index.html'))
+      fetch(request)
+        .then((response) => {
+          const copy = response.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put('/Money-Path/index.html', copy)).catch(() => {});
+          return response;
+        })
+        .catch(() => caches.match('/Money-Path/index.html'))
     );
     return;
   }
 
-  // Для остальных ресурсов — кэш primero с сетевым обновлением.
+  // JS/CSS/worker — сеть primero, кэш как фолбэк (избегаем несовместимых старых чанков).
+  if (request.destination === 'script' || request.destination === 'style' || request.destination === 'worker') {
+    event.respondWith(
+      fetch(request)
+        .then((response) => {
+          if (response && response.ok) {
+            const copy = response.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(request, copy)).catch(() => {});
+          }
+          return response;
+        })
+        .catch(() => caches.match(request))
+    );
+    return;
+  }
+
+  // Остальные ассеты — кэш primero с обновлением в фоне.
   event.respondWith(
     caches.match(request).then((cached) =>
-      fetch(request).then((networkResponse) => {
-        if (!networkResponse.ok) return cached || networkResponse;
-        try {
-          const clone = networkResponse.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
-        } catch {}
-        return networkResponse;
-      }).catch(() => cached)
+      fetch(request)
+        .then((networkResponse) => {
+          if (networkResponse && networkResponse.ok) {
+            const copy = networkResponse.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(request, copy)).catch(() => {});
+          }
+          return networkResponse || cached;
+        })
+        .catch(() => cached)
     )
   );
 });
