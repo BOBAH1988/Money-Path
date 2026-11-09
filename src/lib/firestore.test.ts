@@ -4,11 +4,15 @@ const mocks = vi.hoisted(() => ({
   setDoc: vi.fn(),
   deleteDoc: vi.fn(),
   getDocs: vi.fn(),
+  getDocsFromCache: vi.fn(async () => { throw new Error('cache miss'); }),
+  getDocsFromServer: vi.fn(),
   query: vi.fn(),
   orderBy: vi.fn(() => {}),
-  collection: vi.fn(() => {}),
-  doc: vi.fn(() => {}),
+  collection: vi.fn(() => ({ __col: true })),
+  doc: vi.fn(() => ({ __doc: true })),
   getDoc: vi.fn(),
+  getDocFromCache: vi.fn(async () => { throw new Error('cache miss'); }),
+  getDocFromServer: vi.fn(),
 }));
 
 vi.mock('firebase/firestore', () => ({
@@ -17,9 +21,13 @@ vi.mock('firebase/firestore', () => ({
   setDoc: mocks.setDoc,
   deleteDoc: mocks.deleteDoc,
   getDocs: mocks.getDocs,
+  getDocsFromCache: mocks.getDocsFromCache,
+  getDocsFromServer: mocks.getDocsFromServer,
   query: mocks.query,
   orderBy: mocks.orderBy,
   getDoc: mocks.getDoc,
+  getDocFromCache: mocks.getDocFromCache,
+  getDocFromServer: mocks.getDocFromServer,
 }));
 
 vi.mock('./firebase', () => ({
@@ -45,7 +53,7 @@ describe('saveToFirestore', () => {
       { id: '1', name: 'Item 1', amount: 100 },
       { id: '2', name: 'Item 2', amount: 200 },
     ];
-    mocks.getDocs.mockResolvedValue({ docs: [] });
+    mocks.getDocsFromServer.mockResolvedValue({ docs: [] });
 
     await saveToFirestore(collectionName, items, userId);
 
@@ -112,7 +120,7 @@ describe('loadFromFirestore', () => {
   });
 
   it('returns documents from Firestore as records with id', async () => {
-    mocks.getDocs.mockResolvedValue({
+    mocks.getDocsFromServer.mockResolvedValue({
       docs: [
         { id: '1', data: () => ({ id: '1', name: 'Item 1', amount: 100 }) },
         { id: '2', data: () => ({ id: '2', name: 'Item 2', amount: 200 }) },
@@ -128,7 +136,7 @@ describe('loadFromFirestore', () => {
   });
 
   it('returns empty array when Firestore snapshot has no docs', async () => {
-    mocks.getDocs.mockResolvedValue({ docs: [] });
+    mocks.getDocsFromServer.mockResolvedValue({ docs: [] });
 
     const data = await loadFromFirestore(collectionName, userId);
 
@@ -144,10 +152,14 @@ describe('loadBudgetPlan', () => {
     mocks.collection.mockReturnValue({} as any);
     mocks.doc.mockReturnValue({} as any);
     mocks.query.mockReturnValue({} as any);
+    mocks.getDocsFromCache.mockRejectedValue(new Error('cache miss'));
+    mocks.getDocsFromServer.mockResolvedValue({ docs: [] });
+    mocks.getDocFromCache.mockRejectedValue(new Error('cache miss'));
+    mocks.getDocFromServer.mockResolvedValue({ exists: () => false });
   });
 
   it('returns plan items from Firestore', async () => {
-    mocks.getDoc.mockResolvedValue({
+    mocks.getDocFromServer.mockResolvedValue({
       exists: () => true,
       data: () => ({ items: [{ id: '1', name: 'Test', amount: 100, plan: 50, group: 'monthly', type: 'item' }], updatedAt: '2026-01-01T00:00:00.000Z' }),
     });
@@ -160,7 +172,7 @@ describe('loadBudgetPlan', () => {
   });
 
   it('returns empty plan when document does not exist', async () => {
-    mocks.getDoc.mockResolvedValue({ exists: () => false });
+    mocks.getDocFromServer.mockResolvedValue({ exists: () => false });
 
     const plan = await loadBudgetPlan(userId);
 

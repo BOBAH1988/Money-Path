@@ -52,19 +52,20 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setIsAuthReady(true);
       return;
     }
-    const unsub = onAuthStateChanged(auth, async (u) => {
+    const unsub = onAuthStateChanged(auth, (u) => {
       setUser(u);
       if (u) {
         setUid(u.uid);
         setIsAuthenticated(true);
-        // При входе в аккаунт — сначала синхронизируем локальные данные в Firestore
-        // (используем pending localStorage), чтобы данные появлялись с первого входа.
-        try {
-          await syncPendingToFirestore();
-          await trackUser(u.uid, u.email ?? '');
-        } catch {
-          // ignore
-        }
+        // Синхронизация не должна блокировать первый рендер приложения.
+        void (async () => {
+          try {
+            await syncPendingToFirestore();
+            await trackUser(u.uid, u.email ?? '');
+          } catch {
+            // ignore
+          }
+        })();
       } else {
         setUid(undefined);
         setIsAuthenticated(false);
