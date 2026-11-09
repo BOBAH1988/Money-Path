@@ -60,7 +60,14 @@
 }
 
 @media (max-width: 720px) {
-  .page-budget { padding: 4px; padding-bottom: 90px; }
+  .page-budget { padding: 4px 8px; padding-bottom: 90px; }
+  .budget-summary {
+    flex-direction: column;
+  }
+  .summary-item {
+    flex: none;
+    width: 100%;
+  }
 }
 
 .budget-card {
@@ -305,11 +312,13 @@
   display: flex;
   gap: 8px;
   margin: 8px 0 16px;
+  width: 100%;
   animation: fadeIn 0.5s ease;
+  flex-wrap: wrap;
 }
 
 .summary-item {
-  flex: 1;
+  flex: 1 1 180px;
   background: var(--theme-card);
   border: 1px solid var(--theme-border);
   border-radius: 14px;
