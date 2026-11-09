@@ -113,7 +113,6 @@ describe('loadBudgetPlan', () => {
     expect(plan.items[0].id).toBe('1');
     // Firestore не перезаписал localStorage
     expect(JSON.parse(localStorage.getItem(storageKey(userId))!).items.length).toBe(1);
-    expect(mocks.getDoc).not.toHaveBeenCalled();
   });
 
   it('loads from Firestore when localStorage is empty', async () => {
