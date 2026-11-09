@@ -211,11 +211,9 @@ export const BudgetTable = ({
                   </td>
                   <td className="budget-cell budget-cell-amount">
                     <span className="row-amount">{format(plannedTotal)}</span>
-                    <span className="row-currency">₽</span>
                   </td>
                   <td className="budget-cell budget-cell-plan">
                     <span className="row-amount">{format(plannedTotalPlan)}</span>
-                    <span className="row-currency">₽</span>
                   </td>
                   <td className="budget-cell budget-cell-actions">
                     <button
