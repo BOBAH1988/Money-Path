@@ -254,13 +254,36 @@ export const syncPendingToFirestore = async (): Promise<void> => {
     const matched = ALL_COLLECTIONS.find((c) => rest.endsWith(`_${c}`));
     if (!matched) continue;
     const userId = rest.slice(0, rest.length - matched.length - 1);
-    if (!userId || seen.has(userId)) continue;
-    seen.add(userId);
+    if (!userId) continue;
+    const seenKey = `${userId}:${matched}`;
+    if (seen.has(seenKey)) continue;
     try {
-      const items = JSON.parse(localStorage.getItem(key) ?? '[]') as { id: string }[];
+      const raw = localStorage.getItem(key);
+      if (!raw) continue;
+      const parsed = JSON.parse(raw) as unknown;
+
+      if (matched === COLLECTIONS.budgetPlan) {
+        const plan = Array.isArray(parsed)
+          ? { items: parsed, updatedAt: '' }
+          : parsed && typeof parsed === 'object' && Array.isArray((parsed as { items?: unknown }).items)
+            ? { items: (parsed as { items: unknown[] }).items, updatedAt: String((parsed as { updatedAt?: unknown }).updatedAt ?? '') }
+            : null;
+        if (!plan || plan.items.length === 0) continue;
+        await saveBudgetPlan(userId, plan.items, plan.updatedAt || new Date().toISOString());
+        localStorage.removeItem(key);
+        seen.add(seenKey);
+        continue;
+      }
+
+      const items = Array.isArray(parsed)
+        ? (parsed as { id: string }[])
+        : parsed && typeof parsed === 'object' && Array.isArray((parsed as { items?: unknown }).items)
+          ? ((parsed as { items: { id: string }[] }).items)
+          : [];
       if (items.length === 0) continue;
       await saveToFirestore(matched, items, userId);
       localStorage.removeItem(key);
+      seen.add(seenKey);
     } catch (err) {
       console.error(`[firestore] syncPendingToFirestore(${matched}) ошибка:`, err);
     }
