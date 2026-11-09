@@ -31,6 +31,7 @@ export function useData<T extends { id: string }>(options: UseDataOptions): UseD
   const [error, setError] = useState<string | null>(null);
   const [loadedFor, setLoadedFor] = useState<string | null>(null);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const dirtyRef = useRef(false);
 
   useEffect(() => {
     if (!isAuthReady) {
@@ -48,13 +49,14 @@ export function useData<T extends { id: string }>(options: UseDataOptions): UseD
     let cancelled = false;
     setIsLoading(true);
     setError(null);
+    dirtyRef.current = false;
     void (async () => {
       try {
         const data = await loadFromFirestore<T>(collectionName!, userId, (fresh) => {
-          if (!cancelled) setItems(fresh);
+          if (!cancelled && !dirtyRef.current) setItems(fresh);
         });
         if (!cancelled) {
-          setItems(data);
+          if (!dirtyRef.current) setItems(data);
           setLoadedFor(`${userId}:${collectionName}`);
         }
       } catch (err) {
@@ -90,6 +92,7 @@ export function useData<T extends { id: string }>(options: UseDataOptions): UseD
 
   const addItem = useCallback(
     (item: Omit<T, 'id'>) => {
+      dirtyRef.current = true;
       const newItem: T = { ...item, id: crypto.randomUUID() } as T;
       setItems((prev) => [...prev, newItem]);
     },
@@ -98,6 +101,7 @@ export function useData<T extends { id: string }>(options: UseDataOptions): UseD
 
   const updateItem = useCallback(
     (id: string, patch: Partial<T>) => {
+      dirtyRef.current = true;
       setItems((prev) => prev.map((it) => (it.id === id ? { ...it, ...patch } : it)));
     },
     [],
@@ -105,6 +109,7 @@ export function useData<T extends { id: string }>(options: UseDataOptions): UseD
 
   const removeItem = useCallback(
     (id: string) => {
+      dirtyRef.current = true;
       setItems((prev) => prev.filter((it) => it.id !== id));
       void (async () => {
         try {

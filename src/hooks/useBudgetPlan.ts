@@ -28,6 +28,7 @@ export function useBudgetPlan(): UseBudgetPlanReturn {
   const [error, setError] = useState<string | null>(null);
   const [loadedFor, setLoadedFor] = useState<string | null>(null);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const dirtyRef = useRef(false);
   const userId = uid;
 
   useEffect(() => {
@@ -46,13 +47,14 @@ export function useBudgetPlan(): UseBudgetPlanReturn {
     let cancelled = false;
     setIsLoading(true);
     setError(null);
+    dirtyRef.current = false;
     void (async () => {
       try {
         const data = await loadBudgetPlan(userId, (fresh) => {
-          if (!cancelled) setPlan({ items: (fresh.items ?? []) as BudgetPlanItem[], updatedAt: fresh.updatedAt ?? '' });
+          if (!cancelled && !dirtyRef.current) setPlan({ items: (fresh.items ?? []) as BudgetPlanItem[], updatedAt: fresh.updatedAt ?? '' });
         });
         if (!cancelled) {
-          setPlan({ items: (data.items ?? []) as BudgetPlanItem[], updatedAt: data.updatedAt ?? '' });
+          if (!dirtyRef.current) setPlan({ items: (data.items ?? []) as BudgetPlanItem[], updatedAt: data.updatedAt ?? '' });
           setLoadedFor(userId);
         }
       } catch (err) {
@@ -87,6 +89,7 @@ export function useBudgetPlan(): UseBudgetPlanReturn {
   }, [plan, isAuthReady, userId, toastError]);
 
   const addItem = useCallback((item: Omit<BudgetPlanItem, 'id'> | BudgetPlanItem) => {
+    dirtyRef.current = true;
     const newItem = ('id' in item && item.id) ? (item as BudgetPlanItem) : { ...item, id: crypto.randomUUID() } as BudgetPlanItem;
     setPlan((prev) => {
       const nextItems = prev?.items ? [...prev.items, newItem] : [newItem];
@@ -95,6 +98,7 @@ export function useBudgetPlan(): UseBudgetPlanReturn {
   }, []);
 
   const updateItem = useCallback((id: string, patch: Partial<BudgetPlanItem>) => {
+    dirtyRef.current = true;
     setPlan((prev) => {
       if (!prev) return prev;
       const nextItems = prev.items.map((it) => (it.id === id ? { ...it, ...patch } : it));
@@ -103,6 +107,7 @@ export function useBudgetPlan(): UseBudgetPlanReturn {
   }, []);
 
   const removeItem = useCallback((id: string) => {
+    dirtyRef.current = true;
     setPlan((prev) => {
       if (!prev) return prev;
       return { items: prev.items.filter((it) => it.id !== id), updatedAt: new Date().toISOString() };
@@ -119,6 +124,7 @@ export function useBudgetPlan(): UseBudgetPlanReturn {
   const reset = useCallback(async () => {
     try {
       const def = await resetBudgetPlan(userId);
+      dirtyRef.current = false;
       setPlan({ items: (def.items ?? []) as BudgetPlanItem[], updatedAt: def.updatedAt ?? new Date().toISOString() });
       toastSuccess('Данные очищены');
     } catch (err) {
