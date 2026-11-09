@@ -8,7 +8,6 @@ import { useAuth } from '../context/AuthContext';
 import { loadFromFirestore, COLLECTIONS } from '../lib/firestore';
 import { EmptyState } from '../ui/EmptyState';
 import { AuthModal } from '../components/AuthModal';
-import { PageLoader } from '../components/PageLoader';
 import { LineChart, BarChart } from '../components/dashboard/Charts';
 import { YearMonthPicker } from '../components/dashboard/YearMonthPicker';
 
@@ -243,10 +242,6 @@ export default function Dashboard() {
 
   const showChart = incomeChartData.some((v) => v !== 0) || archiveSummary.income > 0;
 
-  if (!isAuthReady || isLoading) {
-    return <PageLoader text="Загрузка данных…" fullScreen />;
-  }
-
   if (!userId) {
     return (
       <div className="page page-budget">
@@ -265,6 +260,18 @@ export default function Dashboard() {
                  </>
                }
             />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (isLoading) {
+    return (
+      <div className="page page-budget">
+        <div className="budget-card">
+          <div className="budget-card-body" style={{ padding: 40, textAlign: 'center', color: 'var(--theme-text-muted)' }}>
+            Загрузка данных…
           </div>
         </div>
       </div>
