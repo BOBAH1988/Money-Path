@@ -9,6 +9,7 @@ import { ConfirmDialog } from '../ui/ConfirmDialog';
 import { PageTitleProvider, PageTitleContext } from './PageTitleContext';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../ui/Toast';
+import { PageLoader } from './PageLoader';
 
 const pkgVersion = packageJson.version;
 const currentYear = new Date().getFullYear();
@@ -99,13 +100,17 @@ export default function Layout() {
     () => /Macintosh|MacIntel|Mac_PowerPC|Mac 68K/.test(navigator.userAgent),
     []
   );
-  const { reset } = useBudgetPlan();
+  const { reset, loading: budgetLoading } = useBudgetPlan();
   const { error: toastError, success: toastSuccess } = useToast();
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, isAuthReady } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const ctx = useContext(PageTitleContext);
   const pageTitle = ctx?.pageTitle ?? '';
+
+  if (!isAuthReady || (isAuthenticated && budgetLoading)) {
+    return <PageLoader text="Загрузка данных" fullScreen />;
+  }
 
   useEffect(() => {
     const clearFlag = sessionStorage.getItem('denegnyj_clear_cache');
