@@ -1,12 +1,9 @@
 import type { BudgetPlan, BudgetPlanItem, BudgetGroup } from '../types';
 import { firestoreDb as db } from './firebase';
-import { COLLECTIONS, loadLocalBudgetPlan, saveLocalBudgetPlan } from './dataStore';
+import { COLLECTIONS } from './dataStore';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 
 const now = () => new Date().toISOString();
-
-export const BUDGET_STORAGE_KEY = (userId?: string) =>
-  userId ? `denegnyj_put_budget_plan_${userId}` : 'denegnyj_put_budget_plan';
 
 const emptyBudgetPlan: BudgetPlan = {
   updatedAt: now(),
@@ -23,30 +20,14 @@ const migrateItems = (items: unknown[]): BudgetPlanItem[] =>
     } as BudgetPlanItem;
   });
 
-export const loadBudgetPlanFromLocalStorage = (userId?: string): BudgetPlan => {
-  const local = loadLocalBudgetPlan(userId);
-  if (!Array.isArray(local.items)) return emptyBudgetPlan;
-  return { updatedAt: local.updatedAt || now(), items: migrateItems(local.items) };
-};
-
-const saveBudgetPlanToLocalStorage = (plan: BudgetPlan, userId?: string): void => {
-  saveLocalBudgetPlan(plan.items, plan.updatedAt || now(), userId);
-  try {
-    localStorage.setItem(BUDGET_STORAGE_KEY(userId), JSON.stringify(plan));
-  } catch {
-    // ignore quota errors
-  }
-};
-
 const budgetDocRef = (userId: string) => doc(db!, `users/${userId}/${COLLECTIONS.budgetPlan}`, 'budget_plan');
 const budgetDocRefLegacy = (userId: string) => doc(db!, COLLECTIONS.budgetPlan, `users/${userId}/budget_plan`);
 
+/* Данные бюджета хранятся только на сервере (Firestore). Локальное хранилище
+   больше не используется, чтобы план был одинаковым на всех устройствах после входа
+   под одним аккаунтом. */
 export const loadBudgetPlan = async (userId?: string): Promise<BudgetPlan> => {
-  const localData = loadBudgetPlanFromLocalStorage(userId);
-
-  if (!userId || !db) {
-    return localData;
-  }
+  if (!userId || !db) return emptyBudgetPlan;
 
   try {
     const read = async (ref: ReturnType<typeof doc>) => {
@@ -56,22 +37,14 @@ export const loadBudgetPlan = async (userId?: string): Promise<BudgetPlan> => {
       if (!parsed || !Array.isArray(parsed.items)) return null;
       return { updatedAt: parsed.updatedAt || now(), items: migrateItems(parsed.items) } as BudgetPlan;
     };
-    const remote = (await read(budgetDocRef(userId))) ?? (await read(budgetDocRefLegacy(userId)));
-    if (remote) {
-      // local-first: если локально есть данные (в т.ч. офлайн-правки), не затирать их remote
-      if (localData.items.length > 0) return localData;
-      saveBudgetPlanToLocalStorage(remote, userId);
-      return remote;
-    }
+    return (await read(budgetDocRef(userId))) ?? (await read(budgetDocRefLegacy(userId))) ?? emptyBudgetPlan;
   } catch {
-    // Firestore недоступен, используем localStorage
+    return emptyBudgetPlan;
   }
-  return localData;
 };
 
 export const saveBudgetPlan = async (plan: BudgetPlan, userId?: string): Promise<void> => {
   const normalized: BudgetPlan = { updatedAt: plan.updatedAt || now(), items: migrateItems(plan.items ?? []) };
-  saveBudgetPlanToLocalStorage(normalized, userId);
   if (!userId || !db) return;
   try {
     await setDoc(budgetDocRef(userId), {
@@ -79,19 +52,12 @@ export const saveBudgetPlan = async (plan: BudgetPlan, userId?: string): Promise
       userId,
     });
   } catch {
-    // ignore quota errors
+    // ignore
   }
 };
 
 export const resetBudgetPlan = async (_empty = false, userId?: string): Promise<BudgetPlan> => {
-  try {
-    localStorage.removeItem(BUDGET_STORAGE_KEY(userId));
-    localStorage.removeItem(BUDGET_STORAGE_KEY(undefined));
-  } catch {
-    // ignore
-  }
   const reset = { updatedAt: now(), items: [] as BudgetPlanItem[] };
-  saveBudgetPlanToLocalStorage(reset, userId);
   if (userId && db) {
     try {
       await setDoc(budgetDocRef(userId), { ...reset, userId });

@@ -57,7 +57,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         void (async () => {
           try {
             const { syncPendingToFirestore, trackUser } = await import('../lib/firestore');
-            await syncPendingToFirestore(u.uid);
+            await syncPendingToFirestore();
             await trackUser(u.uid, u.email ?? '');
           } catch {
             // ignore

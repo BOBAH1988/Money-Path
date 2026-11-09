@@ -4,8 +4,7 @@ import { useToast } from '../ui/Toast';
 import { ConfirmDialog } from '../ui/ConfirmDialog';
 import { exportBackup, restoreBackup, backupFileName, type BackupArchive, type RestoreReport } from '../lib/backup';
 import { ALL_COLLECTIONS, type FirestoreCollection } from '../lib/dataStore';
-import { saveToFirestore } from '../lib/firestore';
-import { saveBudgetPlan } from '../lib/budget';
+
 
 function formatDate(iso: string): string {
   try {
@@ -42,7 +41,6 @@ export default function Import() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [creating, setCreating] = useState(false);
   const [restoring, setRestoring] = useState(false);
-  const [localRestoring, setLocalRestoring] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [pendingArchive, setPendingArchive] = useState<BackupArchive | null>(null);
   const [clearBeforeRestore, setClearBeforeRestore] = useState(false);
@@ -98,12 +96,10 @@ export default function Import() {
       } else {
         if (clearBeforeRestore) {
           for (const col of ALL_COLLECTIONS as FirestoreCollection[]) localStorage.removeItem(`denegnyj_put_${col}`);
-          localStorage.removeItem('denegnyj_put_budget_plan');
         }
         for (const [col, items] of Object.entries(pendingArchive.collections)) {
           if (items && items.length) localStorage.setItem(`denegnyj_put_${col}`, JSON.stringify(items));
         }
-        if (pendingArchive.budgetPlan?.items?.length) localStorage.setItem('denegnyj_put_budget_plan', JSON.stringify(pendingArchive.budgetPlan));
         toastSuccess('Данные восстановлены', 'Обновите страницу, чтобы увидеть изменения.');
       }
       setRestored(true);
@@ -113,33 +109,6 @@ export default function Import() {
       setRestoring(false);
       setPendingArchive(null);
       setClearBeforeRestore(false);
-    }
-  };
-
-  const handleRestoreLocal = async () => {
-    if (!uid) return;
-    setLocalRestoring(true);
-    try {
-      const collections = {} as BackupArchive['collections'];
-      for (const col of ALL_COLLECTIONS as FirestoreCollection[]) {
-        try { collections[col] = JSON.parse(localStorage.getItem(`denegnyj_put_${col}`) || '[]'); } catch { collections[col] = []; }
-      }
-      let budgetPlan = { items: [] as unknown[], updatedAt: new Date().toISOString() };
-      try { 
-        const { loadLocalBudgetPlan } = await import('../lib/dataStore');
-        const localBudget = loadLocalBudgetPlan(uid);
-        budgetPlan = { items: localBudget.items, updatedAt: localBudget.updatedAt || new Date().toISOString() };
-      } catch {}
-      for (const [col, items] of Object.entries(collections)) {
-        if (Array.isArray(items) && items.length) await saveToFirestore(col, items as { id: string }[], uid);
-      }
-      if (Array.isArray(budgetPlan.items)) await saveBudgetPlan(budgetPlan as any, uid);
-      toastSuccess('Локальные данные загружены', 'Данные из браузера сохранены в аккаунт.');
-      setRestored(true);
-    } catch (err) {
-      toastError('Ошибка', err instanceof Error ? err.message : 'Не удалось загрузить локальные данные');
-    } finally {
-      setLocalRestoring(false);
     }
   };
 
@@ -168,15 +137,6 @@ export default function Import() {
           <button className="btn-add-item" type="button" onClick={() => fileInputRef.current?.click()} disabled={restoring}>{restoring ? 'Восстановление…' : 'Выбрать файл архива'}</button>
         </div>
       </div>
-      {isAuthenticated && (
-        <div className="budget-card">
-          <div className="budget-card-header"><h2 className="budget-card-title">Локальные данные → облако</h2></div>
-          <div className="budget-card-body">
-            <p style={{ fontSize: 14, color: 'var(--theme-text-muted)', margin: '0 0 12px' }}>Отправляет данные из локального хранилища этого браузера в ваш аккаунт.</p>
-            <button className="btn-add-item" type="button" onClick={handleRestoreLocal} disabled={localRestoring}>{localRestoring ? 'Загрузка…' : 'Загрузить локальные данные'}</button>
-          </div>
-        </div>
-      )}
       {restored && <div className="budget-card"><div className="budget-card-body" style={{ color: 'var(--dp-color-success, #059669)', fontWeight: 600 }}>Данные восстановлены. Обновите страницу.</div></div>}
       {pendingArchive && <ConfirmDialog open={confirmOpen} onClose={() => { setConfirmOpen(false); setPendingArchive(null); setClearBeforeRestore(false); }} onConfirm={handleRestore} title="Восстановить из архива?" description={`Архив от ${formatDate(pendingArchive.createdAt)}. Записей: ${countCollections(pendingArchive.collections)}. ${(clearBeforeRestore && !uid) ? 'Текущие локальные данные будут очищены.' : 'Данные будут объединены (записи с теми же ID обновятся).'}`} confirmLabel="Восстановить" confirmVariant={clearBeforeRestore ? 'danger' : 'primary'} />}
     </div>

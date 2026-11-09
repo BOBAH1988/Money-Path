@@ -42,42 +42,6 @@ export const saveLocalCollection = <T extends { id: string }>(collectionName: st
   }
 };
 
-export const budgetLocalKeys = (userId?: string): string[] => {
-  if (!userId) return [storageKeyFor(COLLECTIONS.budgetPlan), 'denegnyj_put_budget_plan'];
-  return [
-    storageKeyFor(COLLECTIONS.budgetPlan, userId),
-    `denegnyj_put_budget_plan_${userId}`,
-  ];
-};
-
-export const loadLocalBudgetPlan = (userId?: string): { items: unknown[]; updatedAt: string } => {
-  for (const key of budgetLocalKeys(userId)) {
-    try {
-      const raw = localStorage.getItem(key);
-      if (!raw) continue;
-      const parsed = JSON.parse(raw) as { items?: unknown[]; updatedAt?: string } | unknown[];
-      if (Array.isArray(parsed)) return { items: parsed, updatedAt: '' };
-      if (parsed && Array.isArray(parsed.items)) {
-        return { items: parsed.items, updatedAt: typeof parsed.updatedAt === 'string' ? parsed.updatedAt : '' };
-      }
-    } catch {
-      // ignore
-    }
-  }
-  return { items: [], updatedAt: '' };
-};
-
-export const saveLocalBudgetPlan = (items: unknown[], updatedAt: string, userId?: string) => {
-  const payload = JSON.stringify({ items, updatedAt });
-  for (const key of budgetLocalKeys(userId)) {
-    try {
-      localStorage.setItem(key, payload);
-    } catch {
-      // ignore
-    }
-  }
-};
-
 export const isResetPending = (): boolean => {
   try {
     const v = localStorage.getItem('denegnyj_put_reset_pending');
@@ -109,10 +73,6 @@ export const clearCollectionData = (collectionName: string, userId?: string): vo
   try {
     localStorage.removeItem(storageKeyFor(collectionName, userId));
     localStorage.removeItem(storageKeyFor(collectionName, undefined));
-    if (collectionName === COLLECTIONS.budgetPlan) {
-      localStorage.removeItem('denegnyj_put_budget_plan');
-      if (userId) localStorage.removeItem(`denegnyj_put_budget_plan_${userId}`);
-    }
   } catch {
     // ignore
   }
