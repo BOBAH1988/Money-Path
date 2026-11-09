@@ -79,10 +79,11 @@ export function useCollection<T extends { id: string }>(
   // loadFromFirestore имеет приоритет localStorage, поэтому грузим напрямую.
   useEffect(() => {
     if (!userId || !firestoreDb || !isLoadedRef.current) return;
+    const db = firestoreDb;
 
     void (async () => {
       try {
-        const colRef = collection(firestoreDb, colPath(collectionName, userId));
+        const colRef = collection(db, colPath(collectionName, userId));
         const q = query(colRef, orderBy('id'));
         const snapshot = await getDocs(q);
         const data = snapshot.docs.map(
