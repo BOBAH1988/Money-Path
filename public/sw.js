@@ -1,5 +1,5 @@
 // Service Worker для офлайн-работы PWA "Денежный путь".
-const CACHE_NAME = 'denegnyj-put-v14';
+const CACHE_NAME = 'denegnyj-put-v15';
 const ASSETS = [
   '/Money-Path/',
   '/Money-Path/index.html',
@@ -32,6 +32,22 @@ self.addEventListener('fetch', (event) => {
   if (request.mode === 'navigate') {
     event.respondWith(
       fetch(request).catch(() => caches.match('/Money-Path/index.html'))
+    );
+    return;
+  }
+
+  // Для JS/CSS ресурсов — сеть primero с кэшем как фолбэк (чтобы после обновления
+  // приложения брались актуальные бандлы, а не застрявшие в кэше старые версии).
+  if (request.destination === 'script' || request.destination === 'style') {
+    event.respondWith(
+      fetch(request).then((networkResponse) => {
+        if (!networkResponse.ok) throw new Error('network response not ok');
+        try {
+          const clone = networkResponse.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
+        } catch {}
+        return networkResponse;
+      }).catch(() => caches.match(request))
     );
     return;
   }
