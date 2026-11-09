@@ -1,7 +1,6 @@
 import { useContext, useState, useEffect, useMemo, useRef, useLayoutEffect } from 'react';
 import { NavLink, Outlet, useNavigate, useLocation } from 'react-router-dom';
 import packageJson from '../../package.json';
-import { useBudgetPlan } from '../hooks/useBudgetPlan';
 import { AppIcon } from './AppIcon';
 import { AccountButton, AccountMenu, AnalyticsModal, AuthModal } from './AuthModal';
 import { ImportModal } from './ImportModal';
@@ -10,6 +9,7 @@ import { PageTitleProvider, PageTitleContext } from './PageTitleContext';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../ui/Toast';
 import { PageLoader } from './PageLoader';
+import { resetBudgetPlan, saveToFirestore, COLLECTIONS } from '../lib/firestore';
 
 const pkgVersion = packageJson.version;
 const currentYear = new Date().getFullYear();
@@ -61,16 +61,15 @@ export default function Layout() {
     () => /Macintosh|MacIntel|Mac_PowerPC|Mac 68K/.test(navigator.userAgent),
     []
   );
-  const { reset, loading: budgetLoading } = useBudgetPlan();
   const { error: toastError, success: toastSuccess } = useToast();
-  const { isAuthenticated, isAuthReady } = useAuth();
+  const { isAuthenticated, isAuthReady, uid } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const ctx = useContext(PageTitleContext);
   const pageTitle = ctx?.pageTitle ?? '';
 
   useLayoutEffect(() => {
-    if (!isAuthReady || (isAuthenticated && budgetLoading)) return;
+    if (!isAuthReady) return;
     const container = navRef.current;
     if (!container) return;
 
@@ -107,7 +106,7 @@ export default function Layout() {
       ro.observe(container);
       return () => ro.disconnect();
     }
-  }, [isAuthReady, isAuthenticated, budgetLoading]);
+  }, [isAuthReady]);
 
   useEffect(() => {
     const clearFlag = sessionStorage.getItem('denegnyj_clear_cache');
@@ -157,15 +156,21 @@ export default function Layout() {
     return () => media.removeEventListener('change', handler);
   }, []);
 
-  if (!isAuthReady || (isAuthenticated && budgetLoading)) {
-    return <PageLoader text="Загрузка данных" fullScreen />;
+  if (!isAuthReady) {
+    return <PageLoader text="Загрузка…" fullScreen />;
   }
 
   const handleConfirmReset = async () => {
     try {
-      // reset из useBudgetPlan уже удаляет всю информацию из Firebase (budget_plan + коллекции),
-      // поэтому не нужно дублировать очистку localStorage и Firestore вручную.
-      await reset();
+      await resetBudgetPlan(uid);
+      if (uid) {
+        await Promise.all([
+          saveToFirestore(COLLECTIONS.assets, [], uid),
+          saveToFirestore(COLLECTIONS.liabilities, [], uid),
+          saveToFirestore(COLLECTIONS.income, [], uid),
+          saveToFirestore(COLLECTIONS.incomeArchive, [], uid),
+        ]);
+      }
       toastSuccess('Данные сброшены', 'Все данные удалены и приложение перезагружено');
       setConfirmReset(false);
       window.location.reload();
