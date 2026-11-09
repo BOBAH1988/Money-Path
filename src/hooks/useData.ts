@@ -27,40 +27,51 @@ export function useData<T extends { id: string }>(options: UseDataOptions): UseD
   const { error: toastError } = useToast();
   const { isAuthReady } = useAuth();
   const [items, setItems] = useState<T[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [loadedFor, setLoadedFor] = useState<string | null>(null);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     if (!isAuthReady) {
-      setLoading(true);
+      setIsLoading(true);
+      setLoadedFor(null);
       return;
     }
     if (!userId) {
       setItems([]);
-      setLoading(false);
+      setError(null);
+      setIsLoading(false);
+      setLoadedFor('__none__');
       return;
     }
-    setLoading(true);
+    let cancelled = false;
+    setIsLoading(true);
+    setError(null);
     void (async () => {
       try {
         const data = await loadFromFirestore<T>(collectionName!, userId);
-        setItems(data);
-        setError(null);
+        if (!cancelled) {
+          setItems(data);
+          setLoadedFor(`${userId}:${collectionName}`);
+        }
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Ошибка загрузки данных');
+        if (!cancelled) {
+          setError(err instanceof Error ? err.message : 'Ошибка загрузки данных');
+          setLoadedFor(null);
+        }
       } finally {
-        setLoading(false);
+        if (!cancelled) setIsLoading(false);
       }
     })();
+    return () => {
+      cancelled = true;
+    };
   }, [isAuthReady, userId, collectionName]);
 
   useEffect(() => {
     if (timerRef.current) clearTimeout(timerRef.current);
-    if (!isAuthReady || !userId || items.length === 0) {
-      setLoading(false);
-      return;
-    }
+    if (!isAuthReady || !userId || items.length === 0) return;
     timerRef.current = setTimeout(() => {
       void (async () => {
         try {
@@ -103,6 +114,8 @@ export function useData<T extends { id: string }>(options: UseDataOptions): UseD
     },
     [collectionName, userId],
   );
+
+  const loading = !isAuthReady || isLoading || (!!userId && loadedFor !== `${userId}:${collectionName}`);
 
   return { items, loading, error, addItem, updateItem, removeItem };
 }
