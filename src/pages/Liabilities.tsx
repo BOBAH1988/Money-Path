@@ -42,8 +42,8 @@ export default function Liabilities() {
     [items]
   );
 
-  const totalAmount = safeNegate(items.reduce((sum, it) => sum + it.amount, 0));
-  const totalMonthly = safeNegate(items.reduce((sum, it) => sum + it.monthly, 0));
+  const totalAmount = safeNegate(items.reduce((sum: number, it: LiabilityRow) => sum + it.amount, 0));
+  const totalMonthly = safeNegate(items.reduce((sum: number, it: LiabilityRow) => sum + it.monthly, 0));
 
   if (error) {
     return (
