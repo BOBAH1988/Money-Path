@@ -9,7 +9,12 @@ import {
   type User,
 } from 'firebase/auth';
 import { auth } from '../lib/firebase';
-import { COLLECTIONS, migrateCollectionToUser, trackUser } from '../lib/firestore';
+import {
+  COLLECTIONS,
+  clearCollectionData,
+  migrateCollectionToUser,
+  trackUser,
+} from '../lib/firestore';
 
 import { ADMIN_EMAIL } from './auth-constants';
 
@@ -38,9 +43,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isAuthReady, setIsAuthReady] = useState(false);
-  const [uid, setUid] = useState<string | undefined>(() =>
-    localStorage.getItem('denegnyj_put_auth_uid') || undefined
-  );
+  // uid берём только из Firebase Auth. Не hydrate-им из localStorage до onAuthStateChanged,
+  // иначе эффекты загрузки данных стартуют с чужим/устаревшим uid до появления ID-токена
+  const [uid, setUid] = useState<string | undefined>(undefined);
 
   const isAdmin = isAuthenticated && user ? user.email === ADMIN_EMAIL : false;
 
@@ -65,10 +70,22 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         setUid(u.uid);
         setIsAuthenticated(true);
         localStorage.setItem('denegnyj_put_auth_uid', u.uid);
-        // Не ждём Firestore — синхронизируем в фоне
-        migrateAllToUser(u.uid).catch(() => {});
-        trackUser(u.uid, u.email ?? '').catch(() => {});
+        // Сначала выгружаем старые локальные данные в облако под этим пользователем,
+        // и только после этого разрешаем компонентам загружать данные.
+        await migrateAllToUser(u.uid);
+        await trackUser(u.uid, u.email ?? '').catch(() => {
+          // ignore
+        });
       } else {
+        // Выход: удаляем локальные данные бывшего пользователя, чтобы при следующем
+        // входе на этом устройстве не подтянулись его закешированные данные.
+        for (const collection of Object.values(COLLECTIONS)) {
+          try {
+            clearCollectionData(collection, undefined);
+          } catch {
+            // ignore
+          }
+        }
         setUid(undefined);
         setIsAuthenticated(false);
         localStorage.removeItem('denegnyj_put_auth_uid');
@@ -80,29 +97,51 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const login = async (email: string, password: string) => {
     if (!auth) throw new Error('Firebase Auth не инициализирован');
-    await signInWithEmailAndPassword(auth, email, password);
+    try {
+      await signInWithEmailAndPassword(auth, email, password);
+    } catch (err) {
+      // eslint-disable-next-line no-console
+      console.error('[auth] login ошибка:', err instanceof Error ? err.message : err);
+      throw err;
+    }
     setIsAuthenticated(true);
   };
 
   const register = async (email: string, password: string) => {
     if (!auth) throw new Error('Firebase Auth не инициализирован');
-    const credential = await createUserWithEmailAndPassword(auth, email, password);
     try {
-      await sendEmailVerification(credential.user);
-    } catch {
-      // ignore
-    }
-    try {
-      await trackUser(credential.user.uid, email);
-    } catch {
-      // ignore
+      const credential = await createUserWithEmailAndPassword(auth, email, password);
+      try {
+        await sendEmailVerification(credential.user);
+      } catch {
+        // ignore
+      }
+      try {
+        await trackUser(credential.user.uid, email);
+      } catch (err) {
+        // eslint-disable-next-line no-console
+        console.error(
+          `[firestore] register trackUser uid=${credential.user.uid} ошибка:`,
+          err instanceof Error ? err.message : err
+        );
+      }
+    } catch (err) {
+      // eslint-disable-next-line no-console
+      console.error('[auth] register ошибка:', err instanceof Error ? err.message : err);
+      throw err;
     }
     setIsAuthenticated(true);
   };
 
   const logout = async () => {
     if (!auth) throw new Error('Firebase Auth не инициализирован');
-    await signOut(auth);
+    try {
+      await signOut(auth);
+    } catch (err) {
+      // eslint-disable-next-line no-console
+      console.error('[auth] logout ошибка:', err instanceof Error ? err.message : err);
+      throw err;
+    }
     setUser(null);
     setIsAuthenticated(false);
   };

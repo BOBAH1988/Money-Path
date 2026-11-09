@@ -1,15 +1,15 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useToast } from '../ui/Toast';
 import { firestoreDb } from '../lib/firebase';
+import { useAuth } from '../context/AuthContext';
 import {
   loadLocalCollection,
   loadFromFirestore,
   saveToFirestore,
   COLLECTIONS,
-  colPath,
   type FirestoreCollection,
 } from '../lib/firestore';
-import { collection, deleteDoc, getDocs, query, orderBy } from 'firebase/firestore';
+import { collection, deleteDoc, getDocs } from 'firebase/firestore';
 
 interface UseCollectionOptions {
   collectionName: FirestoreCollection;
@@ -31,6 +31,7 @@ export function useCollection<T extends { id: string }>(
 ): UseCollectionReturn<T> {
   const { collectionName, userId } = options;
   const { error: toastError, warning: toastWarning } = useToast();
+  const { isAuthReady } = useAuth();
   const toastWarningRef = useRef(toastWarning);
 
   useEffect(() => {
@@ -43,7 +44,9 @@ export function useCollection<T extends { id: string }>(
   const isLoadedRef = useRef(false);
   const offlineWarnedRef = useRef(false);
 
-  // Загружаем из localStorage синхронно — сразу показываем данные, без ожидания Firebase
+  // Загружаем из localStorage синхронно — сразу показываем данные, без ожидания Firebase.
+  // Из Firestore грузим только после того, как Auth подтвердил пользователя (isAuthReady),
+  // иначе запрос уйдёт без ID-токена и будет отклонён правилами безопасности.
   useEffect(() => {
     const localData = loadLocalCollection<T>(collectionName, userId);
     if (localData.length > 0) {
@@ -52,8 +55,7 @@ export function useCollection<T extends { id: string }>(
     setLoading(false);
     isLoadedRef.current = true;
 
-    // Фоновая синхронизация с Firestore — не блокирует UI
-    if (userId && firestoreDb) {
+    if (isAuthReady && userId && firestoreDb) {
       void (async () => {
         try {
           const data = await loadFromFirestore<T>(collectionName, userId);
@@ -72,32 +74,7 @@ export function useCollection<T extends { id: string }>(
         }
       })();
     }
-  }, [collectionName, userId]);
-
-  // При входе в аккаунт (смена userId) — принудительно загружаем данные из Firestore
-  // и перезаписываем localStorage, чтобы данные появились на новом устройстве.
-  // loadFromFirestore имеет приоритет localStorage, поэтому грузим напрямую.
-  useEffect(() => {
-    if (!userId || !firestoreDb || !isLoadedRef.current) return;
-    const db = firestoreDb;
-
-    void (async () => {
-      try {
-        const colRef = collection(db, colPath(collectionName, userId));
-        const q = query(colRef, orderBy('id'));
-        const snapshot = await getDocs(q);
-        const data = snapshot.docs.map(
-          (docSnap) => docSnap.data() as unknown as T
-        );
-        if (data.length > 0) {
-          saveToFirestore(collectionName, data, userId).catch(() => {});
-          setItems(data);
-        }
-      } catch {
-        // Firestore недоступен — оставляем локальные данные
-      }
-    });
-  }, [collectionName, userId]);
+  }, [collectionName, userId, isAuthReady]);
 
   useEffect(() => {
     if (!isLoadedRef.current) return;

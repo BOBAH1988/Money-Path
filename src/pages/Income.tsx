@@ -37,7 +37,7 @@ const migrateArchiveRow = (
 
 export default function Income() {
   const { setPageTitle } = useContext(PageTitleContext)!;
-  const { uid } = useAuth();
+  const { uid, isAuthReady } = useAuth();
   const userId = uid;
 
   useEffect(() => {
@@ -54,7 +54,9 @@ export default function Income() {
   const [archiveLoading, setArchiveLoading] = useState(true);
 
   useEffect(() => {
-    if (!userId) {
+    // Загрузка обрабатывается только после подтверждения авторизации, иначе запрос
+    // уйдёт без ID-токена и будет отклонён правилами безопасности.
+    if (!isAuthReady || !userId) {
       setArchive([]);
       setArchiveLoading(false);
       return;
@@ -77,7 +79,7 @@ export default function Income() {
     return () => {
       cancelled = true;
     };
-  }, [userId]);
+  }, [userId, isAuthReady]);
 
   const archiveRows = useMemo(() => archive.filter((r) => r.year === CURRENT_YEAR), [archive]);
   const archiveTotal = useMemo(
