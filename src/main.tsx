@@ -53,3 +53,9 @@ createRoot(document.getElementById('root')!).render(
     <App />
   </StrictMode>,
 )
+
+requestAnimationFrame(() => {
+  requestAnimationFrame(() => {
+    document.getElementById('app-loader')?.remove();
+  });
+});
