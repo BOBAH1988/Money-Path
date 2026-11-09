@@ -197,6 +197,9 @@ export const loadFromFirestore = async <T extends { id: string }>(
   }
 };
 
+const budgetPlanDocRef = (userId: string) => doc(firestoreDb!, colPath(COLLECTIONS.budgetPlan, userId), 'budget_plan');
+const budgetPlanDocRefLegacy = (userId: string) => doc(firestoreDb!, COLLECTIONS.budgetPlan, `users/${userId}/budget_plan`);
+
 export const loadBudgetPlan = async (
   userId?: string,
   onFresh?: (data: { items: unknown[]; updatedAt: string }) => void,
@@ -205,28 +208,34 @@ export const loadBudgetPlan = async (
     return { items: [], updatedAt: '' };
   }
   try {
-    const docRef = doc(firestoreDb, colPath(COLLECTIONS.budgetPlan, userId), 'budget_plan');
-    try {
-      const cached = await getDocFromCache(docRef);
-      if (cached.exists()) {
-        const data = cached.data() as { items?: unknown[]; updatedAt?: string };
-        void withTimeout(getDocFromServer(docRef), 4500, 'getDocFromServer')
-          .then((snap) => {
-            if (!snap.exists()) return;
-            const fresh = snap.data() as { items?: unknown[]; updatedAt?: string };
-            onFresh?.({ items: fresh.items ?? [], updatedAt: fresh.updatedAt ?? '' });
-          })
-          .catch(() => {});
+    const read = async (ref: ReturnType<typeof doc>) => {
+      try {
+        const cached = await getDocFromCache(ref);
+        if (cached.exists()) {
+          const data = cached.data() as { items?: unknown[]; updatedAt?: string };
+          void withTimeout(getDocFromServer(ref), 4500, 'getDocFromServer')
+            .then((snap) => {
+              if (!snap.exists()) return;
+              const fresh = snap.data() as { items?: unknown[]; updatedAt?: string };
+              onFresh?.({ items: fresh.items ?? [], updatedAt: fresh.updatedAt ?? '' });
+            })
+            .catch(() => {});
+          return { items: data.items ?? [], updatedAt: data.updatedAt ?? '' };
+        }
+      } catch {
+        // cache miss
+      }
+      const snap = await withTimeout(getDocFromServer(ref), 4500, 'getDocFromServer');
+      if (snap.exists()) {
+        const data = snap.data() as { items?: unknown[]; updatedAt?: string };
         return { items: data.items ?? [], updatedAt: data.updatedAt ?? '' };
       }
-    } catch {
-      // cache miss
-    }
-    const snap = await withTimeout(getDocFromServer(docRef), 4500, 'getDocFromServer');
-    if (snap.exists()) {
-      const data = snap.data() as { items?: unknown[]; updatedAt?: string };
-      return { items: data.items ?? [], updatedAt: data.updatedAt ?? '' };
-    }
+      return null;
+    };
+    const primary = await read(budgetPlanDocRef(userId));
+    if (primary) return primary;
+    const legacy = await read(budgetPlanDocRefLegacy(userId));
+    if (legacy) return legacy;
   } catch (err) {
     console.error('[firestore] loadBudgetPlan ошибка:', err);
   }
@@ -236,7 +245,7 @@ export const loadBudgetPlan = async (
 export const saveBudgetPlan = async (userId?: string, items: unknown[] = [], updatedAt = new Date().toISOString()) => {
   if (!userId || !firestoreDb) return;
   try {
-    await setDoc(doc(firestoreDb, colPath(COLLECTIONS.budgetPlan, userId), 'budget_plan'), {
+    await setDoc(budgetPlanDocRef(userId), {
       items,
       updatedAt,
       userId,
@@ -252,7 +261,7 @@ export const resetBudgetPlan = async (userId?: string): Promise<{ items: unknown
     return { items: [], updatedAt: new Date().toISOString() };
   }
   try {
-    await setDoc(doc(firestoreDb, colPath(COLLECTIONS.budgetPlan, userId), 'budget_plan'), {
+    await setDoc(budgetPlanDocRef(userId), {
       items: [],
       updatedAt: new Date().toISOString(),
       userId,
