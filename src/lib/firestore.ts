@@ -113,7 +113,7 @@ export const trackUser = async (uid: string, email: string): Promise<void> => {
   }
 };
 
-export const getAllUsers = async (): Promise<{ uid: string; email: string; createdAt: string; lastActive: string }[]> => {
+export const getAllUsers = async (currentUid?: string): Promise<{ uid: string; email: string; createdAt: string; lastActive: string }[]> => {
   if (!firestoreDb) return [];
   try {
     const snapshot = await getDocs(collection(firestoreDb, 'users'));
@@ -129,6 +129,23 @@ export const getAllUsers = async (): Promise<{ uid: string; email: string; creat
   } catch (err) {
     const code = typeof err === 'object' && err && 'code' in err ? String((err as { code?: unknown }).code) : '';
     console.error('[firestore] getAllUsers ошибка:', err);
+    if (code === 'permission-denied' && currentUid) {
+      try {
+        const snap = await getDoc(doc(firestoreDb, 'users', currentUid));
+        if (snap.exists()) {
+          const data = snap.data() as Record<string, unknown>;
+          return [{
+            uid: currentUid,
+            email: String(data.email ?? ''),
+            createdAt: String(data.createdAt ?? ''),
+            lastActive: String(data.lastActive ?? ''),
+          }];
+        }
+      } catch {
+        // ignore fallback error
+      }
+      throw new Error('Нет доступа к списку пользователей. Для полной аналитики опубликуйте правила из firestore.rules; сейчас показаны только данные вашего аккаунта (если доступны).');
+    }
     if (code === 'permission-denied') {
       throw new Error('Нет доступа к аналитике: опубликуйте правила Firestore, разрешающие администратору чтение коллекции users (см. firestore.rules).');
     }
