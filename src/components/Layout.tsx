@@ -1,16 +1,14 @@
-import { useContext, useState, useEffect, useMemo, useRef, useLayoutEffect, lazy, Suspense } from 'react';
+import { useContext, useState, useEffect, useMemo, useRef, useLayoutEffect } from 'react';
 import { NavLink, Outlet, useNavigate, useLocation } from 'react-router-dom';
 import packageJson from '../../package.json';
 import { useBudgetPlan } from '../hooks/useBudgetPlan';
 import { AppIcon } from './AppIcon';
-import { AccountButton, AccountMenu, AnalyticsModal } from './AuthModal';
+import { AccountButton, AccountMenu, AnalyticsModal, AuthModal } from './AuthModal';
+import { ImportModal } from './ImportModal';
 import { ConfirmDialog } from '../ui/ConfirmDialog';
 import { PageTitleProvider, PageTitleContext } from './PageTitleContext';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../ui/Toast';
-
-const AuthModalLazy = lazy(() => import('./AuthModal').then((m) => ({ default: m.AuthModal })));
-const ImportModalLazy = lazy(() => import('./ImportModal').then((m) => ({ default: m.ImportModal })));
 
 const pkgVersion = packageJson.version;
 const currentYear = new Date().getFullYear();
@@ -378,11 +376,7 @@ export default function Layout() {
         />
       )}
 
-      {authModalOpen && (
-        <Suspense fallback={null}>
-          <AuthModalLazy onClose={() => setAuthModalOpen(false)} />
-        </Suspense>
-      )}
+      {authModalOpen && <AuthModal onClose={() => setAuthModalOpen(false)} />}
 
       {accountMenuOpen && (
         <AccountMenu onClose={() => setAccountMenuOpen(false)} onAnalytics={() => setAnalyticsOpen(true)} />
@@ -392,11 +386,7 @@ export default function Layout() {
         <AnalyticsModal onClose={() => setAnalyticsOpen(false)} />
       )}
 
-      {importModalOpen && (
-        <Suspense fallback={null}>
-          <ImportModalLazy onClose={() => setImportModalOpen(false)} />
-        </Suspense>
-      )}
+      {importModalOpen && <ImportModal onClose={() => setImportModalOpen(false)} />}
 
       {installModalOpen && (
         <div className="install-overlay" onClick={() => setInstallModalOpen(false)}>

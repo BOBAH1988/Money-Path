@@ -268,11 +268,7 @@ export default function Dashboard() {
   }
 
   if (isLoading) {
-    return (
-      <div className="page page-budget">
-        <PageLoader text="Загрузка данных…" />
-      </div>
-    );
+    return <PageLoader text="Загрузка данных…" fullScreen />;
   }
 
   if (!hasData) {

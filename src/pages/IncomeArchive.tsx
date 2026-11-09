@@ -143,11 +143,7 @@ export default function IncomeArchive() {
   }
 
   if (loading) {
-    return (
-      <div className="page page-budget">
-        <PageLoader text="Загрузка данных" />
-      </div>
-    );
+    return <PageLoader text="Загрузка данных" fullScreen />;
   }
 
   return (
