@@ -54,8 +54,14 @@ createRoot(document.getElementById('root')!).render(
   </StrictMode>,
 )
 
+const removeAppLoader = () => {
+  const el = document.getElementById('app-loader');
+  if (!el) return;
+  el.style.opacity = '0';
+  el.style.transition = 'opacity 0.12s ease';
+  setTimeout(() => el.remove(), 130);
+};
+
 requestAnimationFrame(() => {
-  requestAnimationFrame(() => {
-    document.getElementById('app-loader')?.remove();
-  });
+  requestAnimationFrame(removeAppLoader);
 });
