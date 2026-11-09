@@ -98,6 +98,10 @@ export default function Layout() {
     () => /iPad|iPhone|iPod/.test(navigator.userAgent),
     []
   );
+  const isMac = useMemo(
+    () => /Macintosh|MacIntel|Mac_PowerPC|Mac 68K/.test(navigator.userAgent),
+    []
+  );
   const { reset } = useBudget();
   const { error: toastError, success: toastSuccess } = useToast();
   const { uid, isAuthenticated } = useAuth();
@@ -318,7 +322,15 @@ export default function Layout() {
                     className="menu-item menu-install-btn"
                     onClick={async () => {
                       setMenuOpen(false);
+                      if (isInstalled) {
+                        toastSuccess('Уже установлено', 'Приложение уже установлено на этом устройстве');
+                        return;
+                      }
                       if (isIOS) {
+                        setInstallModalOpen(true);
+                        return;
+                      }
+                      if (isMac) {
                         setInstallModalOpen(true);
                         return;
                       }
@@ -413,11 +425,28 @@ export default function Layout() {
             <p className="install-text">
               {isIOS
                 ? 'Откройте страницу в Safari, нажмите кнопку «Поделиться» и выберите «На экран «Домой»».'
+                : isMac
+                ? isInstalled
+                  ? 'Приложение уже установлено на вашем Mac.'
+                  : 'В Chrome или Edge откройте меню браузера (⋮) и выберите «Установить приложение». В Safari: меню «Файл» → «Добавить в Dock».'
                 : isInstalled
                 ? 'Приложение уже установлено на вашем устройстве.'
-                : 'Откройте меню браузера и выберите «Установить приложение» или «Добавить на главный экран».'}
+                : 'Откройте меню браузера и выберите «Установить приложение» или «Добавить на главный экран».'
+              }
             </p>
             <div className="install-actions">
+              {deferredPrompt && !isInstalled && (
+                <button className="btn-install" onClick={async () => {
+                  try {
+                    deferredPrompt.prompt();
+                    await deferredPrompt.userChoice;
+                  } catch {}
+                  setDeferredPrompt(null);
+                  setInstallModalOpen(false);
+                }}>
+                  Установить
+                </button>
+              )}
               <button className="btn-cancel" onClick={() => setInstallModalOpen(false)}>
                 Закрыть
               </button>

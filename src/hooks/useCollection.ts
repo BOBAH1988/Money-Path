@@ -30,6 +30,11 @@ export function useCollection<T extends { id: string }>(
 ): UseCollectionReturn<T> {
   const { collectionName, userId } = options;
   const { error: toastError, warning: toastWarning } = useToast();
+  const toastWarningRef = useRef(toastWarning);
+
+  useEffect(() => {
+    toastWarningRef.current = toastWarning;
+  }, [toastWarning]);
   const [items, setItems] = useState<T[]>(() => loadLocalCollection<T>(collectionName, userId));
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -57,13 +62,16 @@ export function useCollection<T extends { id: string }>(
         } catch {
           setFirestoreOffline(true);
           if (!offlineWarnedRef.current) {
-            toastWarning('База данных недоступна', 'Данные хранятся локально и синхронизируются при восстановлении связи');
+            toastWarningRef.current(
+              'База данных недоступна',
+              'Данные хранятся локально и синхронизируются при восстановлении связи'
+            );
             offlineWarnedRef.current = true;
           }
         }
       })();
     }
-  }, [collectionName, userId, toastWarning, offlineWarnedRef]);
+  }, [collectionName, userId]);
 
   useEffect(() => {
     if (!isLoadedRef.current) return;
@@ -124,7 +132,6 @@ export function useCollection<T extends { id: string }>(
           } catch {}
         })();
       }
-      saveToFirestore(collectionName, [], userId).catch(() => {});
     },
     [collectionName, userId]
   );

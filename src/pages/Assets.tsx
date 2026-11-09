@@ -122,8 +122,9 @@ export default function Assets() {
         total={totalAmount}
         totalPlan={totalMonthly}
         headers={{
-          name: 'Активы',
+          name: 'Источник',
           amount: 'Сумма',
+          plan: '%',
         }}
         onUpdate={(id, patch) => {
           updateItem(id, {

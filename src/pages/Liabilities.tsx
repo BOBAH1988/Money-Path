@@ -6,6 +6,7 @@ import { COLLECTIONS } from '../lib/firestore';
 import { safeNegate } from '../lib/budget';
 import { useCollection } from '../hooks/useCollection';
 import { useAuth } from '../context/AuthContext';
+import { EmptyState } from '../ui/EmptyState';
 
 interface LiabilityRow {
   id: string;
@@ -80,6 +81,27 @@ export default function Liabilities() {
     );
   }
 
+  if (items.length === 0) {
+    return (
+      <div className="page page-budget">
+        <EmptyState
+          icon="📉"
+          title="Пассивы не добавлены"
+          description="Добавьте первый пассив, например кредит или ипотеку."
+          action={
+            <button
+              className="auth-btn"
+              type="button"
+              onClick={() => addItem({ name: '', amount: 0, monthly: 0 })}
+            >
+              Добавить пассив
+            </button>
+          }
+        />
+      </div>
+    );
+  }
+
   return (
     <div className="page page-budget">
       <div className="budget-summary">
@@ -101,7 +123,7 @@ export default function Liabilities() {
         total={totalAmount}
         totalPlan={totalMonthly}
         headers={{
-          name: 'Пассивы',
+          name: 'Источник',
           amount: 'Сумма',
           plan: '% в мес.',
         }}
