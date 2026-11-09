@@ -49,7 +49,28 @@ export default function Layout() {
   const navRef = useRef<HTMLDivElement>(null);
   const [hiddenIndices, setHiddenIndices] = useState<Set<number>>(new Set());
 
+  const isInstalled = useMemo(
+    () => window.matchMedia('(display-mode: standalone)').matches,
+    []
+  );
+  const isIOS = useMemo(
+    () => /iPad|iPhone|iPod/.test(navigator.userAgent),
+    []
+  );
+  const isMac = useMemo(
+    () => /Macintosh|MacIntel|Mac_PowerPC|Mac 68K/.test(navigator.userAgent),
+    []
+  );
+  const { reset, loading: budgetLoading } = useBudgetPlan();
+  const { error: toastError, success: toastSuccess } = useToast();
+  const { isAuthenticated, isAuthReady } = useAuth();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const ctx = useContext(PageTitleContext);
+  const pageTitle = ctx?.pageTitle ?? '';
+
   useLayoutEffect(() => {
+    if (!isAuthReady || (isAuthenticated && budgetLoading)) return;
     const container = navRef.current;
     if (!container) return;
 
@@ -86,31 +107,7 @@ export default function Layout() {
       ro.observe(container);
       return () => ro.disconnect();
     }
-  }, []);
-
-  const isInstalled = useMemo(
-    () => window.matchMedia('(display-mode: standalone)').matches,
-    []
-  );
-  const isIOS = useMemo(
-    () => /iPad|iPhone|iPod/.test(navigator.userAgent),
-    []
-  );
-  const isMac = useMemo(
-    () => /Macintosh|MacIntel|Mac_PowerPC|Mac 68K/.test(navigator.userAgent),
-    []
-  );
-  const { reset, loading: budgetLoading } = useBudgetPlan();
-  const { error: toastError, success: toastSuccess } = useToast();
-  const { isAuthenticated, isAuthReady } = useAuth();
-  const navigate = useNavigate();
-  const location = useLocation();
-  const ctx = useContext(PageTitleContext);
-  const pageTitle = ctx?.pageTitle ?? '';
-
-  if (!isAuthReady || (isAuthenticated && budgetLoading)) {
-    return <PageLoader text="Загрузка данных" fullScreen />;
-  }
+  }, [isAuthReady, isAuthenticated, budgetLoading]);
 
   useEffect(() => {
     const clearFlag = sessionStorage.getItem('denegnyj_clear_cache');
@@ -159,6 +156,10 @@ export default function Layout() {
     media.addEventListener('change', handler);
     return () => media.removeEventListener('change', handler);
   }, []);
+
+  if (!isAuthReady || (isAuthenticated && budgetLoading)) {
+    return <PageLoader text="Загрузка данных" fullScreen />;
+  }
 
   const handleConfirmReset = async () => {
     try {
