@@ -2,7 +2,6 @@ import { useState, useRef, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../ui/Toast';
 import { ConfirmDialog } from '../ui/ConfirmDialog';
-import { BUDGET_STORAGE_KEY } from '../lib/budget';
 import { exportBackup, restoreBackup, backupFileName, type BackupArchive, type RestoreReport } from '../lib/backup';
 import { ALL_COLLECTIONS, type FirestoreCollection } from '../lib/dataStore';
 import { saveToFirestore } from '../lib/firestore';
@@ -99,12 +98,12 @@ export default function Import() {
       } else {
         if (clearBeforeRestore) {
           for (const col of ALL_COLLECTIONS as FirestoreCollection[]) localStorage.removeItem(`denegnyj_put_${col}`);
-          localStorage.removeItem(BUDGET_STORAGE_KEY());
+          localStorage.removeItem('denegnyj_put_budget_plan');
         }
         for (const [col, items] of Object.entries(pendingArchive.collections)) {
           if (items && items.length) localStorage.setItem(`denegnyj_put_${col}`, JSON.stringify(items));
         }
-        if (pendingArchive.budgetPlan?.items?.length) localStorage.setItem(BUDGET_STORAGE_KEY(), JSON.stringify(pendingArchive.budgetPlan));
+        if (pendingArchive.budgetPlan?.items?.length) localStorage.setItem('denegnyj_put_budget_plan', JSON.stringify(pendingArchive.budgetPlan));
         toastSuccess('Данные восстановлены', 'Обновите страницу, чтобы увидеть изменения.');
       }
       setRestored(true);
@@ -126,7 +125,11 @@ export default function Import() {
         try { collections[col] = JSON.parse(localStorage.getItem(`denegnyj_put_${col}`) || '[]'); } catch { collections[col] = []; }
       }
       let budgetPlan = { items: [] as unknown[], updatedAt: new Date().toISOString() };
-      try { const raw = localStorage.getItem(BUDGET_STORAGE_KEY()); if (raw) budgetPlan = JSON.parse(raw); } catch {}
+      try { 
+        const { loadLocalBudgetPlan } = await import('../lib/dataStore');
+        const localBudget = loadLocalBudgetPlan(uid);
+        budgetPlan = { items: localBudget.items, updatedAt: localBudget.updatedAt || new Date().toISOString() };
+      } catch {}
       for (const [col, items] of Object.entries(collections)) {
         if (Array.isArray(items) && items.length) await saveToFirestore(col, items as { id: string }[], uid);
       }

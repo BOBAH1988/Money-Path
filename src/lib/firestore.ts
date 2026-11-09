@@ -281,10 +281,21 @@ export const syncPendingToFirestore = async (): Promise<void> => {
   for (const key of keys) {
     if (!key.startsWith(prefix)) continue;
     const rest = key.slice(prefix.length);
-    const matched = ALL_COLLECTIONS.find((c) => rest.endsWith(`_${c}`));
-    if (!matched) continue;
-    const userId = rest.slice(0, rest.length - matched.length - 1);
-    if (!userId) continue;
+    let matched: FirestoreCollection | undefined;
+    let userId = '';
+    // canonical: denegnyj_put_${userId}_${collection}
+    matched = ALL_COLLECTIONS.find((c) => rest.endsWith(`_${c}`));
+    if (matched) {
+      userId = rest.slice(0, rest.length - matched.length - 1);
+    } else {
+      // legacy budget: denegnyj_put_budget_plan_${userId}
+      if (rest.startsWith(`${COLLECTIONS.budgetPlan}_`)) {
+        matched = COLLECTIONS.budgetPlan;
+        userId = rest.slice(COLLECTIONS.budgetPlan.length + 1);
+      }
+    }
+    if (!matched || !userId) continue;
+    if (userId === 'budget' || userId === 'guest') continue; // not a uid
     const seenKey = `${userId}:${matched}`;
     if (seen.has(seenKey)) continue;
     try {
@@ -300,7 +311,6 @@ export const syncPendingToFirestore = async (): Promise<void> => {
             : null;
         if (!plan || plan.items.length === 0) continue;
         await saveBudgetPlan(userId, plan.items, plan.updatedAt || new Date().toISOString());
-        localStorage.removeItem(key);
         seen.add(seenKey);
         continue;
       }
@@ -312,7 +322,6 @@ export const syncPendingToFirestore = async (): Promise<void> => {
           : [];
       if (items.length === 0) continue;
       await saveToFirestore(matched, items, userId);
-      localStorage.removeItem(key);
       seen.add(seenKey);
     } catch (err) {
       console.error(`[firestore] syncPendingToFirestore(${matched}) ошибка:`, err);
