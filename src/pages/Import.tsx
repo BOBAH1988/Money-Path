@@ -159,7 +159,7 @@ export default function Import() {
         <div className="budget-card-body">
           <p style={{ fontSize: 14, color: 'var(--theme-text-muted)', margin: '0 0 12px' }}>Восстанавливает данные из ранее сохранённого архива.</p>
           <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap', marginBottom: 12 }}>
-            <label style={{ display: 'flex', gap: 8, alignItems: 'center', fontSize: 14 }}><input type="checkbox" checked={clearBeforeRestore} onChange={(e) => setClearBeforeRestore(e.target.checked)} />Очистить текущие данные перед импортом</label>
+            <label style={{ display: 'flex', gap: 8, alignItems: 'center', fontSize: 14 }}><input type="checkbox" checked={clearBeforeRestore} onChange={(e) => setClearBeforeRestore(e.target.checked)} />Очистить локальные данные перед импортом (в гостевом режиме)</label>
           </div>
           <input ref={fileInputRef} type="file" accept="application/json,.json" style={{ display: 'none' }} onChange={handleFileChange} />
           <button className="btn-add-item" type="button" onClick={() => fileInputRef.current?.click()} disabled={restoring}>{restoring ? 'Восстановление…' : 'Выбрать файл архива'}</button>
@@ -175,7 +175,7 @@ export default function Import() {
         </div>
       )}
       {restored && <div className="budget-card"><div className="budget-card-body" style={{ color: 'var(--dp-color-success, #059669)', fontWeight: 600 }}>Данные восстановлены. Обновите страницу.</div></div>}
-      {pendingArchive && <ConfirmDialog open={confirmOpen} onClose={() => { setConfirmOpen(false); setPendingArchive(null); setClearBeforeRestore(false); }} onConfirm={handleRestore} title="Восстановить из архива?" description={`Архив от ${formatDate(pendingArchive.createdAt)}. Записей: ${countCollections(pendingArchive.collections)}. ${clearBeforeRestore ? 'Текущие данные будут очищены.' : 'Данные будут объединены.'}`} confirmLabel="Восстановить" confirmVariant={clearBeforeRestore ? 'danger' : 'primary'} />}
+      {pendingArchive && <ConfirmDialog open={confirmOpen} onClose={() => { setConfirmOpen(false); setPendingArchive(null); setClearBeforeRestore(false); }} onConfirm={handleRestore} title="Восстановить из архива?" description={`Архив от ${formatDate(pendingArchive.createdAt)}. Записей: ${countCollections(pendingArchive.collections)}. ${(clearBeforeRestore && !uid) ? 'Текущие локальные данные будут очищены.' : 'Данные будут объединены (записи с теми же ID обновятся).'}`} confirmLabel="Восстановить" confirmVariant={clearBeforeRestore ? 'danger' : 'primary'} />}
     </div>
   );
 }
