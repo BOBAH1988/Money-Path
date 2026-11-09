@@ -2,10 +2,14 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useToast } from '../ui/Toast';
 import { useAuth } from '../context/AuthContext';
 import {
+  loadLocalCollection,
+  saveLocalCollection,
+  type FirestoreCollection,
+} from '../lib/dataStore';
+import {
   saveToFirestore,
   loadFromFirestore,
   deleteFromFirestore,
-  type FirestoreCollection,
 } from '../lib/firestore';
 
 export interface UseDataOptions {
@@ -29,57 +33,64 @@ export function useData<T extends { id: string }>(options: UseDataOptions): UseD
   const [items, setItems] = useState<T[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [loadedFor, setLoadedFor] = useState<string | null>(null);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const dirtyRef = useRef(false);
+  const localOnly = !collectionName;
 
   useEffect(() => {
     if (!isAuthReady) {
       setIsLoading(true);
-      setLoadedFor(null);
-      return;
-    }
-    if (!userId) {
-      setItems([]);
-      setError(null);
-      setIsLoading(false);
-      setLoadedFor('__none__');
       return;
     }
     let cancelled = false;
     setIsLoading(true);
     setError(null);
     dirtyRef.current = false;
+
+    if (localOnly) {
+      const local = loadLocalCollection<T>('__local__', userId);
+      if (!cancelled) {
+        setItems(local);
+        setIsLoading(false);
+      }
+      return () => { cancelled = true; };
+    }
+
+    const local = loadLocalCollection<T>(collectionName!, userId);
+    setItems(local);
+    setIsLoading(false);
+
+    if (!userId) return () => { cancelled = true; };
+
     void (async () => {
       try {
         const data = await loadFromFirestore<T>(collectionName!, userId, (fresh) => {
-          if (!cancelled && !dirtyRef.current) setItems(fresh);
+          if (cancelled || dirtyRef.current) return;
+          setItems(fresh);
+          saveLocalCollection(collectionName!, fresh, userId);
         });
-        if (!cancelled) {
-          if (!dirtyRef.current) setItems(data);
-          setLoadedFor(`${userId}:${collectionName}`);
+        if (!cancelled && !dirtyRef.current) {
+          setItems(data);
+          saveLocalCollection(collectionName!, data, userId);
         }
       } catch (err) {
-        if (!cancelled) {
-          setError(err instanceof Error ? err.message : 'Ошибка загрузки данных');
-          setLoadedFor(null);
-        }
-      } finally {
-        if (!cancelled) setIsLoading(false);
+        if (!cancelled) setError(err instanceof Error ? err.message : 'Ошибка загрузки данных');
       }
     })();
     return () => {
       cancelled = true;
     };
-  }, [isAuthReady, userId, collectionName]);
+  }, [isAuthReady, userId, collectionName, localOnly]);
 
   useEffect(() => {
     if (timerRef.current) clearTimeout(timerRef.current);
-    if (!isAuthReady || !userId || items.length === 0) return;
+    if (!isAuthReady || !collectionName) return;
+    saveLocalCollection(collectionName, items, userId);
+    if (!userId) return;
     timerRef.current = setTimeout(() => {
       void (async () => {
         try {
-          await saveToFirestore<T>(collectionName!, items, userId);
+          await saveToFirestore<T>(collectionName, items, userId);
         } catch (err) {
           toastError('Ошибка сохранения', err instanceof Error ? err.message : 'Не удалось сохранить данные');
         }
@@ -111,9 +122,10 @@ export function useData<T extends { id: string }>(options: UseDataOptions): UseD
     (id: string) => {
       dirtyRef.current = true;
       setItems((prev) => prev.filter((it) => it.id !== id));
+      if (!userId || !collectionName) return;
       void (async () => {
         try {
-          await deleteFromFirestore(collectionName!, id, userId);
+          await deleteFromFirestore(collectionName, id, userId);
         } catch {
           // ignore
         }
@@ -122,7 +134,5 @@ export function useData<T extends { id: string }>(options: UseDataOptions): UseD
     [collectionName, userId],
   );
 
-  const loading = !isAuthReady || isLoading || (!!userId && loadedFor !== `${userId}:${collectionName}`);
-
-  return { items, loading, error, addItem, updateItem, removeItem };
+  return { items, loading: !isAuthReady || isLoading, error, addItem, updateItem, removeItem };
 }

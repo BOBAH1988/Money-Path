@@ -2,12 +2,12 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../ui/Toast';
 import type { BudgetPlanItem } from '../types';
+import { loadLocalBudgetPlan, saveLocalBudgetPlan, COLLECTIONS } from '../lib/dataStore';
 import {
   loadBudgetPlan,
   saveBudgetPlan,
   resetBudgetPlan,
   deleteFromFirestore,
-  COLLECTIONS,
 } from '../lib/firestore';
 
 export interface UseBudgetPlanReturn {
@@ -26,7 +26,7 @@ export function useBudgetPlan(): UseBudgetPlanReturn {
   const [plan, setPlan] = useState<{ items: BudgetPlanItem[]; updatedAt: string } | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [loadedFor, setLoadedFor] = useState<string | null>(null);
+  const [, setLoadedFor] = useState<string | null>(null);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const dirtyRef = useRef(false);
   const userId = uid;
@@ -37,33 +37,32 @@ export function useBudgetPlan(): UseBudgetPlanReturn {
       setLoadedFor(null);
       return;
     }
-    if (!userId) {
-      setPlan(null);
-      setError(null);
-      setIsLoading(false);
-      setLoadedFor('__none__');
-      return;
-    }
     let cancelled = false;
     setIsLoading(true);
     setError(null);
     dirtyRef.current = false;
+    const local = loadLocalBudgetPlan(userId);
+    setPlan({ items: (local.items ?? []) as BudgetPlanItem[], updatedAt: local.updatedAt ?? '' });
+    setIsLoading(false);
+    setLoadedFor(userId ?? '__guest__');
+
+    if (!userId) return () => { cancelled = true; };
+
     void (async () => {
       try {
         const data = await loadBudgetPlan(userId, (fresh) => {
-          if (!cancelled && !dirtyRef.current) setPlan({ items: (fresh.items ?? []) as BudgetPlanItem[], updatedAt: fresh.updatedAt ?? '' });
+          if (cancelled || dirtyRef.current) return;
+          const next = { items: (fresh.items ?? []) as BudgetPlanItem[], updatedAt: fresh.updatedAt ?? '' };
+          setPlan(next);
+          saveLocalBudgetPlan(next.items, next.updatedAt, userId);
         });
-        if (!cancelled) {
-          if (!dirtyRef.current) setPlan({ items: (data.items ?? []) as BudgetPlanItem[], updatedAt: data.updatedAt ?? '' });
-          setLoadedFor(userId);
+        if (!cancelled && !dirtyRef.current) {
+          const next = { items: (data.items ?? []) as BudgetPlanItem[], updatedAt: data.updatedAt ?? '' };
+          setPlan(next);
+          saveLocalBudgetPlan(next.items, next.updatedAt, userId);
         }
       } catch (err) {
-        if (!cancelled) {
-          setError(err instanceof Error ? err.message : 'Ошибка загрузки плана');
-          setLoadedFor(null);
-        }
-      } finally {
-        if (!cancelled) setIsLoading(false);
+        if (!cancelled) setError(err instanceof Error ? err.message : 'Ошибка загрузки плана');
       }
     })();
     return () => {
@@ -73,11 +72,14 @@ export function useBudgetPlan(): UseBudgetPlanReturn {
 
   useEffect(() => {
     if (timerRef.current) clearTimeout(timerRef.current);
-    if (!isAuthReady || !userId || !plan) return;
+    if (!isAuthReady || !plan) return;
+    const updatedAt = plan.updatedAt || new Date().toISOString();
+    saveLocalBudgetPlan(plan.items, updatedAt, userId);
+    if (!userId) return;
     timerRef.current = setTimeout(() => {
       void (async () => {
         try {
-          await saveBudgetPlan(userId, plan.items, plan.updatedAt);
+          await saveBudgetPlan(userId, plan.items, updatedAt);
         } catch (err) {
           toastError('Ошибка сохранения', err instanceof Error ? err.message : 'Не удалось сохранить данные');
         }
@@ -112,6 +114,7 @@ export function useBudgetPlan(): UseBudgetPlanReturn {
       if (!prev) return prev;
       return { items: prev.items.filter((it) => it.id !== id), updatedAt: new Date().toISOString() };
     });
+    if (!userId) return;
     void (async () => {
       try {
         await deleteFromFirestore(COLLECTIONS.budgetPlan, id, userId);
@@ -123,16 +126,25 @@ export function useBudgetPlan(): UseBudgetPlanReturn {
 
   const reset = useCallback(async () => {
     try {
-      const def = await resetBudgetPlan(userId);
-      dirtyRef.current = false;
-      setPlan({ items: (def.items ?? []) as BudgetPlanItem[], updatedAt: def.updatedAt ?? new Date().toISOString() });
+      if (userId) {
+        const def = await resetBudgetPlan(userId);
+        dirtyRef.current = false;
+        const next = { items: (def.items ?? []) as BudgetPlanItem[], updatedAt: def.updatedAt ?? new Date().toISOString() };
+        setPlan(next);
+        saveLocalBudgetPlan(next.items, next.updatedAt, userId);
+      } else {
+        dirtyRef.current = false;
+        const next = { items: [] as BudgetPlanItem[], updatedAt: new Date().toISOString() };
+        setPlan(next);
+        saveLocalBudgetPlan(next.items, next.updatedAt, userId);
+      }
       toastSuccess('Данные очищены');
     } catch (err) {
       toastError('Ошибка сброса', err instanceof Error ? err.message : 'Не удалось сбросить данные');
     }
   }, [userId, toastError, toastSuccess]);
 
-  const loading = !isAuthReady || isLoading || (!!userId && loadedFor !== userId);
+  const loading = !isAuthReady || (isLoading && !plan);
 
   return { items: plan?.items ?? [], loading, error, addItem, updateItem, removeItem, reset };
 }

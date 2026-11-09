@@ -5,7 +5,7 @@ import { PageTitleContext } from '../components/PageTitleContext';
 import { useBudget } from '../hooks/useBudget';
 import { computeBudgetPageTotals } from '../lib/budget';
 import { useAuth } from '../context/AuthContext';
-import { loadFromFirestore, COLLECTIONS } from '../lib/firestore';
+import { loadFromFirestore, loadLocalCollection, storageKeyFor, COLLECTIONS } from '../lib/firestore';
 import { EmptyState } from '../ui/EmptyState';
 import { AuthModal } from '../components/AuthModal';
 import { LineChart, BarChart } from '../components/dashboard/Charts';
@@ -117,39 +117,28 @@ export default function Dashboard() {
       setIsLoading(true);
       return;
     }
-    if (!userId) {
-      setAssets([]);
-      setLiabilities([]);
-      setIncome([]);
-      setIncomeArchive([]);
-      setIsLoading(false);
-      return;
-    }
     let cancelled = false;
-    setIsLoading(true);
+    setAssets(loadLocalCollection<AssetRow>(COLLECTIONS.assets, userId));
+    setLiabilities(loadLocalCollection<LiabilityRow>(COLLECTIONS.liabilities, userId));
+    setIncome(loadLocalCollection<IncomeRow>(COLLECTIONS.income, userId));
+    setIncomeArchive(loadLocalCollection<IncomeArchiveRow>(COLLECTIONS.incomeArchive, userId).map(migrateArchiveRow));
+    setIsLoading(false);
+
+    if (!userId) return () => { cancelled = true; };
+
     (async () => {
       try {
-        const [a, l, i, ia] = await Promise.all([
-          loadFromFirestore<AssetRow>(COLLECTIONS.assets, userId),
-          loadFromFirestore<LiabilityRow>(COLLECTIONS.liabilities, userId),
-          loadFromFirestore<IncomeRow>(COLLECTIONS.income, userId),
-          loadFromFirestore<IncomeArchiveRow>(COLLECTIONS.incomeArchive, userId),
+        const saveLocal = <T,>(name: string, rows: T[]) => {
+          try { localStorage.setItem(storageKeyFor(name, userId), JSON.stringify(rows)); } catch {}
+        };
+        await Promise.all([
+          loadFromFirestore<AssetRow>(COLLECTIONS.assets, userId, (fresh) => { if (!cancelled) { setAssets(fresh); saveLocal(COLLECTIONS.assets, fresh); } }),
+          loadFromFirestore<LiabilityRow>(COLLECTIONS.liabilities, userId, (fresh) => { if (!cancelled) { setLiabilities(fresh); saveLocal(COLLECTIONS.liabilities, fresh); } }),
+          loadFromFirestore<IncomeRow>(COLLECTIONS.income, userId, (fresh) => { if (!cancelled) { setIncome(fresh); saveLocal(COLLECTIONS.income, fresh); } }),
+          loadFromFirestore<IncomeArchiveRow>(COLLECTIONS.incomeArchive, userId, (fresh) => { if (!cancelled) { const rows = fresh.map(migrateArchiveRow); setIncomeArchive(rows); saveLocal(COLLECTIONS.incomeArchive, rows); } }),
         ]);
-        if (!cancelled) {
-          setAssets(a);
-          setLiabilities(l);
-          setIncome(i);
-          setIncomeArchive(ia.map(migrateArchiveRow));
-        }
       } catch {
-        if (!cancelled) {
-          setAssets([]);
-          setLiabilities([]);
-          setIncome([]);
-          setIncomeArchive([]);
-        }
-      } finally {
-        if (!cancelled) setIsLoading(false);
+        // local snapshot already shown
       }
     })();
     return () => {
@@ -242,30 +231,6 @@ export default function Dashboard() {
 
   const showChart = incomeChartData.some((v) => v !== 0) || archiveSummary.income > 0;
 
-  if (!userId) {
-    return (
-      <div className="page page-budget">
-        <div className="budget-card">
-          <div className="budget-card-body">
-            <EmptyState
-              icon="👋"
-              title="Войдите, чтобы увидеть дашборд"
-              description="Авторизуйтесь, чтобы увидеть сводку по доходам, расходам, активам и пассивам."
-               action={
-                 <>
-                   <button className="auth-btn" type="button" onClick={() => setAuthOpen(true)}>
-                     Войти
-                   </button>
-                   {authOpen && <AuthModal onClose={() => setAuthOpen(false)} />}
-                 </>
-               }
-            />
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   if (isLoading) {
     return (
       <div className="page page-budget">
@@ -286,11 +251,23 @@ export default function Dashboard() {
             <EmptyState
               icon="📊"
               title="Нет данных для визуализации"
-              description="Добавьте доходы в архиве или доходы/расходы, чтобы графики отобразили данные."
+              description={
+                userId
+                  ? 'Добавьте доходы в архиве или доходы/расходы, чтобы графики отобразили данные.'
+                  : 'В гостевом режиме данные хранятся на этом устройстве. Войдите для синхронизации между устройствами.'
+              }
               action={
-                <button className="auth-btn" type="button" onClick={() => navigate('/income')}>
-                  Перейти к доходам
-                </button>
+                <>
+                  <button className="auth-btn" type="button" onClick={() => navigate('/income')}>
+                    Перейти к доходам
+                  </button>
+                  {!userId && (
+                    <button className="auth-btn" type="button" onClick={() => setAuthOpen(true)} style={{ marginLeft: 8 }}>
+                      Войти
+                    </button>
+                  )}
+                  {authOpen && <AuthModal onClose={() => setAuthOpen(false)} />}
+                </>
               }
             />
           </div>
@@ -315,6 +292,9 @@ export default function Dashboard() {
               setLiabilities([]);
               setIncome([]);
               setIncomeArchive([]);
+              for (const c of [COLLECTIONS.assets, COLLECTIONS.liabilities, COLLECTIONS.income, COLLECTIONS.incomeArchive]) {
+                try { localStorage.setItem(storageKeyFor(c, userId), '[]'); } catch {}
+              }
             }}
           >
             Очистить

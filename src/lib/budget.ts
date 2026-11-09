@@ -1,10 +1,11 @@
 import type { BudgetPlan, BudgetPlanItem, BudgetGroup } from '../types';
-import { firestoreDb as db, COLLECTIONS } from './firestore';
+import { firestoreDb as db } from './firebase';
+import { COLLECTIONS } from './dataStore';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 
 const now = () => new Date().toISOString();
 
-const BUDGET_STORAGE_KEY = (userId?: string) =>
+export const BUDGET_STORAGE_KEY = (userId?: string) =>
   userId ? `denegnyj_put_budget_plan_${userId}` : 'denegnyj_put_budget_plan';
 
 const emptyBudgetPlan: BudgetPlan = {
@@ -75,7 +76,6 @@ export const loadBudgetPlan = async (userId?: string): Promise<BudgetPlan> => {
 };
 
 export const saveBudgetPlan = async (plan: BudgetPlan, userId?: string): Promise<void> => {
-  // Сохраняем в локальное хранилище всегда (в т.ч. без авторизации)
   saveBudgetPlanToLocalStorage(plan, userId);
   if (!userId) return;
   if (!db) return;
@@ -90,7 +90,6 @@ export const saveBudgetPlan = async (plan: BudgetPlan, userId?: string): Promise
 };
 
 export const resetBudgetPlan = async (_empty = false, userId?: string): Promise<BudgetPlan> => {
-  // Чистим и пользовательский, и общий ключ бюджета в localStorage
   try {
     localStorage.removeItem(BUDGET_STORAGE_KEY(userId));
     localStorage.removeItem(BUDGET_STORAGE_KEY(undefined));

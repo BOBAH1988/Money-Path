@@ -1,11 +1,5 @@
-import {
-  loadFromFirestore,
-  saveToFirestore,
-  COLLECTIONS,
-  type FirestoreCollection,
-} from './firestore';
-import { loadBudgetPlan, saveBudgetPlan } from './budget';
-import type { BudgetPlan } from '../types';
+import { COLLECTIONS, type FirestoreCollection } from './dataStore';
+import { loadFromFirestore, saveToFirestore } from './firestore';
 
 export const BACKUP_VERSION = 1;
 
@@ -191,3 +185,6 @@ export const downloadBackup = (archive: BackupArchive, fileName?: string): void 
   document.body.removeChild(link);
   URL.revokeObjectURL(url);
 };
+
+import { loadBudgetPlan, saveBudgetPlan } from './budget';
+import type { BudgetPlan } from '../types';

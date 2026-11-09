@@ -9,10 +9,6 @@ import {
   type User,
 } from 'firebase/auth';
 import { auth } from '../lib/firebase';
-import {
-  trackUser,
-  syncPendingToFirestore,
-} from '../lib/firestore';
 
 import { ADMIN_EMAIL } from './auth-constants';
 
@@ -60,6 +56,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         // Синхронизация не должна блокировать первый рендер приложения.
         void (async () => {
           try {
+            const { syncPendingToFirestore, trackUser } = await import('../lib/firestore');
             await syncPendingToFirestore();
             await trackUser(u.uid, u.email ?? '');
           } catch {
@@ -98,6 +95,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         // ignore
       }
       try {
+        const { trackUser } = await import('../lib/firestore');
         await trackUser(credential.user.uid, email);
       } catch (err) {
         // eslint-disable-next-line no-console
