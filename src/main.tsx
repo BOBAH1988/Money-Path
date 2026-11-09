@@ -19,7 +19,7 @@ const clearLegacyCaches = async () => {
 // Выполняется не чаще 1 раза в час.
 const cleanupLegacyServiceWorkers = async () => {
   if (!('serviceWorker' in navigator)) return;
-  const KEY = 'denegnyj_put_sw_cleanup_v1';
+  const KEY = 'denegnyj_put_sw_cleanup_v2';
   const now = Date.now();
   try {
     const last = Number(sessionStorage.getItem(KEY) || '0');
@@ -29,11 +29,6 @@ const cleanupLegacyServiceWorkers = async () => {
     sessionStorage.setItem(KEY, String(now));
     await Promise.all(regs.map((r) => r.unregister().catch(() => false)));
     await clearLegacyCaches();
-    // Однократный reload, чтобы следующий запрос шёл напрямую, без SW-прокси.
-    if (!sessionStorage.getItem('denegnyj_put_sw_cleanup_reloaded')) {
-      sessionStorage.setItem('denegnyj_put_sw_cleanup_reloaded', '1');
-      window.location.reload();
-    }
   } catch {
     // ignore
   }
@@ -49,16 +44,12 @@ if (import.meta.env.PROD && 'serviceWorker' in navigator) {
 
 // При появлении интернета синхронизируем pending-данные с Firestore.
 let onlineSynced = false;
-window.addEventListener('online', async () => {
+window.addEventListener('online', () => {
   if (onlineSynced) return;
   onlineSynced = true;
-  try {
-    await syncPendingToFirestore();
-  } catch {
-    // ignore
-  } finally {
+  void syncPendingToFirestore().catch(() => {}).finally(() => {
     setTimeout(() => { onlineSynced = false; }, 30000);
-  }
+  });
 });
 
 // При загрузке через 404.html fallback (GitHub Pages + HashRouter)
