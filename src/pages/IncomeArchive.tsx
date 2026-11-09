@@ -40,16 +40,15 @@ const fmt = (v: number) => (v || 0).toLocaleString('ru-RU');
 export default function IncomeArchive() {
   const { setPageTitle } = useContext(PageTitleContext)!;
   const { uid } = useAuth();
-  const { toast: addToast, success: toastSuccess } = useToast();
   const userId = uid;
+  const { items, loading, error, addItem, updateItem, removeItem } = useData<IncomeArchiveRow>({
+    collectionName: COLLECTIONS.incomeArchive,
+    userId,
+  });
 
   useEffect(() => {
     setPageTitle('Доходы архив');
   }, [setPageTitle]);
-
-  const [items, setItems] = useState<IncomeArchiveRow[]>([]);
-  const [loaded, setLoaded] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
   const currentYear = CURRENT_YEAR;
   const [selectedYear, setSelectedYear] = useState(currentYear);
@@ -64,33 +63,6 @@ export default function IncomeArchive() {
   const [showAddRow, setShowAddRow] = useState(false);
   const [addName, setAddName] = useState('');
   const [addMonths, setAddMonths] = useState<number[]>(emptyMonths());
-
-  useEffect(() => {
-    const load = async () => {
-      try {
-        const data = await loadFromFirestore<IncomeArchiveRow>(COLLECTIONS.incomeArchive, userId);
-        if (data.length > 0) {
-          setItems(data.map(migrateRow));
-        }
-      } catch (err) {
-        const msg = err instanceof Error ? err.message : 'Ошибка загрузки данных';
-        setError(msg);
-        addToast('error', 'Ошибка загрузки', msg);
-      } finally {
-        setLoaded(true);
-      }
-    };
-    load();
-  }, [userId, addToast]);
-
-  useEffect(() => {
-    if (!loaded) return;
-    saveToFirestore(COLLECTIONS.incomeArchive, items, userId).catch((err) => {
-      const msg = err instanceof Error ? err.message : 'Ошибка сохранения';
-      setError(msg);
-      addToast('error', 'Ошибка сохранения', msg);
-    });
-  }, [items, loaded, userId, addToast]);
 
   const availableYears = useMemo(() => {
     const set = new Set<number>();
@@ -122,12 +94,7 @@ export default function IncomeArchive() {
   const averageIncome = filledMonthsCount > 0 ? Math.round(grandTotal / filledMonthsCount) : 0;
 
   const updateCell = (id: string, monthIdx: number, value: number) => {
-    setItems((prev) => prev.map((it) => {
-      if (it.id !== id) return it;
-      const months = [...it.months];
-      months[monthIdx] = value;
-      return { ...it, months };
-    }));
+    updateItem(id, { months: (items.find((it) => it.id === id) as IncomeArchiveRow | undefined)?.months ?? emptyMonths().map(() => 0) });
   };
 
   const updateName = (id: string, name: string) => {

@@ -8,6 +8,7 @@ const mocks = vi.hoisted(() => ({
   orderBy: vi.fn(() => {}),
   collection: vi.fn(() => {}),
   doc: vi.fn(() => {}),
+  getDoc: vi.fn(),
 }));
 
 vi.mock('firebase/firestore', () => ({
@@ -18,6 +19,7 @@ vi.mock('firebase/firestore', () => ({
   getDocs: mocks.getDocs,
   query: mocks.query,
   orderBy: mocks.orderBy,
+  getDoc: mocks.getDoc,
 }));
 
 vi.mock('./firebase', () => ({
@@ -25,7 +27,7 @@ vi.mock('./firebase', () => ({
   firebaseError: null,
 }));
 
-import { saveToFirestore, loadFromFirestore } from './firestore';
+import { saveToFirestore, loadFromFirestore, loadBudgetPlan, saveBudgetPlan, resetBudgetPlan } from './firestore';
 
 describe('saveToFirestore', () => {
   const userId = 'uid-123';
@@ -33,13 +35,12 @@ describe('saveToFirestore', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    localStorage.clear();
     mocks.collection.mockReturnValue({} as any);
     mocks.doc.mockReturnValue({} as any);
     mocks.query.mockReturnValue({} as any);
   });
 
-  it('saves all items and does not call deleteDoc when nothing was removed', async () => {
+  it('saves all items as documents', async () => {
     const items = [
       { id: '1', name: 'Item 1', amount: 100 },
       { id: '2', name: 'Item 2', amount: 200 },
@@ -50,11 +51,9 @@ describe('saveToFirestore', () => {
 
     expect(mocks.setDoc as any).toHaveBeenCalledTimes(2);
     expect(mocks.deleteDoc as any).not.toHaveBeenCalled();
-    const stored = JSON.parse(localStorage.getItem(`denegnyj_put_${userId}_${collectionName}`) || '[]');
-    expect(stored.length).toBe(2);
   });
 
-  it('does not delete documents that are not in the local array (other devices data must survive)', async () => {
+  it('does not call deleteDoc when nothing was removed', async () => {
     const items = [{ id: '1', name: 'Item 1', amount: 100 }];
     mocks.getDocs.mockResolvedValue({
       docs: [
@@ -67,9 +66,6 @@ describe('saveToFirestore', () => {
 
     expect(mocks.setDoc as any).toHaveBeenCalledTimes(1);
     expect(mocks.deleteDoc as any).not.toHaveBeenCalled();
-    const stored = JSON.parse(localStorage.getItem(`denegnyj_put_${userId}_${collectionName}`) || '[]');
-    expect(stored.length).toBe(1);
-    expect(stored[0].id).toBe('1');
   });
 
   it('saves nothing to Firestore when local array is empty', async () => {
@@ -86,8 +82,6 @@ describe('saveToFirestore', () => {
 
     expect(mocks.setDoc as any).not.toHaveBeenCalled();
     expect(mocks.deleteDoc as any).not.toHaveBeenCalled();
-    const stored = JSON.parse(localStorage.getItem(`denegnyj_put_${userId}_${collectionName}`) || '[]');
-    expect(stored.length).toBe(0);
   });
 
   it('does nothing with Firestore when userId is missing', async () => {
@@ -107,20 +101,17 @@ describe('loadFromFirestore', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    localStorage.clear();
     mocks.collection.mockReturnValue({} as any);
     mocks.doc.mockReturnValue({} as any);
     mocks.query.mockReturnValue({} as any);
   });
 
-  it('prioritizes localStorage over Firestore so deleted rows do not reappear', async () => {
-    // В localStorage только один элемент (item 2 удалён пользователем)
-    localStorage.setItem(
-      `denegnyj_put_${userId}_${collectionName}`,
-      JSON.stringify([{ id: '1', name: 'Item 1', amount: 100 }])
-    );
+  it('returns empty array when userId is missing', async () => {
+    const data = await loadFromFirestore(collectionName, undefined);
+    expect(data.length).toBe(0);
+  });
 
-    // В Firestore всё ещё есть оба элемента (включая удалённый item 2)
+  it('returns documents from Firestore as records with id', async () => {
     mocks.getDocs.mockResolvedValue({
       docs: [
         { id: '1', data: () => ({ id: '1', name: 'Item 1', amount: 100 }) },
@@ -128,38 +119,97 @@ describe('loadFromFirestore', () => {
       ],
     });
 
-    const data = await loadFromFirestore(collectionName, userId);
+    const data = await loadFromFirestore<{ id: string; name: string; amount: number }>(collectionName, userId);
 
-    expect(data.length).toBe(1);
+    expect(data.length).toBe(2);
     expect(data[0].id).toBe('1');
-    // Firestore данные не перезаписали localStorage
-    const stored = JSON.parse(localStorage.getItem(`denegnyj_put_${userId}_${collectionName}`) || '[]');
-    expect(stored.length).toBe(1);
+    expect(data[0].name).toBe('Item 1');
+    expect(data[1].amount).toBe(200);
   });
 
-  it('loads from Firestore when localStorage is empty', async () => {
-    mocks.getDocs.mockResolvedValue({
-      docs: [
-        { id: '1', data: () => ({ id: '1', name: 'Item 1', amount: 100 }) },
-      ],
-    });
-
-    const data = await loadFromFirestore(collectionName, userId);
-
-    expect(data.length).toBe(1);
-    expect(data[0].id).toBe('1');
-  });
-
-  it('returns empty array when both localStorage and Firestore are empty', async () => {
+  it('returns empty array when Firestore snapshot has no docs', async () => {
     mocks.getDocs.mockResolvedValue({ docs: [] });
 
     const data = await loadFromFirestore(collectionName, userId);
 
     expect(data.length).toBe(0);
   });
+});
 
-  it('returns empty array when userId is missing', async () => {
-    const data = await loadFromFirestore(collectionName, undefined);
-    expect(data.length).toBe(0);
+describe('loadBudgetPlan', () => {
+  const userId = 'uid-123';
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mocks.collection.mockReturnValue({} as any);
+    mocks.doc.mockReturnValue({} as any);
+    mocks.query.mockReturnValue({} as any);
+  });
+
+  it('returns plan items from Firestore', async () => {
+    mocks.getDoc.mockResolvedValue({
+      exists: () => true,
+      data: () => ({ items: [{ id: '1', name: 'Test', amount: 100, plan: 50, group: 'monthly', type: 'item' }], updatedAt: '2026-01-01T00:00:00.000Z' }),
+    });
+
+    const plan = await loadBudgetPlan(userId);
+
+    expect(plan.items).toHaveLength(1);
+    expect(plan.items[0].id).toBe('1');
+    expect(mocks.setDoc as any).not.toHaveBeenCalled();
+  });
+
+  it('returns empty plan when document does not exist', async () => {
+    mocks.getDoc.mockResolvedValue({ exists: () => false });
+
+    const plan = await loadBudgetPlan(userId);
+
+    expect(plan.items).toEqual([]);
+  });
+});
+
+describe('saveBudgetPlan', () => {
+  const userId = 'uid-123';
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mocks.collection.mockReturnValue({} as any);
+    mocks.doc.mockReturnValue({} as any);
+    mocks.query.mockReturnValue({} as any);
+  });
+
+  it('saves plan items to Firestore', async () => {
+    mocks.getDoc.mockResolvedValue({ exists: () => true });
+
+    await saveBudgetPlan(userId, [{ id: '1', name: 'Test', amount: 100, plan: 50, group: 'monthly', type: 'item' }]);
+
+    expect(mocks.setDoc as any).toHaveBeenCalledTimes(1);
+  });
+
+  it('does nothing when userId is missing', async () => {
+    await saveBudgetPlan(undefined, [{ id: '1', name: 'Test', amount: 100, plan: 50, group: 'monthly', type: 'item' }]);
+    expect(mocks.setDoc as any).not.toHaveBeenCalled();
+  });
+});
+
+describe('resetBudgetPlan', () => {
+  const userId = 'uid-123';
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mocks.collection.mockReturnValue({} as any);
+    mocks.doc.mockReturnValue({} as any);
+    mocks.query.mockReturnValue({} as any);
+  });
+
+  it('saves empty plan to Firestore', async () => {
+    await resetBudgetPlan(userId);
+
+    expect(mocks.setDoc as any).toHaveBeenCalledTimes(1);
+  });
+
+  it('does nothing when userId is missing', async () => {
+    await resetBudgetPlan(undefined);
+    expect(mocks.setDoc as any).not.toHaveBeenCalled();
   });
 });

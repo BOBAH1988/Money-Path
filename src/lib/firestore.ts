@@ -8,13 +8,42 @@ import {
   deleteDoc,
   query,
   orderBy,
+  type DocumentData,
+  type QueryDocumentSnapshot,
 } from 'firebase/firestore';
 
-const RESET_FLAG_KEY = 'denegnyj_put_reset_pending';
+export const COLLECTIONS = {
+  assets: 'assets',
+  liabilities: 'liabilities',
+  income: 'income',
+  incomeArchive: 'income_archive',
+  budgetPlan: 'budget_plan',
+  users: 'users',
+} as const;
+
+export type FirestoreCollection = (typeof COLLECTIONS)[keyof typeof COLLECTIONS];
+
+export const ALL_COLLECTIONS: FirestoreCollection[] = [
+  COLLECTIONS.assets,
+  COLLECTIONS.liabilities,
+  COLLECTIONS.income,
+  COLLECTIONS.incomeArchive,
+  COLLECTIONS.budgetPlan,
+];
+
+export const idField = (id: string): string => id;
+
+const storageKey = (collectionName: string, userId?: string) =>
+  userId ? `denegnyj_put_${userId}_${collectionName}` : `denegnyj_put_${collectionName}`;
+
+export const colPath = (collectionName: string, userId?: string) =>
+  userId ? `users/${userId}/${collectionName}` : collectionName;
+
+export const storageKeyFor = (collectionName: string, userId?: string) => storageKey(collectionName, userId);
 
 export const isResetPending = (): boolean => {
   try {
-    const v = localStorage.getItem(RESET_FLAG_KEY);
+    const v = localStorage.getItem('denegnyj_put_reset_pending');
     return v !== null && v !== '';
   } catch {
     return false;
@@ -23,7 +52,7 @@ export const isResetPending = (): boolean => {
 
 export const getResetPendingUserId = (): string | undefined => {
   try {
-    const v = localStorage.getItem(RESET_FLAG_KEY);
+    const v = localStorage.getItem('denegnyj_put_reset_pending');
     if (v === null) return undefined;
     return v === '' ? undefined : v;
   } catch {
@@ -33,31 +62,21 @@ export const getResetPendingUserId = (): string | undefined => {
 
 export const clearResetPending = () => {
   try {
-    localStorage.removeItem(RESET_FLAG_KEY);
+    localStorage.removeItem('denegnyj_put_reset_pending');
   } catch {
     // ignore
   }
 };
-export const COLLECTIONS = {
-  assets: 'assets',
-  liabilities: 'liabilities',
-  income: 'income',
-  incomeArchive: 'income_archive',
-  budgetPlan: 'budget_plan',
-  users: 'users',
+
+export const clearCollectionData = (collectionName: string, userId?: string): void => {
+  try {
+    localStorage.removeItem(storageKey(collectionName, userId));
+    localStorage.removeItem(storageKey(collectionName, undefined));
+  } catch {
+    // ignore
+  }
 };
 
-export type UserStat = {
-  uid: string;
-  email: string;
-  createdAt: string;
-  lastActive: string;
-};
-
-/**
- * Создаёт или обновляет профиль пользователя в коллекции users.
- * createdAt фиксируется только при первом создании, lastActive обновляется при каждом входе.
- */
 export const trackUser = async (uid: string, email: string): Promise<void> => {
   if (!firestoreDb) return;
   try {
@@ -70,15 +89,11 @@ export const trackUser = async (uid: string, email: string): Promise<void> => {
       await setDoc(userRef, { ...snap.data(), email, lastActive: now }, { merge: true });
     }
   } catch (err) {
-    // eslint-disable-next-line no-console
-    console.error('[firestore] trackUser ошибка:', err);
+    console.error(`[firestore] trackUser uid=${uid} ошибка:`, err);
   }
 };
 
-/**
- * Возвращает профили всех пользователей (для админ-статистики).
- */
-export const getAllUsers = async (): Promise<UserStat[]> => {
+export const getAllUsers = async (): Promise<{ uid: string; email: string; createdAt: string; lastActive: string }[]> => {
   if (!firestoreDb) return [];
   try {
     const snapshot = await getDocs(collection(firestoreDb, 'users'));
@@ -92,286 +107,132 @@ export const getAllUsers = async (): Promise<UserStat[]> => {
       };
     });
   } catch (err) {
-    // eslint-disable-next-line no-console
     console.error('[firestore] getAllUsers ошибка:', err);
     return [];
   }
 };
 
-export type FirestoreCollection = string;
-
-export const ALL_COLLECTIONS: FirestoreCollection[] = [
-  COLLECTIONS.assets,
-  COLLECTIONS.liabilities,
-  COLLECTIONS.income,
-  COLLECTIONS.incomeArchive,
-];
-
-const storageKey = (collectionName: string, userId?: string) =>
-  userId ? `denegnyj_put_${userId}_${collectionName}` : `denegnyj_put_${collectionName}`;
-
-export const colPath = (collectionName: string, userId?: string) =>
-  userId ? `users/${userId}/${collectionName}` : collectionName;
-
-const loadFromLocalStorage = <T extends { id: string }>(
-  collectionName: string,
-  userId?: string
-): T[] => {
-  try {
-    const raw = localStorage.getItem(storageKey(collectionName, userId));
-    if (!raw) return [];
-    const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? (parsed as T[]) : [];
-  } catch {
-    return [];
-  }
-};
-
-const nowIso = (): string => new Date().toISOString();
-
-const stampItems = <T extends { id: string }>(items: T[]): T[] => {
-  const now = nowIso();
-  return items.map((item) => ({ ...item, updatedAt: now } as T));
-};
-
-const saveToLocalStorage = <T extends { id: string }>(
-  collectionName: string,
-  items: T[],
-  userId?: string
-): void => {
-  try {
-    localStorage.setItem(storageKey(collectionName, userId), JSON.stringify(stampItems(items)));
-  } catch {
-    // ignore quota errors
-  }
-};
-
-export const loadLocalCollection = <T extends { id: string }>(
-  collectionName: string,
-  userId?: string
-): T[] => loadFromLocalStorage<T>(collectionName, userId);
-
 export const saveToFirestore = async <T extends { id: string }>(
   collectionName: string,
   items: T[],
-  userId?: string
+  userId?: string,
 ) => {
-  const stamped = stampItems(items);
-  // Сохраняем в локальное хранилище всегда (в т.ч. без авторизации), чтобы данные не пропадали при перезагрузке
-  saveToLocalStorage(collectionName, stamped, userId);
+  const stamped = items.map((item) => ({ ...item, updatedAt: new Date().toISOString() } as T));
   if (!userId) return;
   if (!firestoreDb) return;
-  // Сохраняем/обновляем существующие документы. Массовое удаление документов,
-  // которых нет в локальном массиве, НЕЛЬЗЯ делать: когда два устройства работают
-  // параллельно, последняя операция удалила бы данные, что были только на другом устройстве.
   const colRef = collection(firestoreDb, colPath(collectionName, userId));
   const batch = stamped.map((item) =>
-    setDoc(doc(colRef, item.id), { ...item, userId } as Record<string, unknown>)
+    setDoc(doc(colRef, item.id), { ...item, userId } as DocumentData),
   );
   try {
     await Promise.all(batch);
   } catch (err) {
-    // eslint-disable-next-line no-console
-    console.error(
-      `[firestore] saveToFirestore(${collectionName}, userId=${userId}) ошибка:`,
-      err instanceof Error ? err.message : err
-    );
+    console.error(`[firestore] saveToFirestore(${collectionName}) ошибка:`, err);
     throw err;
   }
-  // После успешного сохранения новых данных — снимаем флаг сброса
-  clearResetPending();
 };
 
-export const loadFromFirestore = async <T extends { id: string } = { id: string }>(
-  collectionName: string,
-  userId?: string
-): Promise<T[]> => {
-  // Сначала читаем локальное хранилище (работает с userId или без, для неавторизованных пользователей)
-  const localData = loadFromLocalStorage<T>(collectionName, userId);
-  if (localData.length > 0) {
-    return localData;
-  }
-
-  // Без авторизации и без локальных данных — данные недоступны
-  if (!userId) {
-    return [];
-  }
-
-  if (!firestoreDb) {
-    return [];
-  }
-  try {
-    const colRef = collection(firestoreDb, colPath(collectionName, userId));
-    const q = query(colRef, orderBy('id'));
-    const snapshot = await getDocs(q);
-    const data = snapshot.docs.map(
-      (docSnap) => docSnap.data() as unknown as T
-    );
-    if (data.length > 0) {
-      saveToLocalStorage(collectionName, data, userId);
-    }
-    return data;
-  } catch (err) {
-    // Firestore недоступен (например, 400 Bad Request) — возвращаем локальные данные,
-    // чтобы не показывать устаревшие данные из IndexedDB кэша
-    const fallback = loadFromLocalStorage<T>(collectionName, userId);
-    if (fallback.length > 0) {
-      return fallback;
-    }
-    return [];
-  }
-};
-
-/**
- * Переносит старые локальные данные (без userId) в пользовательское хранилище
- * и загружает в Firestore под данным пользователем.
- */
-export const migrateCollectionToUser = async (
-  collectionName: string,
-  userId: string
-): Promise<void> => {
-  const oldData = loadFromLocalStorage<{ id: string }>(
-    collectionName,
-    undefined
-  );
-  if (!oldData || oldData.length === 0) return;
-
-  // Сохраняем в пользовательский localStorage
-  saveToLocalStorage(collectionName, oldData, userId);
-
-  // Загружаем в Firestore
-  if (!firestoreDb) return;
-  try {
-    const colRef = collection(firestoreDb, colPath(collectionName, userId));
-    const batch = oldData.map((item) =>
-      setDoc(doc(colRef, item.id), { ...item, userId } as Record<string, unknown>)
-    );
-    await Promise.all(batch);
-  } catch (err) {
-    // eslint-disable-next-line no-console
-    console.error(
-      `[firestore] migrateCollectionToUser(${collectionName}, userId=${userId}) ошибка:`,
-      err instanceof Error ? err.message : err
-    );
-  }
-};
-
-export const deleteFromFirestore = async (
-  collectionName: string,
-  id: string,
-  userId?: string
-) => {
-  if (!userId) return;
-  try {
-    const raw = localStorage.getItem(storageKey(collectionName, userId));
-    if (raw) {
-      const items = JSON.parse(raw) as { id: string }[];
-      const filtered = items.filter((it) => it.id !== id);
-      localStorage.setItem(storageKey(collectionName, userId), JSON.stringify(filtered));
-    }
-  } catch {
-    // ignore
-  }
-  if (!firestoreDb || !userId) return;
+export const deleteFromFirestore = async (collectionName: string, id: string, userId?: string) => {
+  if (!userId || !firestoreDb) return;
   try {
     await deleteDoc(doc(firestoreDb, colPath(collectionName, userId), id));
   } catch (err) {
-    // eslint-disable-next-line no-console
-    console.error(
-      `[firestore] deleteFromFirestore(${collectionName}, id=${id}, userId=${userId}) ошибка:`,
-      err instanceof Error ? err.message : err
-    );
+    console.error(`[firestore] deleteFromFirestore(${collectionName}, id=${id}) ошибка:`, err);
   }
 };
 
-export const clearCollectionData = (
+export const loadFromFirestore = async <T extends { id: string }>(
   collectionName: string,
-  userId?: string
-): void => {
-  // Чистим локальное хранилище синхронно
+  userId?: string,
+): Promise<T[]> => {
+  if (!userId || !firestoreDb) return [];
   try {
-    localStorage.removeItem(storageKey(collectionName, userId));
-    localStorage.removeItem(storageKey(collectionName, undefined));
-    // Чистим ключи, оставшиеся от предыдущих пользователей (после выхода из аккаунта)
-    const prefix = `denegnyj_put_`;
-    const suffix = `_${collectionName}`;
-    const keysToRemove: string[] = [];
-    for (let i = 0; i < localStorage.length; i++) {
-      const key = localStorage.key(i);
-      if (!key) continue;
-      if ((key.startsWith(prefix) && key.endsWith(suffix)) || key === `${prefix}${collectionName}`) {
-        keysToRemove.push(key);
-      }
-    }
-    keysToRemove.forEach((key) => localStorage.removeItem(key));
-  } catch {
-    // ignore
+    const colRef = collection(firestoreDb, colPath(collectionName, userId));
+    const q = query(colRef, orderBy('updatedAt', 'desc'));
+    const snapshot = await getDocs(q);
+    return snapshot.docs.map((docSnap) => {
+      const data = docSnap.data() as T & Record<string, unknown>;
+      return {
+        id: docSnap.id,
+        ...data,
+      } as T;
+    });
+  } catch (err) {
+    console.error(`[firestore] loadFromFirestore(${collectionName}) ошибка:`, err);
+    return [];
   }
 };
 
-export const cleanupResetPendingFirestore = async (userId: string): Promise<boolean> => {
-  if (!firestoreDb || !userId) {
-    return true;
+export const loadBudgetPlan = async (userId?: string): Promise<{ items: unknown[]; updatedAt: string }> => {
+  if (!userId || !firestoreDb) {
+    return { items: [], updatedAt: '' };
   }
-  let hadError = false;
-  const collections = [COLLECTIONS.assets, COLLECTIONS.liabilities, COLLECTIONS.income, COLLECTIONS.incomeArchive];
-  for (const c of collections) {
-    try {
-      const colRef = collection(firestoreDb!, colPath(c, userId));
-      const snapshot = await getDocs(colRef);
-      await Promise.all(snapshot.docs.map((docSnap) => deleteDoc(docSnap.ref)));
-      const after = await getDocs(colRef);
-      if (after.docs.length > 0) {
-        hadError = true;
-        console.error('[cleanup] ' + c + ': docs still remain!');
-      }
-    } catch (e) {
-      hadError = true;
-      console.error('cleanup failed for', c, e);
-    }
-  }
-  // budget plan
   try {
-    await deleteDoc(doc(firestoreDb!, colPath(COLLECTIONS.budgetPlan, userId), 'budget_plan'));
-  } catch (e) {
-    console.error('budget cleanup failed', e);
+    const docRef = doc(firestoreDb, colPath(COLLECTIONS.budgetPlan, userId), 'budget_plan');
+    const snap = await getDoc(docRef);
+    if (snap.exists()) {
+      const data = snap.data() as { items?: unknown[]; updatedAt?: string };
+      return { items: data.items ?? [], updatedAt: data.updatedAt ?? '' };
+    }
+  } catch (err) {
+    console.error('[firestore] loadBudgetPlan ошибка:', err);
   }
-  return !hadError;
+  return { items: [], updatedAt: '' };
 };
 
-export { firestoreDb, firebaseError };
+export const saveBudgetPlan = async (userId?: string, items: unknown[] = [], updatedAt = new Date().toISOString()) => {
+  if (!userId || !firestoreDb) return;
+  try {
+    await setDoc(doc(firestoreDb, colPath(COLLECTIONS.budgetPlan, userId), 'budget_plan'), {
+      items,
+      updatedAt,
+      userId,
+    });
+  } catch (err) {
+    console.error('[firestore] saveBudgetPlan ошибка:', err);
+    throw err;
+  }
+};
 
-/**
- * Синхронизирует неотправленные изменения из локального кэша (localStorage)
- * в Firestore при появлении интернета. Вызывается из основного приложения
- * на событии online.
- */
+export const resetBudgetPlan = async (userId?: string): Promise<{ items: unknown[]; updatedAt: string }> => {
+  if (!userId || !firestoreDb) {
+    return { items: [], updatedAt: new Date().toISOString() };
+  }
+  try {
+    await setDoc(doc(firestoreDb, colPath(COLLECTIONS.budgetPlan, userId), 'budget_plan'), {
+      items: [],
+      updatedAt: new Date().toISOString(),
+      userId,
+    });
+  } catch (err) {
+    console.error('[firestore] resetBudgetPlan ошибка:', err);
+    throw err;
+  }
+  return { items: [], updatedAt: new Date().toISOString() };
+};
+
 export const syncPendingToFirestore = async (): Promise<void> => {
   if (!firestoreDb) return;
   const prefix = `denegnyj_put_`;
   const seen = new Set<string>();
-  for (let i = 0; i < localStorage.length; i++) {
-    const key = localStorage.key(i);
-    if (!key || !key.startsWith(prefix)) continue;
+  const keys = Object.keys(localStorage);
+  for (const key of keys) {
+    if (!key.startsWith(prefix)) continue;
     const rest = key.slice(prefix.length);
-    // denegnyj_put_<userId>_<collection>
     const matched = ALL_COLLECTIONS.find((c) => rest.endsWith(`_${c}`));
     if (!matched) continue;
     const userId = rest.slice(0, rest.length - matched.length - 1);
     if (!userId || seen.has(userId)) continue;
     seen.add(userId);
-    for (const collectionName of ALL_COLLECTIONS) {
-      try {
-        const items = loadFromLocalStorage<{ id: string }>(collectionName, userId);
-        if (items.length === 0) continue;
-        await saveToFirestore(collectionName, items, userId);
-      } catch (err) {
-        // eslint-disable-next-line no-console
-        console.error(
-          `[firestore] syncPendingToFirestore(${collectionName}, userId=${userId}) ошибка:`,
-          err instanceof Error ? err.message : err
-        );
-      }
+    try {
+      const items = JSON.parse(localStorage.getItem(key) ?? '[]') as { id: string }[];
+      if (items.length === 0) continue;
+      await saveToFirestore(matched, items, userId);
+      localStorage.removeItem(key);
+    } catch (err) {
+      console.error(`[firestore] syncPendingToFirestore(${matched}) ошибка:`, err);
     }
   }
 };
+
+export { firestoreDb, firebaseError };

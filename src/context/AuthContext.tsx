@@ -10,10 +10,8 @@ import {
 } from 'firebase/auth';
 import { auth } from '../lib/firebase';
 import {
-  COLLECTIONS,
-  clearCollectionData,
-  migrateCollectionToUser,
   trackUser,
+  syncPendingToFirestore,
 } from '../lib/firestore';
 
 import { ADMIN_EMAIL } from './auth-constants';
@@ -49,16 +47,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const isAdmin = isAuthenticated && user ? user.email === ADMIN_EMAIL : false;
 
-  const migrateAllToUser = async (userId: string) => {
-    for (const collection of Object.values(COLLECTIONS)) {
-      try {
-        await migrateCollectionToUser(collection, userId);
-      } catch {
-        // ignore per-collection errors
-      }
-    }
-  };
-
   useEffect(() => {
     if (!auth) {
       setIsAuthReady(true);
@@ -69,23 +57,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       if (u) {
         setUid(u.uid);
         setIsAuthenticated(true);
-        localStorage.setItem('denegnyj_put_auth_uid', u.uid);
-        // Сначала выгружаем старые локальные данные в облако под этим пользователем,
-        // и только после этого разрешаем компонентам загружать данные.
-        await migrateAllToUser(u.uid);
-        await trackUser(u.uid, u.email ?? '').catch(() => {
-          // ignore
-        });
+        // При входе в аккаунт — сначала синхронизируем локальные данные в Firestore
+        // (используем pending localStorage), чтобы данные появлялись с первого входа.
+        await syncPendingToFirestore();
+        await trackUser(u.uid, u.email ?? '');
       } else {
-        // Выход: удаляем локальные данные бывшего пользователя, чтобы при следующем
-        // входе на этом устройстве не подтянулись его закешированные данные.
-        for (const collection of Object.values(COLLECTIONS)) {
-          try {
-            clearCollectionData(collection, undefined);
-          } catch {
-            // ignore
-          }
-        }
         setUid(undefined);
         setIsAuthenticated(false);
         localStorage.removeItem('denegnyj_put_auth_uid');

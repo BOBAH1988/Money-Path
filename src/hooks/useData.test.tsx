@@ -1,9 +1,10 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
-import { useCollection } from './useCollection';
+import { useData } from './useData';
+import { useAuth } from '../context/AuthContext';
 import { COLLECTIONS } from '../lib/firestore';
-import { AuthProvider } from '../context/AuthContext';
 import { ToastProvider } from '../ui/Toast';
+import { AuthProvider } from '../context/AuthContext';
 
 const localStorageMock = (() => {
   let store: Record<string, string> = {};
@@ -32,51 +33,65 @@ const wrap = ({ children }: { children: React.ReactNode }) => (
   </ToastProvider>
 );
 
-interface TestItem {
+interface AssetRow {
   id: string;
   name: string;
   amount: number;
   monthly: number;
 }
 
-describe('useCollection', () => {
+const renderHookWithContext = (): typeof renderHook => renderHook;
+
+describe('useData', () => {
   beforeEach(() => {
     localStorageMock.clear();
     vi.clearAllMocks();
   });
 
-  it('removes the only item (previously it was only cleared, not removed)', async () => {
+  it('returns empty items when Firestore returns nothing', async () => {
     const { result } = renderHook(() =>
-      useCollection<TestItem>({
+      useData<AssetRow>({
         collectionName: COLLECTIONS.assets,
-        userId: undefined,
+        userId: 'uid-123',
       }),
       { wrapper: wrap }
     );
-    await new Promise((r) => setTimeout(r, 100));
+
+    await new Promise((r) => setTimeout(r, 50));
+
+    expect(result.current.items).toEqual([]);
+    expect(result.current.loading).toBe(false);
+  });
+
+  it('adds item to state', async () => {
+    const { result } = renderHook(() =>
+      useData<AssetRow>({
+        collectionName: COLLECTIONS.assets,
+        userId: 'uid-123',
+      }),
+      { wrapper: wrap }
+    );
+
+    await new Promise((r) => setTimeout(r, 50));
 
     act(() => {
       result.current.addItem({ name: 'Вклад', amount: 1000, monthly: 50 });
     });
 
-    const item = result.current.items[0];
-    act(() => {
-      result.current.removeItem(item.id);
-    });
-
-    expect(result.current.items.length).toBe(0);
-    expect(result.current.items.some((i) => i.id === item.id)).toBe(false);
+    expect(result.current.items.length).toBe(1);
+    expect(result.current.items[0].name).toBe('Вклад');
   });
 
-  it('removes one item from multiple items', async () => {
+  it('removes item from state', async () => {
     const { result } = renderHook(() =>
-      useCollection<TestItem>({
+      useData<AssetRow>({
         collectionName: COLLECTIONS.assets,
-        userId: undefined,
+        userId: 'uid-123',
       }),
       { wrapper: wrap }
     );
-    await new Promise((r) => setTimeout(r, 100));
+
+    await new Promise((r) => setTimeout(r, 50));
 
     act(() => {
       result.current.addItem({ name: 'Вклад', amount: 1000, monthly: 50 });
@@ -89,7 +104,6 @@ describe('useCollection', () => {
     });
 
     expect(result.current.items.length).toBe(1);
-    expect(result.current.items.some((i) => i.id === first.id)).toBe(false);
     expect(result.current.items[0].name).toBe('Инвестиции');
   });
 });

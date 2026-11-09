@@ -95,10 +95,22 @@ export default function Dashboard() {
   const [isLoading, setIsLoading] = useState(true);
   const totals = useMemo(() => computeBudgetPageTotals(items), [items]);
 
-  const [assets, setAssets] = useState<AssetRow[]>([]);
-  const [liabilities, setLiabilities] = useState<LiabilityRow[]>([]);
-  const [income, setIncome] = useState<IncomeRow[]>([]);
-  const [incomeArchive, setIncomeArchive] = useState<IncomeArchiveRow[]>([]);
+  const { items: assets, loading: assetsLoading, error: assetsError, addItem: addAsset, updateItem: updateAsset, removeItem: removeAsset } = useData<AssetRow>({
+    collectionName: COLLECTIONS.assets,
+    userId,
+  });
+  const { items: liabilities, loading: liabilitiesLoading, error: liabilitiesError, addItem: addLiability, updateItem: updateLiability, removeItem: removeLiability } = useData<LiabilityRow>({
+    collectionName: COLLECTIONS.liabilities,
+    userId,
+  });
+  const { items: income, loading: incomeLoading, error: incomeError, addItem: addIncome, updateItem: updateIncome, removeItem: removeIncome } = useData<IncomeRow>({
+    collectionName: COLLECTIONS.income,
+    userId,
+  });
+  const { items: incomeArchive, loading: incomeArchiveLoading, error: incomeArchiveError, addItem: addIncomeArchive, updateItem: updateIncomeArchive, removeItem: removeIncomeArchive } = useData<IncomeArchiveRow>({
+    collectionName: COLLECTIONS.incomeArchive,
+    userId,
+  });
 
   const hasData = useMemo(
     () =>
