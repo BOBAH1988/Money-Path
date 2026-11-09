@@ -176,22 +176,18 @@ export default function Layout() {
   };
 
   const handleClearCache = async () => {
+    setMenuOpen(false);
+    toastSuccess('Обновление приложения', 'Проверяем обновление…');
     try {
-      const registrations = await navigator.serviceWorker.getRegistrations();
-      for (const registration of registrations) {
-        await registration.unregister();
+      if ('serviceWorker' in navigator) {
+        const regs = await navigator.serviceWorker.getRegistrations();
+        await Promise.all(regs.map(async (reg) => {
+          try { await reg.update(); } catch {}
+          if (reg.waiting) reg.waiting.postMessage({ type: 'SKIP_WAITING' });
+        }));
       }
-      const cacheNames = await caches.keys();
-      for (const name of cacheNames) {
-        await caches.delete(name);
-      }
-      sessionStorage.setItem('denegnyj_clear_cache', '1');
-      toastSuccess('Кэш очищен', 'Перезагрузка приложения...');
-      setMenuOpen(false);
-      window.location.reload();
-    } catch (err) {
-      toastError('Ошибка кэша', err instanceof Error ? err.message : 'Не удалось очистить кэш');
-      setMenuOpen(false);
+    } catch {
+      // ignore; SW/controllerchange в main.tsx выполнит безопасный refresh при наличии обновления
     }
   };
 
