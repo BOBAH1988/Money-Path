@@ -3,6 +3,8 @@ import { PageTitleContext } from '../components/PageTitleContext';
 import { BudgetTable } from '../components/budget/BudgetTable';
 import type { BudgetGroup } from '../types';
 import { useAuth } from '../context/AuthContext';
+import { useData } from '../hooks/useData';
+import { loadFromFirestore, COLLECTIONS } from '../lib/firestore';
 
 const CURRENT_YEAR = new Date().getFullYear();
 
@@ -43,7 +45,7 @@ export default function Income() {
   }, [setPageTitle]);
 
   const { items, loading: itemsLoading, error: itemsError, addItem, updateItem, removeItem } =
-    useCollection<IncomeRow>({
+    useData<IncomeRow>({
       collectionName: COLLECTIONS.income,
       userId,
     });
@@ -104,8 +106,8 @@ export default function Income() {
     [items]
   );
 
-  const totalAmount = items.reduce((sum, it) => sum + it.amount, 0);
-  const totalMonthly = items.reduce((sum, it) => sum + it.monthly, 0);
+  const totalAmount = items.reduce((sum: number, it: IncomeRow) => sum + it.amount, 0);
+  const totalMonthly = items.reduce((sum: number, it: IncomeRow) => sum + it.monthly, 0);
 
   const loading = itemsLoading || archiveLoading;
   const error = itemsError;

@@ -6,7 +6,6 @@ import { useBudget } from '../hooks/useBudget';
 import { computeBudgetPageTotals } from '../lib/budget';
 import { useAuth } from '../context/AuthContext';
 import { loadFromFirestore, COLLECTIONS } from '../lib/firestore';
-import { safeNegate } from '../lib/budget';
 import { EmptyState } from '../ui/EmptyState';
 import { AuthModal } from '../components/AuthModal';
 import { LineChart, BarChart } from '../components/dashboard/Charts';
@@ -95,22 +94,10 @@ export default function Dashboard() {
   const [isLoading, setIsLoading] = useState(true);
   const totals = useMemo(() => computeBudgetPageTotals(items), [items]);
 
-  const { items: assets, loading: assetsLoading, error: assetsError, addItem: addAsset, updateItem: updateAsset, removeItem: removeAsset } = useData<AssetRow>({
-    collectionName: COLLECTIONS.assets,
-    userId,
-  });
-  const { items: liabilities, loading: liabilitiesLoading, error: liabilitiesError, addItem: addLiability, updateItem: updateLiability, removeItem: removeLiability } = useData<LiabilityRow>({
-    collectionName: COLLECTIONS.liabilities,
-    userId,
-  });
-  const { items: income, loading: incomeLoading, error: incomeError, addItem: addIncome, updateItem: updateIncome, removeItem: removeIncome } = useData<IncomeRow>({
-    collectionName: COLLECTIONS.income,
-    userId,
-  });
-  const { items: incomeArchive, loading: incomeArchiveLoading, error: incomeArchiveError, addItem: addIncomeArchive, updateItem: updateIncomeArchive, removeItem: removeIncomeArchive } = useData<IncomeArchiveRow>({
-    collectionName: COLLECTIONS.incomeArchive,
-    userId,
-  });
+  const [assets, setAssets] = useState<AssetRow[]>([]);
+  const [liabilities, setLiabilities] = useState<LiabilityRow[]>([]);
+  const [income, setIncome] = useState<IncomeRow[]>([]);
+  const [incomeArchive, setIncomeArchive] = useState<IncomeArchiveRow[]>([]);
 
   const hasData = useMemo(
     () =>
@@ -126,8 +113,6 @@ export default function Dashboard() {
   }, [setPageTitle]);
 
   useEffect(() => {
-    // Загрузка обрабатывается только после подтверждения авторизации, иначе запрос
-    // уйдёт без ID-токена и будет отклонён правилами безопасности.
     if (!isAuthReady || !userId) {
       setAssets([]);
       setLiabilities([]);
@@ -173,7 +158,7 @@ export default function Dashboard() {
   );
   const totalLiabilities = useMemo(() => {
     const sum = liabilities.reduce((s, it) => s + (it.amount ?? 0), 0);
-    return safeNegate(sum);
+    return -sum;
   }, [liabilities]);
 
   const incomeAmount = useMemo(
@@ -244,7 +229,7 @@ export default function Dashboard() {
     return normalized;
   }, [incomeArchive, selectedYear, selectedYearArchive]);
 
-  const [archiveSummary, setArchiveSummary] = useState({
+  const [archiveSummary] = useState({
     income: 0,
     plan: 0,
     expense: 0,
@@ -325,7 +310,6 @@ export default function Dashboard() {
               setLiabilities([]);
               setIncome([]);
               setIncomeArchive([]);
-              setArchiveSummary({ income: 0, plan: 0, expense: 0 });
             }}
           >
             Очистить

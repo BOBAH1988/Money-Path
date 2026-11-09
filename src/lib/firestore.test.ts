@@ -155,7 +155,7 @@ describe('loadBudgetPlan', () => {
     const plan = await loadBudgetPlan(userId);
 
     expect(plan.items).toHaveLength(1);
-    expect(plan.items[0].id).toBe('1');
+    expect((plan.items[0] as { id: string }).id).toBe('1');
     expect(mocks.setDoc as any).not.toHaveBeenCalled();
   });
 

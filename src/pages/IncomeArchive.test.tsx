@@ -1,14 +1,12 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
-import { PageTitleContext } from '../components/PageTitleContext';
 import { ToastProvider } from '../ui/Toast';
-import { AuthProvider } from '../context/AuthContext';
 import { useData } from '../hooks/useData';
 import { useAuth } from '../context/AuthContext';
 import { COLLECTIONS } from '../lib/firestore';
 
 const IncomeArchiveMock = () => {
-  const { items, loading, error, addItem, updateItem, removeItem } = useData<{ id: string; name: string; months: number[] }>({
+  const { loading, error, addItem, removeItem } = useData<{ id: string; name: string; months: number[]; year: number }>({
     collectionName: COLLECTIONS.incomeArchive,
     userId: 'uid-123',
   });
@@ -16,7 +14,7 @@ const IncomeArchiveMock = () => {
     <div>
       <h2>Доходы архив</h2>
       <div>0</div>
-      <button onClick={() => addItem({ id: '1', name: 'Тест', months: [1, 2, 3] })}>Добавить</button>
+      <button onClick={() => addItem({ name: 'Тест', months: [1, 2, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0], year: 2026 })}>Добавить</button>
       <button onClick={() => removeItem('1')}>Удалить</button>
       {loading && <span>загрузка</span>}
       {error && <span>ошибка</span>}
@@ -50,7 +48,7 @@ vi.mock('../hooks/useData', () => ({
 }));
 
 vi.mock('../context/AuthContext', async (importOriginal) => {
-  const actual = await importOriginal();
+  const actual = await importOriginal<typeof import('../context/AuthContext')>();
   return {
     ...actual,
     useAuth: vi.fn(),

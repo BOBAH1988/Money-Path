@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../ui/Toast';
+import type { BudgetPlanItem } from '../types';
 import {
   loadBudgetPlan,
   saveBudgetPlan,
@@ -10,23 +11,23 @@ import {
 } from '../lib/firestore';
 
 export interface UseBudgetPlanReturn {
-  items: unknown[];
+  items: BudgetPlanItem[];
   loading: boolean;
   error: string | null;
-  addItem: (item: Record<string, unknown>) => void;
-  updateItem: (id: string, patch: Partial<Record<string, unknown>>) => void;
+  addItem: (item: Omit<BudgetPlanItem, 'id'> | BudgetPlanItem) => void;
+  updateItem: (id: string, patch: Partial<BudgetPlanItem>) => void;
   removeItem: (id: string) => void;
   reset: () => Promise<void>;
 }
 
 export function useBudgetPlan(): UseBudgetPlanReturn {
-  const { isAuthReady } = useAuth();
+  const { isAuthReady, uid } = useAuth();
   const { error: toastError, success: toastSuccess } = useToast();
-  const [plan, setPlan] = useState<{ items: unknown[]; updatedAt: string } | null>(null);
+  const [plan, setPlan] = useState<{ items: BudgetPlanItem[]; updatedAt: string } | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const userId = useAuth().uid;
+  const userId = uid;
 
   useEffect(() => {
     if (!isAuthReady || !userId) {
@@ -36,7 +37,7 @@ export function useBudgetPlan(): UseBudgetPlanReturn {
     void (async () => {
       try {
         const data = await loadBudgetPlan(userId);
-        setPlan({ items: data.items ?? [], updatedAt: data.updatedAt ?? '' });
+        setPlan({ items: (data.items ?? []) as BudgetPlanItem[], updatedAt: data.updatedAt ?? '' });
         setError(null);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Ошибка загрузки плана');
@@ -66,14 +67,15 @@ export function useBudgetPlan(): UseBudgetPlanReturn {
     };
   }, [plan, isAuthReady, userId, toastError]);
 
-  const addItem = useCallback((item: Record<string, unknown>) => {
+  const addItem = useCallback((item: Omit<BudgetPlanItem, 'id'> | BudgetPlanItem) => {
+    const newItem = ('id' in item && item.id) ? (item as BudgetPlanItem) : { ...item, id: crypto.randomUUID() } as BudgetPlanItem;
     setPlan((prev) => {
-      const nextItems = prev?.items ? [...prev.items, item] : [item];
+      const nextItems = prev?.items ? [...prev.items, newItem] : [newItem];
       return { items: nextItems, updatedAt: new Date().toISOString() };
     });
   }, []);
 
-  const updateItem = useCallback((id: string, patch: Partial<Record<string, unknown>>) => {
+  const updateItem = useCallback((id: string, patch: Partial<BudgetPlanItem>) => {
     setPlan((prev) => {
       if (!prev) return prev;
       const nextItems = prev.items.map((it) => (it.id === id ? { ...it, ...patch } : it));
@@ -98,7 +100,7 @@ export function useBudgetPlan(): UseBudgetPlanReturn {
   const reset = useCallback(async () => {
     try {
       const def = await resetBudgetPlan(userId);
-      setPlan({ items: def.items, updatedAt: def.updatedAt });
+      setPlan({ items: (def.items ?? []) as BudgetPlanItem[], updatedAt: def.updatedAt ?? new Date().toISOString() });
       toastSuccess('Данные очищены');
     } catch (err) {
       toastError('Ошибка сброса', err instanceof Error ? err.message : 'Не удалось сбросить данные');

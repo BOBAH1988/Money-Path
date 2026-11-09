@@ -1,10 +1,10 @@
-import { useEffect, useState, useMemo } from 'react';
-import { useContext } from 'react';
+import { useEffect, useState, useMemo, useContext } from 'react';
 import { PageTitleContext } from '../components/PageTitleContext';
-import { saveToFirestore, loadFromFirestore, COLLECTIONS } from '../lib/firestore';
+import { COLLECTIONS } from '../lib/firestore';
 import { firestoreDb } from '../lib/firebase';
 import { doc, deleteDoc } from 'firebase/firestore';
 import { useAuth } from '../context/AuthContext';
+import { useData } from '../hooks/useData';
 import { ConfirmDialog } from '../ui/ConfirmDialog';
 import { useToast } from '../ui/Toast';
 
@@ -24,23 +24,13 @@ interface IncomeArchiveRow {
 
 const emptyMonths = () => new Array(12).fill(0);
 
-const migrateRow = (raw: { id?: string; name?: string; year?: number; months?: number[]; amount?: number; monthly?: number }): IncomeArchiveRow => {
-  const year = typeof raw?.year === 'number' ? raw.year : new Date().getFullYear();
-  if (raw && Array.isArray(raw.months) && raw.months.length === 12) {
-    return { id: raw.id ?? crypto.randomUUID(), name: raw.name ?? '', year, months: raw.months.map((v) => (typeof v === 'number' ? v : 0)) };
-  }
-  const months = emptyMonths();
-  if (typeof raw?.amount === 'number') months[0] = raw.amount;
-  if (typeof raw?.monthly === 'number') months[1] = raw.monthly;
-  return { id: raw.id ?? crypto.randomUUID(), name: raw.name ?? '', year, months };
-};
-
 const fmt = (v: number) => (v || 0).toLocaleString('ru-RU');
 
 export default function IncomeArchive() {
   const { setPageTitle } = useContext(PageTitleContext)!;
   const { uid } = useAuth();
   const userId = uid;
+  const { success: toastSuccess } = useToast();
   const { items, loading, error, addItem, updateItem, removeItem } = useData<IncomeArchiveRow>({
     collectionName: COLLECTIONS.incomeArchive,
     userId,
@@ -94,18 +84,22 @@ export default function IncomeArchive() {
   const averageIncome = filledMonthsCount > 0 ? Math.round(grandTotal / filledMonthsCount) : 0;
 
   const updateCell = (id: string, monthIdx: number, value: number) => {
-    updateItem(id, { months: (items.find((it) => it.id === id) as IncomeArchiveRow | undefined)?.months ?? emptyMonths().map(() => 0) });
+    const row = items.find((it) => it.id === id);
+    if (!row) return;
+    const nextMonths = [...row.months];
+    nextMonths[monthIdx] = value;
+    updateItem(id, { months: nextMonths });
   };
 
   const updateName = (id: string, name: string) => {
-    setItems((prev) => prev.map((it) => (it.id === id ? { ...it, name } : it)));
+    updateItem(id, { name });
   };
 
   const handleAdd = () => {
     const name = addName.trim();
     if (!name) { setShowAddRow(false); setAddName(''); setAddMonths(emptyMonths()); return; }
     const months = addMonths.map((v) => (typeof v === 'number' ? v : 0));
-    setItems((prev) => [...prev, { id: crypto.randomUUID(), name, year: selectedYear, months }]);
+    addItem({ name, year: selectedYear, months });
     setAddName('');
     setAddMonths(emptyMonths());
     setShowAddRow(false);
@@ -117,7 +111,7 @@ export default function IncomeArchive() {
 
   const confirmDelete = () => {
     if (!confirmDeleteId) return;
-    setItems((prev) => prev.filter((it) => it.id !== confirmDeleteId));
+    removeItem(confirmDeleteId);
     if (userId && firestoreDb) {
       deleteDoc(doc(firestoreDb, `users/${userId}/income_archive`, confirmDeleteId)).catch(() => {});
     }
@@ -147,7 +141,7 @@ export default function IncomeArchive() {
     );
   }
 
-  if (!loaded) {
+  if (loading) {
     return (
       <div className="page page-budget">
         <div className="budget-card">

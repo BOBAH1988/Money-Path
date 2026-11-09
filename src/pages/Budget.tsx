@@ -94,7 +94,7 @@ export default function Budget() {
           total={totalMonthly}
           totalPlan={totalMonthlyPlan}
           onUpdate={updateItem}
-          onAdd={(group, name, amount, plan) => addItem(group, name, amount, plan)}
+          onAdd={(group, name, amount, plan) => addItem({ group, name, amount, plan, type: 'item' })}
           onRemove={removeItem}
           onToggle={handleTogglePlanned}
           isPlannedCollapsed={!plannedVisible}
@@ -108,7 +108,7 @@ export default function Budget() {
             total={totalPlanned}
             totalPlan={totalPlannedPlan}
             onUpdate={updateItem}
-            onAdd={(group, name, amount, plan) => addItem(group, name, amount, plan)}
+            onAdd={(group, name, amount, plan) => addItem({ group, name, amount, plan, type: 'item' })}
             onRemove={removeItem}
           />
         )}

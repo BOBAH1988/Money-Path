@@ -2,7 +2,6 @@ import { useContext, useState, useEffect, useMemo, useRef, useLayoutEffect, lazy
 import { NavLink, Outlet, useNavigate, useLocation } from 'react-router-dom';
 import packageJson from '../../package.json';
 import { useBudgetPlan } from '../hooks/useBudgetPlan';
-import { clearCollectionData, cleanupResetPendingFirestore, COLLECTIONS, saveToFirestore } from '../lib/firestore';
 import { AppIcon } from './AppIcon';
 import { AccountButton, AccountMenu, AnalyticsModal } from './AuthModal';
 import { ConfirmDialog } from '../ui/ConfirmDialog';
@@ -104,8 +103,7 @@ export default function Layout() {
   );
   const { reset } = useBudgetPlan();
   const { error: toastError, success: toastSuccess } = useToast();
-  const { uid, isAuthenticated } = useAuth();
-  const userId = uid;
+  const { isAuthenticated } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const ctx = useContext(PageTitleContext);

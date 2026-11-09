@@ -3,7 +3,7 @@ import { PageTitleContext } from '../components/PageTitleContext';
 import { BudgetTable } from '../components/budget/BudgetTable';
 import type { BudgetGroup } from '../types';
 import { COLLECTIONS } from '../lib/firestore';
-import { safeNegate } from '../lib/budget';
+import { useData } from '../hooks/useData';
 import { useAuth } from '../context/AuthContext';
 import { EmptyState } from '../ui/EmptyState';
 
@@ -24,7 +24,7 @@ export default function Liabilities() {
   }, [setPageTitle]);
 
   const { items, loading, error, addItem, updateItem, removeItem } =
-    useCollection<LiabilityRow>({
+    useData<LiabilityRow>({
       collectionName: COLLECTIONS.liabilities,
       userId,
     });
@@ -42,8 +42,8 @@ export default function Liabilities() {
     [items]
   );
 
-  const totalAmount = safeNegate(items.reduce((sum: number, it: LiabilityRow) => sum + it.amount, 0));
-  const totalMonthly = safeNegate(items.reduce((sum: number, it: LiabilityRow) => sum + it.monthly, 0));
+  const totalAmount = items.reduce((sum: number, it: LiabilityRow) => sum + it.amount, 0);
+  const totalMonthly = items.reduce((sum: number, it: LiabilityRow) => sum + it.monthly, 0);
 
   if (error) {
     return (

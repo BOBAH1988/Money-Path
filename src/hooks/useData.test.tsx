@@ -1,7 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
 import { useData } from './useData';
-import { useAuth } from '../context/AuthContext';
 import { COLLECTIONS } from '../lib/firestore';
 import { ToastProvider } from '../ui/Toast';
 import { AuthProvider } from '../context/AuthContext';
@@ -39,8 +38,6 @@ interface AssetRow {
   amount: number;
   monthly: number;
 }
-
-const renderHookWithContext = (): typeof renderHook => renderHook;
 
 describe('useData', () => {
   beforeEach(() => {
