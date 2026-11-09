@@ -36,11 +36,7 @@ export default function Budget() {
   };
 
   if (loading) {
-    return (
-      <div className="page page-budget">
-        <PageLoader text="Загрузка данных" />
-      </div>
-    );
+    return <PageLoader text="Загрузка данных" fullScreen />;
   }
 
   if (error) {
