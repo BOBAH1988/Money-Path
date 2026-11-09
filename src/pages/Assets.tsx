@@ -86,7 +86,7 @@ export default function Assets() {
           items={planned}
           total={totals.totalMonthly}
           totalPlan={totals.totalMonthlyPlan}
-          headers={{ amount: 'Сумма', plan: 'Доход в мес.' }}
+          headers={{ amount: 'Сумма', plan: 'В мес.' }}
           onUpdate={updateFromBudget}
           onRemove={removeItem}
           onAdd={addFromBudget}
@@ -101,7 +101,7 @@ export default function Assets() {
                 <span className="summary-value">{totals.totalMonthly.toLocaleString('ru-RU')} ₽</span>
               </div>
               <div className="summary-item">
-                <span className="summary-label">Доход в месяц</span>
+                <span className="summary-label">В мес.</span>
                 <span className="summary-value">{totals.totalMonthlyPlan.toLocaleString('ru-RU')} ₽</span>
               </div>
             </div>
