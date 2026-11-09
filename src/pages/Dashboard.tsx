@@ -113,7 +113,11 @@ export default function Dashboard() {
   }, [setPageTitle]);
 
   useEffect(() => {
-    if (!isAuthReady || !userId) {
+    if (!isAuthReady) {
+      setIsLoading(true);
+      return;
+    }
+    if (!userId) {
       setAssets([]);
       setLiabilities([]);
       setIncome([]);
@@ -122,6 +126,7 @@ export default function Dashboard() {
       return;
     }
     let cancelled = false;
+    setIsLoading(true);
     (async () => {
       try {
         const [a, l, i, ia] = await Promise.all([

@@ -56,12 +56,17 @@ export default function Income() {
   useEffect(() => {
     // Загрузка обрабатывается только после подтверждения авторизации, иначе запрос
     // уйдёт без ID-токена и будет отклонён правилами безопасности.
-    if (!isAuthReady || !userId) {
+    if (!isAuthReady) {
+      setArchiveLoading(true);
+      return;
+    }
+    if (!userId) {
       setArchive([]);
       setArchiveLoading(false);
       return;
     }
     let cancelled = false;
+    setArchiveLoading(true);
     (async () => {
       try {
         const data = await loadFromFirestore<IncomeArchiveRow>(COLLECTIONS.incomeArchive, userId);
