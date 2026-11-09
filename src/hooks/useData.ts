@@ -50,7 +50,9 @@ export function useData<T extends { id: string }>(options: UseDataOptions): UseD
     setError(null);
     void (async () => {
       try {
-        const data = await loadFromFirestore<T>(collectionName!, userId);
+        const data = await loadFromFirestore<T>(collectionName!, userId, (fresh) => {
+          if (!cancelled) setItems(fresh);
+        });
         if (!cancelled) {
           setItems(data);
           setLoadedFor(`${userId}:${collectionName}`);
