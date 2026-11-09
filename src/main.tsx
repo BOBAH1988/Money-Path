@@ -9,21 +9,9 @@ if (import.meta.env.PROD && 'serviceWorker' in navigator) {
   const swPath = import.meta.env.BASE_URL ? `${import.meta.env.BASE_URL}sw.js` : '/sw.js';
   navigator.serviceWorker
     .register(swPath)
-    .then((registration) => {
+    .then(() => {
       // eslint-disable-next-line no-console
       console.log('[PWA] Service Worker зарегистрирован');
-
-      // При активации нового SW — перезагружаем страницу, чтобы клиент обслуживался новым SW
-      // и не оставался на старых кэшированных ресурсах.
-      registration.addEventListener('updatefound', () => {
-        const installingWorker = registration.installing;
-        if (!installingWorker) return;
-        installingWorker.addEventListener('statechange', () => {
-          if (installingWorker.state === 'activated' && navigator.serviceWorker.controller) {
-            window.location.reload();
-          }
-        });
-      });
     })
     .catch((err) => {
       // eslint-disable-next-line no-console
