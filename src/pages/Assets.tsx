@@ -6,6 +6,7 @@ import { COLLECTIONS } from '../lib/firestore';
 import { useData } from '../hooks/useData';
 import { useAuth } from '../context/AuthContext';
 import { EmptyState } from '../ui/EmptyState';
+import { PageLoader } from '../components/PageLoader';
 
 interface AssetRow {
   id: string;
@@ -67,15 +68,7 @@ export default function Assets() {
   if (loading) {
     return (
       <div className="page page-budget">
-        <div className="budget-card">
-          <div className="budget-card-body">
-            <div className="budget-table-wrap">
-              <div style={{ padding: 40, textAlign: 'center', color: 'var(--theme-text-muted)' }}>
-                Загрузка данных
-              </div>
-            </div>
-          </div>
-        </div>
+        <PageLoader text="Загрузка данных" />
       </div>
     );
   }

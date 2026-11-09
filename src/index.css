@@ -1996,10 +1996,13 @@ body { margin: 0; font-family: system-ui, sans-serif; background: var(--theme-bg
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  min-height: 40vh;
+  min-height: min(40vh, 320px);
+  width: 100%;
   gap: 14px;
   padding: 24px;
+  margin: 0 auto;
   color: var(--dp-color-text-muted, var(--theme-text-muted, #6b7280));
+  box-sizing: border-box;
 }
 .page-loader-spinner {
   width: 28px;
