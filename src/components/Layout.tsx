@@ -1,7 +1,7 @@
 import { useContext, useState, useEffect, useMemo, useRef, useLayoutEffect, lazy, Suspense } from 'react';
 import { NavLink, Outlet, useNavigate, useLocation } from 'react-router-dom';
 import packageJson from '../../package.json';
-import { useBudget } from '../hooks/useBudget';
+import { useBudgetPlan } from '../hooks/useBudgetPlan';
 import { clearCollectionData, cleanupResetPendingFirestore, COLLECTIONS, saveToFirestore } from '../lib/firestore';
 import { AppIcon } from './AppIcon';
 import { AccountButton, AccountMenu, AnalyticsModal } from './AuthModal';
@@ -102,7 +102,7 @@ export default function Layout() {
     () => /Macintosh|MacIntel|Mac_PowerPC|Mac 68K/.test(navigator.userAgent),
     []
   );
-  const { reset } = useBudget();
+  const { reset } = useBudgetPlan();
   const { error: toastError, success: toastSuccess } = useToast();
   const { uid, isAuthenticated } = useAuth();
   const userId = uid;
@@ -161,23 +161,9 @@ export default function Layout() {
 
   const handleConfirmReset = async () => {
     try {
-      await reset(true);
-      clearCollectionData(COLLECTIONS.assets, userId);
-      clearCollectionData(COLLECTIONS.liabilities, userId);
-      clearCollectionData(COLLECTIONS.income, userId);
-      clearCollectionData(COLLECTIONS.incomeArchive, userId);
-      // Также чистим Firestore, иначе после перезагрузки loadFromFirestore
-      // подтянет старые данные из облака, так как localStorage уже пуст
-      if (userId) {
-        await saveToFirestore(COLLECTIONS.assets, [], userId);
-        await saveToFirestore(COLLECTIONS.liabilities, [], userId);
-        await saveToFirestore(COLLECTIONS.income, [], userId);
-        await saveToFirestore(COLLECTIONS.incomeArchive, [], userId);
-        const ok = await cleanupResetPendingFirestore(userId);
-        if (!ok) {
-          toastError('Ошибка сброса', 'Не удалось полностью очистить данные в облаке');
-        }
-      }
+      // reset из useBudgetPlan уже удаляет всю информацию из Firebase (budget_plan + коллекции),
+      // поэтому не нужно дублировать очистку localStorage и Firestore вручную.
+      await reset();
       toastSuccess('Данные сброшены', 'Все данные удалены и приложение перезагружено');
       setConfirmReset(false);
       window.location.reload();

@@ -2,8 +2,6 @@ import { useContext, useEffect, useMemo, useState } from 'react';
 import { PageTitleContext } from '../components/PageTitleContext';
 import { BudgetTable } from '../components/budget/BudgetTable';
 import type { BudgetGroup } from '../types';
-import { loadFromFirestore, COLLECTIONS } from '../lib/firestore';
-import { useCollection } from '../hooks/useCollection';
 import { useAuth } from '../context/AuthContext';
 
 const CURRENT_YEAR = new Date().getFullYear();

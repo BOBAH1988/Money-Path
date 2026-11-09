@@ -4,7 +4,6 @@ import { BudgetTable } from '../components/budget/BudgetTable';
 import type { BudgetGroup } from '../types';
 import { COLLECTIONS } from '../lib/firestore';
 import { safeNegate } from '../lib/budget';
-import { useCollection } from '../hooks/useCollection';
 import { useAuth } from '../context/AuthContext';
 import { EmptyState } from '../ui/EmptyState';
 
