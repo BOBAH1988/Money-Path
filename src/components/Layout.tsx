@@ -30,6 +30,25 @@ const items = [
   { to: '/income-archive', label: 'Архив', icon: '📂' },
 ];
 
+const routePrefetchers: Record<string, () => Promise<unknown>> = {
+  '/': () => import('../pages/Dashboard'),
+  '/budget': () => import('../pages/Budget'),
+  '/assets': () => import('../pages/Assets'),
+  '/liabilities': () => import('../pages/Liabilities'),
+  '/income': () => import('../pages/Income'),
+  '/income-archive': () => import('../pages/IncomeArchive'),
+  '/import': () => import('../pages/Import'),
+};
+
+const prefetched = new Set<string>();
+const prefetchRoute = (to: string) => {
+  if (prefetched.has(to)) return;
+  const load = routePrefetchers[to];
+  if (!load) return;
+  prefetched.add(to);
+  void load().catch(() => prefetched.delete(to));
+};
+
 
 
 export default function Layout() {
@@ -156,6 +175,20 @@ export default function Layout() {
     return () => media.removeEventListener('change', handler);
   }, []);
 
+  useEffect(() => {
+    const run = () => {
+      for (const it of items) if (it.to !== location.pathname) prefetchRoute(it.to);
+    };
+    const ric = (window as any).requestIdleCallback as ((cb: () => void) => number) | undefined;
+    const id = ric ? ric(run) : window.setTimeout(run, 1200);
+    return () => {
+      const cic = (window as any).cancelIdleCallback as ((id: number) => void) | undefined;
+      if (cic && ric) cic(id as number);
+      else window.clearTimeout(id as number);
+    };
+  }, [location.pathname]);
+
+
   if (!isAuthReady) {
     return <PageLoader text="Загрузка…" fullScreen />;
   }
@@ -240,6 +273,9 @@ export default function Layout() {
                 key={item.to}
                 className={`bottom-nav-item ${location.pathname === item.to ? 'active' : ''} ${hiddenIndices.has(idx) ? 'hidden' : ''}`}
                 onClick={() => navigate(item.to)}
+                onMouseEnter={() => prefetchRoute(item.to)}
+                onFocus={() => prefetchRoute(item.to)}
+                onTouchStart={() => prefetchRoute(item.to)}
               >
                 <span className="nav-icon">{item.icon}</span>
                 <span>{item.label}</span>
