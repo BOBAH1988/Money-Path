@@ -24,8 +24,6 @@ vi.mock('./firebase', () => ({
   firebaseError: null,
 }));
 
-const storageKey = (userId: string) => `denegnyj_put_budget_plan_${userId}`;
-
 const item = (id: string, name: string, amount: number): BudgetPlanItem => ({
   id,
   name,
@@ -92,30 +90,12 @@ describe('budget lib', () => {
 describe('loadBudgetPlan', () => {
   const userId = 'uid-123';
 
-  it('prioritizes localStorage over Firestore so deleted rows do not reappear', async () => {
-    localStorage.setItem(
-      storageKey(userId),
-      JSON.stringify({ updatedAt: 't1', items: [item('1', 'Актив 1', 100)] })
-    );
-    // В Firestore всё ещё есть удалённая строка '2'
-    mocks.getDoc.mockResolvedValue({
-      exists: () => true,
-      data: () => ({
-        updatedAt: 't0',
-        userId,
-        items: [item('1', 'Актив 1', 100), item('2', 'Актив 2', 200)],
-      }),
-    });
-
-    const plan = await loadBudgetPlan(userId);
-
-    expect(plan.items.length).toBe(1);
-    expect(plan.items[0].id).toBe('1');
-    // Firestore не перезаписал localStorage
-    expect(JSON.parse(localStorage.getItem(storageKey(userId))!).items.length).toBe(1);
+  it('returns empty plan without auth', async () => {
+    const plan = await loadBudgetPlan(undefined);
+    expect(plan.items.length).toBe(0);
   });
 
-  it('loads from Firestore when localStorage is empty', async () => {
+  it('loads from Firestore when document exists', async () => {
     mocks.getDoc.mockResolvedValue({
       exists: () => true,
       data: () => ({
@@ -129,10 +109,9 @@ describe('loadBudgetPlan', () => {
 
     expect(plan.items.length).toBe(1);
     expect(plan.items[0].id).toBe('1');
-    expect(JSON.parse(localStorage.getItem(storageKey(userId))!).items.length).toBe(1);
   });
 
-  it('returns empty plan when both localStorage and Firestore are empty', async () => {
+  it('returns empty plan when Firestore document does not exist', async () => {
     mocks.getDoc.mockResolvedValue({ exists: () => false });
 
     const plan = await loadBudgetPlan(userId);
@@ -140,15 +119,11 @@ describe('loadBudgetPlan', () => {
     expect(plan.items.length).toBe(0);
   });
 
-  it('returns localStorage-only plan without auth', async () => {
-    localStorage.setItem(
-      'denegnyj_put_budget_plan',
-      JSON.stringify({ updatedAt: 't1', items: [item('1', 'Актив 1', 100)] })
-    );
+  it('returns empty plan on Firestore error', async () => {
+    mocks.getDoc.mockRejectedValue(new Error('network error'));
 
-    const plan = await loadBudgetPlan(undefined);
+    const plan = await loadBudgetPlan(userId);
 
-    expect(plan.items.length).toBe(1);
-    expect(plan.items[0].id).toBe('1');
+    expect(plan.items.length).toBe(0);
   });
 });

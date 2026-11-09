@@ -20,9 +20,6 @@ import {
   colPath,
   storageKeyFor,
   loadLocalCollection,
-  saveLocalCollection,
-  loadLocalBudgetPlan,
-  saveLocalBudgetPlan,
   isResetPending,
   getResetPendingUserId,
   clearResetPending,
@@ -35,9 +32,6 @@ export {
   colPath,
   storageKeyFor,
   loadLocalCollection,
-  saveLocalCollection,
-  loadLocalBudgetPlan,
-  saveLocalBudgetPlan,
   isResetPending,
   getResetPendingUserId,
   clearResetPending,
@@ -273,43 +267,11 @@ export const resetBudgetPlan = async (userId?: string): Promise<{ items: unknown
   return { items: [], updatedAt: new Date().toISOString() };
 };
 
-export const syncPendingToFirestore = async (currentUid?: string): Promise<void> => {
+export const syncPendingToFirestore = async (): Promise<void> => {
   if (!firestoreDb) return;
   const prefix = `denegnyj_put_`;
   const seen = new Set<string>();
   const keys = Object.keys(localStorage);
-  const guestBudgetKey = storageKeyFor(COLLECTIONS.budgetPlan, undefined);
-  // Перенос гостевого бюджета (без userId) в облак текущего пользователя при входе,
-  // чтобы данные, введённые до авторизации, появились на других устройствах.
-  // Переносим только если под этим пользователем на этом устройстве ещё нет локального плана,
-  // чтобы не затереть уже существующие локальные/облачные данные.
-  let guestMigrated = false;
-  if (currentUid && loadLocalBudgetPlan(currentUid).items.length === 0) {
-    try {
-      const raw = localStorage.getItem(guestBudgetKey);
-      if (raw) {
-        const parsed = JSON.parse(raw) as unknown;
-        const plan = Array.isArray(parsed)
-          ? { items: parsed, updatedAt: '' }
-          : parsed && typeof parsed === 'object' && Array.isArray((parsed as { items?: unknown }).items)
-            ? { items: (parsed as { items: unknown[] }).items, updatedAt: String((parsed as { updatedAt?: unknown }).updatedAt ?? '') }
-            : null;
-        if (plan && plan.items.length > 0) {
-          await saveBudgetPlan(currentUid, plan.items, plan.updatedAt || new Date().toISOString());
-          guestMigrated = true;
-        }
-      }
-    } catch {
-      // ignore — гостевые данные остаются в локальном хранилище этого устройства
-    }
-  }
-  if (guestMigrated) {
-    try {
-      localStorage.removeItem(guestBudgetKey);
-    } catch {
-      // ignore
-    }
-  }
   for (const key of keys) {
     if (!key.startsWith(prefix)) continue;
     const rest = key.slice(prefix.length);
@@ -320,11 +282,7 @@ export const syncPendingToFirestore = async (currentUid?: string): Promise<void>
     if (matched) {
       userId = rest.slice(0, rest.length - matched.length - 1);
     } else {
-      // legacy budget: denegnyj_put_budget_plan_${userId}
-      if (rest.startsWith(`${COLLECTIONS.budgetPlan}_`)) {
-        matched = COLLECTIONS.budgetPlan;
-        userId = rest.slice(COLLECTIONS.budgetPlan.length + 1);
-      }
+      continue;
     }
     if (!matched || !userId) continue;
     if (userId === 'budget' || userId === 'guest') continue; // not a uid
@@ -334,18 +292,6 @@ export const syncPendingToFirestore = async (currentUid?: string): Promise<void>
       const raw = localStorage.getItem(key);
       if (!raw) continue;
       const parsed = JSON.parse(raw) as unknown;
-
-      if (matched === COLLECTIONS.budgetPlan) {
-        const plan = Array.isArray(parsed)
-          ? { items: parsed, updatedAt: '' }
-          : parsed && typeof parsed === 'object' && Array.isArray((parsed as { items?: unknown }).items)
-            ? { items: (parsed as { items: unknown[] }).items, updatedAt: String((parsed as { updatedAt?: unknown }).updatedAt ?? '') }
-            : null;
-        if (!plan || plan.items.length === 0) continue;
-        await saveBudgetPlan(userId, plan.items, plan.updatedAt || new Date().toISOString());
-        seen.add(seenKey);
-        continue;
-      }
 
       const items = Array.isArray(parsed)
         ? (parsed as { id: string }[])
