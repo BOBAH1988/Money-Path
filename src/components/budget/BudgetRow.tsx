@@ -145,11 +145,11 @@ export const BudgetRow = ({ item, onUpdate, onRemove, onToggle, isPlannedCollaps
       </td>
         <td className="budget-cell budget-cell-amount">
         <span className="row-amount">{format(item.amount ?? 0)}</span>
-        <span className="row-currency">₽</span>
+        {isTotal && <span className="row-currency">₽</span>}
       </td>
       <td className="budget-cell budget-cell-plan">
         <span className="row-amount">{format(item.plan ?? 0)}</span>
-        <span className="row-currency">₽</span>
+        {isTotal && <span className="row-currency">₽</span>}
       </td>
       <td className="budget-cell budget-cell-actions">
       {isSubtotal && (
