@@ -1987,3 +1987,28 @@ body { margin: 0; font-family: system-ui, sans-serif; background: var(--theme-bg
   color: var(--theme-text-muted);
 }
 
+
+/* Page loader (Suspense / route loading) */
+.page-loader {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 40vh;
+  gap: 14px;
+  padding: 24px;
+  color: var(--dp-color-text-muted, var(--theme-text-muted, #6b7280));
+}
+.page-loader-spinner {
+  width: 28px;
+  height: 28px;
+  border: 2.5px solid color-mix(in srgb, var(--dp-color-primary, #007aff) 20%, transparent);
+  border-top-color: var(--dp-color-primary, #007aff);
+  border-radius: 50%;
+  animation: dp-spin 0.8s linear infinite;
+}
+.page-loader-text {
+  font-size: 14px;
+  letter-spacing: 0.01em;
+}
+@keyframes dp-spin { to { transform: rotate(360deg); } }
