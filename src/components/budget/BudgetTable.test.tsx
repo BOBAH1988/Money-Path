@@ -43,14 +43,13 @@ const getSubtotalRow = (container: HTMLElement) =>
   container.querySelector('tr.budget-row.subtotal');
 
 describe('BudgetTable totals', () => {
-  it('footer row shows monthly amount total and monthly plan total (not mixed with planned group)', () => {
+  it('footer row shows combined amount/plan totals (monthly + planned) when plannedItems are provided', () => {
     const monthlyItems: BudgetPlanItem[] = [
       buildItem({ id: 'm1', group: 'monthly', amount: 1000, plan: 2000 }),
       buildItem({ id: 'm2', group: 'monthly', amount: 3000, plan: 4000 }),
     ];
-    // planned group has values, but they must NOT leak into monthly footer
     const plannedItems: BudgetPlanItem[] = [
-      buildItem({ id: 'p1', group: 'planned', amount: 99999, plan: 88888 }),
+      buildItem({ id: 'p1', group: 'planned', amount: 700, plan: 900 }),
     ];
 
     const { container } = renderTable({
@@ -64,11 +63,8 @@ describe('BudgetTable totals', () => {
     expect(footer).not.toBeNull();
     const amountCell = footer!.querySelector('.budget-cell-amount');
     const planCell = footer!.querySelector('.budget-cell-plan');
-    expect(amountCell?.textContent).toContain('4 000');
-    expect(planCell?.textContent).toContain('6 000');
-    // planned values must not appear in monthly footer
-    expect(amountCell?.textContent).not.toContain('99 999');
-    expect(planCell?.textContent).not.toContain('88 888');
+    expect(amountCell?.textContent).toContain('4 700');
+    expect(planCell?.textContent).toContain('6 900');
   });
 
   it('footer row is zero when there are no monthly items', () => {

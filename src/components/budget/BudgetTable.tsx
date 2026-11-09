@@ -86,6 +86,9 @@ export const BudgetTable = ({
   const plannedTotalPlan = plannedItems
     ?.filter((it) => it.type === 'item')
     .reduce((sum, it) => sum + (it.plan ?? 0), 0) ?? 0;
+  const showPlannedInline = group === 'monthly' && plannedItems !== undefined;
+  const displayTotal = showPlannedInline ? total + plannedTotal : total;
+  const displayTotalPlan = showPlannedInline ? (totalPlan ?? 0) + plannedTotalPlan : (totalPlan ?? 0);
 
   return (
     <section className="budget-card" id={id}>
@@ -241,11 +244,11 @@ export const BudgetTable = ({
                     <span className="footer-label">Итого:</span>
                   </td>
                   <td className="budget-cell budget-cell-amount" style={{ whiteSpace: 'nowrap' }}>
-                    {format(total)}<span className="row-currency">₽</span>
+                    {format(displayTotal)}<span className="row-currency">₽</span>
                   </td>
                   <td className="budget-cell budget-cell-plan" style={{ whiteSpace: 'nowrap' }}>
                     <>
-                      {format(totalPlan ?? 0)}
+                      {format(displayTotalPlan)}
                       <span className="row-currency">₽</span>
                     </>
                   </td>
