@@ -89,7 +89,7 @@ export function useCollection<T extends { id: string }>(
           (docSnap) => docSnap.data() as unknown as T
         );
         if (data.length > 0) {
-          saveToLocalStorage(collectionName, data, userId);
+          saveToFirestore(collectionName, data, userId).catch(() => {});
           setItems(data);
         }
       } catch {
