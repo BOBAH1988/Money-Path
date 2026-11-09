@@ -3,6 +3,7 @@ import { HashRouter, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import Layout from './components/Layout';
 import { ToastProvider } from './ui/Toast';
+import { PageLoader } from './components/PageLoader';
 
 const Dashboard = lazy(() => import('./pages/Dashboard'));
 const Budget = lazy(() => import('./pages/Budget'));
@@ -17,7 +18,7 @@ export default function App() {
     <AuthProvider>
       <ToastProvider>
         <HashRouter>
-          <Suspense fallback={<div className="page">Загрузка…</div>}>
+          <Suspense fallback={<PageLoader />}>
             <Routes>
               <Route element={<Layout />}>
                 <Route path="/" element={<Dashboard />} />
