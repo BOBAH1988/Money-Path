@@ -18,7 +18,7 @@ export default function App() {
     <AuthProvider>
       <ToastProvider>
         <HashRouter>
-          <Suspense fallback={<PageLoader />}>
+          <Suspense fallback={<PageLoader fullScreen />}>
             <Routes>
               <Route element={<Layout />}>
                 <Route path="/" element={<Dashboard />} />

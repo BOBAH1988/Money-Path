@@ -2004,6 +2004,16 @@ body { margin: 0; font-family: system-ui, sans-serif; background: var(--theme-bg
   color: var(--dp-color-text-muted, var(--theme-text-muted, #6b7280));
   box-sizing: border-box;
 }
+.page-loader-fullscreen {
+  position: fixed;
+  inset: 0;
+  min-height: 100vh;
+  min-height: 100dvh;
+  width: 100%;
+  z-index: 50;
+  background: var(--theme-bg, #f5f5f7);
+  padding: 24px;
+}
 .page-loader-spinner {
   width: 28px;
   height: 28px;
