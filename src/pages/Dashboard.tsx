@@ -8,6 +8,7 @@ import { useAuth } from '../context/AuthContext';
 import { loadFromFirestore, COLLECTIONS } from '../lib/firestore';
 import { EmptyState } from '../ui/EmptyState';
 import { AuthModal } from '../components/AuthModal';
+import { PageLoader } from '../components/PageLoader';
 import { LineChart, BarChart } from '../components/dashboard/Charts';
 import { YearMonthPicker } from '../components/dashboard/YearMonthPicker';
 
@@ -269,11 +270,7 @@ export default function Dashboard() {
   if (isLoading) {
     return (
       <div className="page page-budget">
-        <div className="budget-card">
-          <div className="budget-card-body" style={{ padding: 40, textAlign: 'center', color: 'var(--theme-text-muted)' }}>
-            Загрузка данных…
-          </div>
-        </div>
+        <PageLoader text="Загрузка данных…" />
       </div>
     );
   }

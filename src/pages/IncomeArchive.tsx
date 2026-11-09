@@ -7,6 +7,7 @@ import { useAuth } from '../context/AuthContext';
 import { useData } from '../hooks/useData';
 import { ConfirmDialog } from '../ui/ConfirmDialog';
 import { useToast } from '../ui/Toast';
+import { PageLoader } from '../components/PageLoader';
 
 const CURRENT_YEAR = new Date().getFullYear();
 
@@ -144,13 +145,7 @@ export default function IncomeArchive() {
   if (loading) {
     return (
       <div className="page page-budget">
-        <div className="budget-card">
-          <div className="budget-card-body">
-            <div className="budget-table-wrap">
-              <div style={{ padding: 40, textAlign: 'center', color: 'var(--theme-text-muted)' }}>Загрузка данных</div>
-            </div>
-          </div>
-        </div>
+        <PageLoader text="Загрузка данных" />
       </div>
     );
   }
