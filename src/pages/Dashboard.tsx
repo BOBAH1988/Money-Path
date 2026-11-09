@@ -243,6 +243,10 @@ export default function Dashboard() {
 
   const showChart = incomeChartData.some((v) => v !== 0) || archiveSummary.income > 0;
 
+  if (!isAuthReady || isLoading) {
+    return <PageLoader text="Загрузка данных…" fullScreen />;
+  }
+
   if (!userId) {
     return (
       <div className="page page-budget">
@@ -265,10 +269,6 @@ export default function Dashboard() {
         </div>
       </div>
     );
-  }
-
-  if (isLoading) {
-    return <PageLoader text="Загрузка данных…" fullScreen />;
   }
 
   if (!hasData) {
