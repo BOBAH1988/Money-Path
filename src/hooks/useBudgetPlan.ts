@@ -24,41 +24,52 @@ export function useBudgetPlan(): UseBudgetPlanReturn {
   const { isAuthReady, uid } = useAuth();
   const { error: toastError, success: toastSuccess } = useToast();
   const [plan, setPlan] = useState<{ items: BudgetPlanItem[]; updatedAt: string } | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [loadedFor, setLoadedFor] = useState<string | null>(null);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const userId = uid;
 
   useEffect(() => {
     if (!isAuthReady) {
-      setLoading(true);
+      setIsLoading(true);
+      setLoadedFor(null);
       return;
     }
     if (!userId) {
       setPlan(null);
-      setLoading(false);
+      setError(null);
+      setIsLoading(false);
+      setLoadedFor('__none__');
       return;
     }
-    setLoading(true);
+    let cancelled = false;
+    setIsLoading(true);
+    setError(null);
     void (async () => {
       try {
         const data = await loadBudgetPlan(userId);
-        setPlan({ items: (data.items ?? []) as BudgetPlanItem[], updatedAt: data.updatedAt ?? '' });
-        setError(null);
+        if (!cancelled) {
+          setPlan({ items: (data.items ?? []) as BudgetPlanItem[], updatedAt: data.updatedAt ?? '' });
+          setLoadedFor(userId);
+        }
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Ошибка загрузки плана');
+        if (!cancelled) {
+          setError(err instanceof Error ? err.message : 'Ошибка загрузки плана');
+          setLoadedFor(null);
+        }
       } finally {
-        setLoading(false);
+        if (!cancelled) setIsLoading(false);
       }
     })();
+    return () => {
+      cancelled = true;
+    };
   }, [isAuthReady, userId]);
 
   useEffect(() => {
     if (timerRef.current) clearTimeout(timerRef.current);
-    if (!isAuthReady || !userId || !plan) {
-      setLoading(false);
-      return;
-    }
+    if (!isAuthReady || !userId || !plan) return;
     timerRef.current = setTimeout(() => {
       void (async () => {
         try {
@@ -112,6 +123,8 @@ export function useBudgetPlan(): UseBudgetPlanReturn {
       toastError('Ошибка сброса', err instanceof Error ? err.message : 'Не удалось сбросить данные');
     }
   }, [userId, toastError, toastSuccess]);
+
+  const loading = !isAuthReady || isLoading || (!!userId && loadedFor !== userId);
 
   return { items: plan?.items ?? [], loading, error, addItem, updateItem, removeItem, reset };
 }
