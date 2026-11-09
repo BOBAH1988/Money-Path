@@ -15,6 +15,31 @@
   </head>
   <body>
     <div id="root"></div>
+    <!-- Автоматическая миграция Service Worker при обновлении версии приложения.
+         Выполняется до загрузки бандла, чтобы не dépendровать от закэшированного SW. -->
+    <script>
+      (async () => {
+        if (!('serviceWorker' in navigator)) return;
+        const CURRENT_SW_VERSION = 'v15';
+        const storedVersion = sessionStorage.getItem('denegnyj_put_sw_version');
+        if (storedVersion !== CURRENT_SW_VERSION) {
+          try {
+            const registrations = await navigator.serviceWorker.getRegistrations();
+            for (const registration of registrations) {
+              await registration.unregister();
+            }
+            const cacheNames = await caches.keys();
+            for (const name of cacheNames) {
+              await caches.delete(name);
+            }
+            sessionStorage.setItem('denegnyj_put_sw_version', CURRENT_SW_VERSION);
+            window.location.reload();
+          } catch (e) {
+            console.error('[PWA] SW migration error', e);
+          }
+        }
+      })();
+    </script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
