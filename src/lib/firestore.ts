@@ -110,7 +110,7 @@ export const ALL_COLLECTIONS: FirestoreCollection[] = [
 const storageKey = (collectionName: string, userId?: string) =>
   userId ? `denegnyj_put_${userId}_${collectionName}` : `denegnyj_put_${collectionName}`;
 
-const colPath = (collectionName: string, userId?: string) =>
+export const colPath = (collectionName: string, userId?: string) =>
   userId ? `users/${userId}/${collectionName}` : collectionName;
 
 const loadFromLocalStorage = <T extends { id: string }>(

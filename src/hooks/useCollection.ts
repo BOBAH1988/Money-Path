@@ -6,9 +6,10 @@ import {
   loadFromFirestore,
   saveToFirestore,
   COLLECTIONS,
+  colPath,
   type FirestoreCollection,
 } from '../lib/firestore';
-import { collection, deleteDoc, getDocs } from 'firebase/firestore';
+import { collection, deleteDoc, getDocs, query, orderBy } from 'firebase/firestore';
 
 interface UseCollectionOptions {
   collectionName: FirestoreCollection;
@@ -71,6 +72,30 @@ export function useCollection<T extends { id: string }>(
         }
       })();
     }
+  }, [collectionName, userId]);
+
+  // При входе в аккаунт (смена userId) — принудительно загружаем данные из Firestore
+  // и перезаписываем localStorage, чтобы данные появились на новом устройстве.
+  // loadFromFirestore имеет приоритет localStorage, поэтому грузим напрямую.
+  useEffect(() => {
+    if (!userId || !firestoreDb || !isLoadedRef.current) return;
+
+    void (async () => {
+      try {
+        const colRef = collection(firestoreDb, colPath(collectionName, userId));
+        const q = query(colRef, orderBy('id'));
+        const snapshot = await getDocs(q);
+        const data = snapshot.docs.map(
+          (docSnap) => docSnap.data() as unknown as T
+        );
+        if (data.length > 0) {
+          saveToLocalStorage(collectionName, data, userId);
+          setItems(data);
+        }
+      } catch {
+        // Firestore недоступен — оставляем локальные данные
+      }
+    });
   }, [collectionName, userId]);
 
   useEffect(() => {
