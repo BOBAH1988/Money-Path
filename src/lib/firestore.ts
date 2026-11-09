@@ -161,28 +161,25 @@ export const saveToFirestore = async <T extends { id: string }>(
   saveToLocalStorage(collectionName, stamped, userId);
   if (!userId) return;
   if (!firestoreDb) return;
+  // Сохраняем/обновляем существующие документы. Массовое удаление документов,
+  // которых нет в локальном массиве, НЕЛЬЗЯ делать: когда два устройства работают
+  // параллельно, последняя операция удалила бы данные, что были только на другом устройстве.
+  const colRef = collection(firestoreDb, colPath(collectionName, userId));
+  const batch = stamped.map((item) =>
+    setDoc(doc(colRef, item.id), { ...item, userId } as Record<string, unknown>)
+  );
   try {
-    const colRef = collection(firestoreDb, colPath(collectionName, userId));
-    // Сохраняем/обновляем существующие документы
-    const batch = stamped.map((item) =>
-      setDoc(doc(colRef, item.id), { ...item, userId } as Record<string, unknown>)
-    );
     await Promise.all(batch);
-    // Удаляем из Firestore документы, которых больше нет в локальном массиве,
-    // иначе при следующей загрузке они восстановятся (строка «возвращается назад»)
-    const currentIds = new Set(stamped.map((item) => item.id));
-    const snapshot = await getDocs(query(colRef, orderBy('id')));
-    const toDelete = snapshot.docs
-      .filter((docSnap) => !currentIds.has(docSnap.id))
-      .map((docSnap) => deleteDoc(docSnap.ref));
-    if (toDelete.length > 0) {
-      await Promise.all(toDelete);
-    }
-    // После успешного сохранения новых данных — снимаем флаг сброса
-    clearResetPending();
-  } catch {
-    // Firestore недоступен, localStorage уже сохранён
+  } catch (err) {
+    // eslint-disable-next-line no-console
+    console.error(
+      `[firestore] saveToFirestore(${collectionName}, userId=${userId}) ошибка:`,
+      err instanceof Error ? err.message : err
+    );
+    throw err;
   }
+  // После успешного сохранения новых данных — снимаем флаг сброса
+  clearResetPending();
 };
 
 export const loadFromFirestore = async <T extends { id: string } = { id: string }>(
@@ -250,8 +247,12 @@ export const migrateCollectionToUser = async (
       setDoc(doc(colRef, item.id), { ...item, userId } as Record<string, unknown>)
     );
     await Promise.all(batch);
-  } catch {
-    // Firestore недоступен, localStorage уже сохранён
+  } catch (err) {
+    // eslint-disable-next-line no-console
+    console.error(
+      `[firestore] migrateCollectionToUser(${collectionName}, userId=${userId}) ошибка:`,
+      err instanceof Error ? err.message : err
+    );
   }
 };
 
@@ -274,8 +275,12 @@ export const deleteFromFirestore = async (
   if (!firestoreDb || !userId) return;
   try {
     await deleteDoc(doc(firestoreDb, colPath(collectionName, userId), id));
-  } catch {
-    // ignore
+  } catch (err) {
+    // eslint-disable-next-line no-console
+    console.error(
+      `[firestore] deleteFromFirestore(${collectionName}, id=${id}, userId=${userId}) ошибка:`,
+      err instanceof Error ? err.message : err
+    );
   }
 };
 
@@ -360,8 +365,12 @@ export const syncPendingToFirestore = async (): Promise<void> => {
         const items = loadFromLocalStorage<{ id: string }>(collectionName, userId);
         if (items.length === 0) continue;
         await saveToFirestore(collectionName, items, userId);
-      } catch {
-        // игнорируем ошибки отдельных коллекций
+      } catch (err) {
+        // eslint-disable-next-line no-console
+        console.error(
+          `[firestore] syncPendingToFirestore(${collectionName}, userId=${userId}) ошибка:`,
+          err instanceof Error ? err.message : err
+        );
       }
     }
   }

@@ -11,7 +11,7 @@ import { useAuth } from '../context/AuthContext';
 import { useToast } from '../ui/Toast';
 
 export const useBudget = () => {
-  const { uid } = useAuth();
+  const { uid, isAuthReady } = useAuth();
   const { toast: addToast, warning: addWarning } = useToast();
   const userId = uid;
   const [plan, setPlan] = useState<BudgetPlan | null>(() => loadBudgetPlanFromLocalStorage(userId));
@@ -19,12 +19,13 @@ export const useBudget = () => {
   const [error, _setError] = useState<string | null>(null);
   const offlineWarnedRef = useRef(false);
 
-  // Загружаем из localStorage синхронно — сразу показываем данные, без ожидания Firebase
+  // Загружаем из localStorage синхронно — сразу показываем данные, без ожидания Firebase.
+  // Из Firestore загружаем только после подтверждения авторизации, иначе запрос
+  // уйдёт без ID-токена и будет отклонён правилами безопасности.
   useEffect(() => {
     setLoading(false);
 
-    // Фоновая синхронизация с Firestore — не блокирует UI
-    if (userId) {
+    if (isAuthReady && userId) {
       void (async () => {
         try {
           const p = await loadBudgetPlan(userId);
@@ -37,7 +38,7 @@ export const useBudget = () => {
         }
       })();
     }
-  }, [userId, addWarning, offlineWarnedRef]);
+  }, [userId, isAuthReady, addWarning, offlineWarnedRef]);
 
   const computed = useMemo(() => {
     if (!plan) return { items: [], updatedAt: '' };
@@ -50,7 +51,9 @@ export const useBudget = () => {
     if (!plan) return;
     if (saveTimer.current) clearTimeout(saveTimer.current);
     saveTimer.current = setTimeout(() => {
-      saveBudgetPlan(computed, userId).catch((err) => {
+      // Сохраняем исходный план, а не результат applyComputedFields (там уже
+      // перезаписаны поля на вычисленные — это портило данные на других устройствах).
+      saveBudgetPlan({ ...plan, updatedAt: new Date().toISOString() }, userId).catch((err) => {
         if (!offlineWarnedRef.current) {
           addWarning('База данных недоступна', 'Данные сохранены локально и синхронизируются при восстановлении связи');
           offlineWarnedRef.current = true;
@@ -61,7 +64,7 @@ export const useBudget = () => {
     return () => {
       if (saveTimer.current) clearTimeout(saveTimer.current);
     };
-  }, [computed, plan, userId, addToast, addWarning]);
+  }, [plan, userId, addToast, addWarning]);
 
   const persist = useCallback((updated: BudgetPlan) => {
     setPlan(updated);

@@ -88,7 +88,7 @@ const MONTHS = [
 export default function Dashboard() {
   const { setPageTitle } = useContext(PageTitleContext)!;
   const { items } = useBudget();
-  const { uid } = useAuth();
+  const { uid, isAuthReady } = useAuth();
   const [authOpen, setAuthOpen] = useState(false);
   const userId = uid;
   const navigate = useNavigate();
@@ -114,7 +114,9 @@ export default function Dashboard() {
   }, [setPageTitle]);
 
   useEffect(() => {
-    if (!userId) {
+    // Загрузка обрабатывается только после подтверждения авторизации, иначе запрос
+    // уйдёт без ID-токена и будет отклонён правилами безопасности.
+    if (!isAuthReady || !userId) {
       setAssets([]);
       setLiabilities([]);
       setIncome([]);
@@ -151,7 +153,7 @@ export default function Dashboard() {
     return () => {
       cancelled = true;
     };
-  }, [userId]);
+  }, [userId, isAuthReady]);
 
   const totalAssets = useMemo(
     () => assets.reduce((sum, it) => sum + (it.amount ?? 0), 0),

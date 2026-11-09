@@ -54,7 +54,7 @@ describe('saveToFirestore', () => {
     expect(stored.length).toBe(2);
   });
 
-  it('deletes from Firestore documents that are no longer in the local array', async () => {
+  it('does not delete documents that are not in the local array (other devices data must survive)', async () => {
     const items = [{ id: '1', name: 'Item 1', amount: 100 }];
     mocks.getDocs.mockResolvedValue({
       docs: [
@@ -66,14 +66,13 @@ describe('saveToFirestore', () => {
     await saveToFirestore(collectionName, items, userId);
 
     expect(mocks.setDoc as any).toHaveBeenCalledTimes(1);
-    expect(mocks.deleteDoc as any).toHaveBeenCalledTimes(1);
-    expect(mocks.deleteDoc as any).toHaveBeenCalledWith({});
+    expect(mocks.deleteDoc as any).not.toHaveBeenCalled();
     const stored = JSON.parse(localStorage.getItem(`denegnyj_put_${userId}_${collectionName}`) || '[]');
     expect(stored.length).toBe(1);
     expect(stored[0].id).toBe('1');
   });
 
-  it('deletes all documents when local array is empty', async () => {
+  it('saves nothing to Firestore when local array is empty', async () => {
     const items: { id: string; name: string; amount: number }[] = [];
     mocks.getDocs.mockResolvedValue({
       docs: [
@@ -86,7 +85,7 @@ describe('saveToFirestore', () => {
     await saveToFirestore(collectionName, items, userId);
 
     expect(mocks.setDoc as any).not.toHaveBeenCalled();
-    expect(mocks.deleteDoc as any).toHaveBeenCalledTimes(3);
+    expect(mocks.deleteDoc as any).not.toHaveBeenCalled();
     const stored = JSON.parse(localStorage.getItem(`denegnyj_put_${userId}_${collectionName}`) || '[]');
     expect(stored.length).toBe(0);
   });
