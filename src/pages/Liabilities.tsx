@@ -86,7 +86,7 @@ export default function Liabilities() {
           items={planned}
           total={totals.totalMonthly}
           totalPlan={totals.totalMonthlyPlan}
-          headers={{ amount: 'Сумма долга', plan: 'В месяц' }}
+          headers={{ amount: 'Сумма', plan: 'В месяц' }}
           onUpdate={updateFromBudget}
           onRemove={removeItem}
           onAdd={addFromBudget}
