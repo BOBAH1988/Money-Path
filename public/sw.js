@@ -36,22 +36,6 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Для JS/CSS ресурсов — сеть primero с кэшем как фолбэк (чтобы после обновления
-  // приложения брались актуальные бандлы, а не застрявшие в кэше старые версии).
-  if (request.destination === 'script' || request.destination === 'style') {
-    event.respondWith(
-      fetch(request).then((networkResponse) => {
-        if (!networkResponse.ok) throw new Error('network response not ok');
-        try {
-          const clone = networkResponse.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
-        } catch {}
-        return networkResponse;
-      }).catch(() => caches.match(request))
-    );
-    return;
-  }
-
   // Для остальных ресурсов — кэш primero с сетевым обновлением.
   event.respondWith(
     caches.match(request).then((cached) =>
