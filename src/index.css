@@ -1,6 +1,8 @@
 @import './components/budget/budget.css';
 
 * { box-sizing: border-box; }
+html, body, #root { min-height: 100%; }
+html { background: var(--theme-bg); }
 body { margin: 0; font-family: system-ui, sans-serif; background: var(--theme-bg); color: var(--theme-text); }
 
 /* ============================================================
