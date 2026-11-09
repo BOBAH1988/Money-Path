@@ -6,9 +6,13 @@ import {
   getDoc,
   getDocs,
   deleteDoc,
-  query,
-  orderBy,
+  getDocsFromCache,
+  getDocsFromServer,
+  getDocFromCache,
+  getDocFromServer,
   type DocumentData,
+  type Query,
+  type DocumentReference,
 } from 'firebase/firestore';
 
 export const COLLECTIONS = {
@@ -30,7 +34,39 @@ export const ALL_COLLECTIONS: FirestoreCollection[] = [
   COLLECTIONS.budgetPlan,
 ];
 
-export const idField = (id: string): string => id;
+const withTimeout = async <T>(promise: Promise<T>, ms: number, label: string): Promise<T> => {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  try {
+    return await Promise.race([
+      promise,
+      new Promise<T>((_, reject) => {
+        timer = setTimeout(() => reject(new Error(`${label} timeout after ${ms}ms`)), ms);
+      }),
+    ]);
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
+};
+
+const getSnapshotFast = async (q: Query<DocumentData> | ReturnType<typeof collection>) => {
+  try {
+    const cached = await getDocsFromCache(q);
+    if (!cached.empty) return cached;
+  } catch {
+    // cache miss / unavailable
+  }
+  return withTimeout(getDocsFromServer(q), 8000, 'getDocsFromServer');
+};
+
+const getDocFast = async (ref: DocumentReference<DocumentData>) => {
+  try {
+    const cached = await getDocFromCache(ref);
+    if (cached.exists()) return cached;
+  } catch {
+    // cache miss / unavailable
+  }
+  return withTimeout(getDocFromServer(ref), 8000, 'getDocFromServer');
+};
 
 export const loadLocalCollection = <T extends { id: string }>(collectionName: string, userId?: string): T[] => {
   try {
@@ -157,8 +193,7 @@ export const loadFromFirestore = async <T extends { id: string }>(
   if (!userId || !firestoreDb) return [];
   try {
     const colRef = collection(firestoreDb, colPath(collectionName, userId));
-    const q = query(colRef, orderBy('updatedAt', 'desc'));
-    const snapshot = await getDocs(q);
+    const snapshot = await getSnapshotFast(colRef);
     return snapshot.docs.map((docSnap) => {
       const data = docSnap.data() as Omit<T, 'id'> & Record<string, unknown>;
       return {
@@ -178,7 +213,7 @@ export const loadBudgetPlan = async (userId?: string): Promise<{ items: unknown[
   }
   try {
     const docRef = doc(firestoreDb, colPath(COLLECTIONS.budgetPlan, userId), 'budget_plan');
-    const snap = await getDoc(docRef);
+    const snap = await getDocFast(docRef);
     if (snap.exists()) {
       const data = snap.data() as { items?: unknown[]; updatedAt?: string };
       return { items: data.items ?? [], updatedAt: data.updatedAt ?? '' };

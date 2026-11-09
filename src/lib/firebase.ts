@@ -1,5 +1,5 @@
 import { initializeApp, type FirebaseApp } from 'firebase/app';
-import { getFirestore, type Firestore } from 'firebase/firestore';
+import { initializeFirestore, persistentLocalCache, persistentMultipleTabManager, type Firestore } from 'firebase/firestore';
 import { getAuth, type Auth } from 'firebase/auth';
 
 const firebaseConfig = {
@@ -22,7 +22,9 @@ const isTestEnv =
 if (!isTestEnv) {
   try {
     app = initializeApp(firebaseConfig);
-    firestoreDb = getFirestore(app);
+    firestoreDb = initializeFirestore(app, {
+      localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() }),
+    });
     auth = getAuth(app);
   } catch (err) {
     firebaseError = err instanceof Error ? err : new Error(String(err));
