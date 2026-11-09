@@ -12,7 +12,6 @@ import {
   getDocFromServer,
   type DocumentData,
   type Query,
-  type DocumentReference,
 } from 'firebase/firestore';
 
 export const COLLECTIONS = {
@@ -48,24 +47,42 @@ const withTimeout = async <T>(promise: Promise<T>, ms: number, label: string): P
   }
 };
 
-const getSnapshotFast = async (q: Query<DocumentData> | ReturnType<typeof collection>) => {
+const getSnapshotFast = async <T extends { id: string }>(
+  q: Query<DocumentData> | ReturnType<typeof collection>,
+  onFresh?: (items: T[]) => void,
+): Promise<T[]> => {
+  let cachedItems: T[] | null = null;
   try {
     const cached = await getDocsFromCache(q);
-    if (!cached.empty) return cached;
+    cachedItems = cached.docs.map((docSnap) => {
+      const data = docSnap.data() as Omit<T, 'id'> & Record<string, unknown>;
+      return { ...data, id: docSnap.id } as T;
+    });
   } catch {
     // cache miss / unavailable
   }
-  return withTimeout(getDocsFromServer(q), 8000, 'getDocsFromServer');
-};
 
-const getDocFast = async (ref: DocumentReference<DocumentData>) => {
-  try {
-    const cached = await getDocFromCache(ref);
-    if (cached.exists()) return cached;
-  } catch {
-    // cache miss / unavailable
+  const serverPromise = withTimeout(getDocsFromServer(q), 8000, 'getDocsFromServer')
+    .then((snap) => snap.docs.map((docSnap) => {
+      const data = docSnap.data() as Omit<T, 'id'> & Record<string, unknown>;
+      return { ...data, id: docSnap.id } as T;
+    }))
+    .then((fresh) => {
+      onFresh?.(fresh);
+      return fresh;
+    })
+    .catch((err) => {
+      console.error('[firestore] getDocsFromServer ошибка:', err);
+      return null;
+    });
+
+  if (cachedItems) {
+    void serverPromise; // фоновое обновление
+    return cachedItems;
   }
-  return withTimeout(getDocFromServer(ref), 8000, 'getDocFromServer');
+
+  const fresh = await serverPromise;
+  return fresh ?? [];
 };
 
 export const loadLocalCollection = <T extends { id: string }>(collectionName: string, userId?: string): T[] => {
@@ -189,31 +206,44 @@ export const deleteFromFirestore = async (collectionName: string, id: string, us
 export const loadFromFirestore = async <T extends { id: string }>(
   collectionName: string,
   userId?: string,
+  onFresh?: (items: T[]) => void,
 ): Promise<T[]> => {
   if (!userId || !firestoreDb) return [];
   try {
     const colRef = collection(firestoreDb, colPath(collectionName, userId));
-    const snapshot = await getSnapshotFast(colRef);
-    return snapshot.docs.map((docSnap) => {
-      const data = docSnap.data() as Omit<T, 'id'> & Record<string, unknown>;
-      return {
-        ...data,
-        id: docSnap.id,
-      } as T;
-    });
+    return await getSnapshotFast<T>(colRef, onFresh);
   } catch (err) {
     console.error(`[firestore] loadFromFirestore(${collectionName}) ошибка:`, err);
     return [];
   }
 };
 
-export const loadBudgetPlan = async (userId?: string): Promise<{ items: unknown[]; updatedAt: string }> => {
+export const loadBudgetPlan = async (
+  userId?: string,
+  onFresh?: (data: { items: unknown[]; updatedAt: string }) => void,
+): Promise<{ items: unknown[]; updatedAt: string }> => {
   if (!userId || !firestoreDb) {
     return { items: [], updatedAt: '' };
   }
   try {
     const docRef = doc(firestoreDb, colPath(COLLECTIONS.budgetPlan, userId), 'budget_plan');
-    const snap = await getDocFast(docRef);
+    try {
+      const cached = await getDocFromCache(docRef);
+      if (cached.exists()) {
+        const data = cached.data() as { items?: unknown[]; updatedAt?: string };
+        void withTimeout(getDocFromServer(docRef), 8000, 'getDocFromServer')
+          .then((snap) => {
+            if (!snap.exists()) return;
+            const fresh = snap.data() as { items?: unknown[]; updatedAt?: string };
+            onFresh?.({ items: fresh.items ?? [], updatedAt: fresh.updatedAt ?? '' });
+          })
+          .catch(() => {});
+        return { items: data.items ?? [], updatedAt: data.updatedAt ?? '' };
+      }
+    } catch {
+      // cache miss
+    }
+    const snap = await withTimeout(getDocFromServer(docRef), 8000, 'getDocFromServer');
     if (snap.exists()) {
       const data = snap.data() as { items?: unknown[]; updatedAt?: string };
       return { items: data.items ?? [], updatedAt: data.updatedAt ?? '' };

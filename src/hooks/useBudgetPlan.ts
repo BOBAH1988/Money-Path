@@ -48,7 +48,9 @@ export function useBudgetPlan(): UseBudgetPlanReturn {
     setError(null);
     void (async () => {
       try {
-        const data = await loadBudgetPlan(userId);
+        const data = await loadBudgetPlan(userId, (fresh) => {
+          if (!cancelled) setPlan({ items: (fresh.items ?? []) as BudgetPlanItem[], updatedAt: fresh.updatedAt ?? '' });
+        });
         if (!cancelled) {
           setPlan({ items: (data.items ?? []) as BudgetPlanItem[], updatedAt: data.updatedAt ?? '' });
           setLoadedFor(userId);
