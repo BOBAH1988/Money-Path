@@ -3,7 +3,7 @@ import { PageTitleContext } from '../components/PageTitleContext';
 import { BudgetTable } from '../components/budget/BudgetTable';
 import type { BudgetGroup } from '../types';
 import { COLLECTIONS } from '../lib/firestore';
-import { useCollection } from '../hooks/useCollection';
+import { useData } from '../hooks/useData';
 import { useAuth } from '../context/AuthContext';
 import { EmptyState } from '../ui/EmptyState';
 
@@ -24,7 +24,7 @@ export default function Assets() {
   }, [setPageTitle]);
 
   const { items, loading, error, addItem, updateItem, removeItem } =
-    useCollection<AssetRow>({
+    useData<AssetRow>({
       collectionName: COLLECTIONS.assets,
       userId,
     });
@@ -42,8 +42,8 @@ export default function Assets() {
     [items]
   );
 
-  const totalAmount = items.reduce((sum, it) => sum + it.amount, 0);
-  const totalMonthly = items.reduce((sum, it) => sum + it.monthly, 0);
+  const totalAmount = items.reduce((sum: number, it: AssetRow) => sum + it.amount, 0);
+  const totalMonthly = items.reduce((sum: number, it: AssetRow) => sum + it.monthly, 0);
 
   if (error) {
     return (

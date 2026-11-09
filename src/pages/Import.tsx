@@ -278,7 +278,7 @@ export default function Import() {
               {hasPreview && !importError && (
                 <div style={{ fontSize: 13, color: 'var(--theme-text-muted)', marginBottom: 12 }}>
                   Найдено коллекций:{' '}
-                  {Object.keys(preview).filter((k) => ALL_COLLECTIONS.includes(k) || k === 'budgetPlan').length}
+                  {Object.keys(preview).filter((k) => (ALL_COLLECTIONS as string[]).includes(k) || k === 'budgetPlan').length}
                 </div>
               )}
               {Object.keys(conflicts).length > 0 && (

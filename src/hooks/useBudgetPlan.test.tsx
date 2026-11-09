@@ -1,7 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
 import { useBudgetPlan } from './useBudgetPlan';
-import { useAuth } from '../context/AuthContext';
 import { ToastProvider } from '../ui/Toast';
 import { AuthProvider } from '../context/AuthContext';
 
@@ -51,7 +50,7 @@ describe('useBudgetPlan', () => {
     await new Promise((r) => setTimeout(r, 50));
 
     act(() => {
-      result.current.addItem({ id: '1', name: 'Тест', amount: 100, plan: 50, group: 'monthly', type: 'item' } as never);
+      result.current.addItem({ id: '1', name: 'Тест', amount: 100, plan: 50, group: 'monthly', type: 'item' });
     });
 
     expect(result.current.items.length).toBe(1);
@@ -63,11 +62,11 @@ describe('useBudgetPlan', () => {
     await new Promise((r) => setTimeout(r, 50));
 
     act(() => {
-      result.current.addItem({ id: '1', name: 'Тест', amount: 100, plan: 50, group: 'monthly', type: 'item' } as never);
-      result.current.addItem({ id: '2', name: 'Второй', amount: 50, plan: 25, group: 'planned', type: 'item' } as never);
+      result.current.addItem({ id: '1', name: 'Тест', amount: 100, plan: 50, group: 'monthly', type: 'item' });
+      result.current.addItem({ id: '2', name: 'Второй', amount: 50, plan: 25, group: 'planned', type: 'item' });
     });
 
-    const [first] = result.current.items;
+    const first = result.current.items[0];
     act(() => {
       result.current.removeItem(first.id);
     });

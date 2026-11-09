@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { loginSchema, registerSchema, forgotSchema, type LoginFormData, type RegisterFormData, type ForgotFormData } from '../lib/validation';
 import { useToast } from '../ui/Toast';
-import { getAllUsers, type UserStat } from '../lib/firestore';
+import { getAllUsers } from '../lib/firestore';
 
 type Mode = 'login' | 'register' | 'forgot' | 'verify';
 
@@ -333,7 +333,7 @@ export const AccountMenu = ({ onClose, onAnalytics }: { onClose: () => void; onA
 
 export const AnalyticsModal = ({ onClose }: { onClose: () => void }) => {
   const { isAdmin } = useAuth();
-  const [users, setUsers] = useState<UserStat[]>([]);
+  const [users, setUsers] = useState<{ uid: string; email: string; createdAt: string; lastActive: string }[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 

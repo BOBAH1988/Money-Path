@@ -9,7 +9,6 @@ import {
   query,
   orderBy,
   type DocumentData,
-  type QueryDocumentSnapshot,
 } from 'firebase/firestore';
 
 export const COLLECTIONS = {
@@ -33,13 +32,23 @@ export const ALL_COLLECTIONS: FirestoreCollection[] = [
 
 export const idField = (id: string): string => id;
 
-const storageKey = (collectionName: string, userId?: string) =>
-  userId ? `denegnyj_put_${userId}_${collectionName}` : `denegnyj_put_${collectionName}`;
+export const loadLocalCollection = <T extends { id: string }>(collectionName: string, userId?: string): T[] => {
+  try {
+    const key = userId ? `denegnyj_put_${userId}_${collectionName}` : `denegnyj_put_${collectionName}`;
+    const raw = localStorage.getItem(key);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? (parsed as T[]) : [];
+  } catch {
+    return [];
+  }
+};
 
 export const colPath = (collectionName: string, userId?: string) =>
   userId ? `users/${userId}/${collectionName}` : collectionName;
 
-export const storageKeyFor = (collectionName: string, userId?: string) => storageKey(collectionName, userId);
+export const storageKeyFor = (collectionName: string, userId?: string) => 
+  userId ? `denegnyj_put_${userId}_${collectionName}` : `denegnyj_put_${collectionName}`;
 
 export const isResetPending = (): boolean => {
   try {
@@ -70,8 +79,8 @@ export const clearResetPending = () => {
 
 export const clearCollectionData = (collectionName: string, userId?: string): void => {
   try {
-    localStorage.removeItem(storageKey(collectionName, userId));
-    localStorage.removeItem(storageKey(collectionName, undefined));
+    localStorage.removeItem(storageKeyFor(collectionName, userId));
+    localStorage.removeItem(storageKeyFor(collectionName, undefined));
   } catch {
     // ignore
   }
@@ -151,10 +160,10 @@ export const loadFromFirestore = async <T extends { id: string }>(
     const q = query(colRef, orderBy('updatedAt', 'desc'));
     const snapshot = await getDocs(q);
     return snapshot.docs.map((docSnap) => {
-      const data = docSnap.data() as T & Record<string, unknown>;
+      const data = docSnap.data() as Omit<T, 'id'> & Record<string, unknown>;
       return {
-        id: docSnap.id,
         ...data,
+        id: docSnap.id,
       } as T;
     });
   } catch (err) {
