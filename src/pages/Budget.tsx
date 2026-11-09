@@ -3,7 +3,6 @@ import { useBudget } from '../hooks/useBudget';
 import { BudgetTable } from '../components/budget/BudgetTable';
 import { PageTitleContext } from '../components/PageTitleContext';
 import { computeBudgetPageTotals } from '../lib/budget';
-import { PageLoader } from '../components/PageLoader';
 
 export default function Budget() {
   const { items, updateItem, addItem, removeItem, loading, error } = useBudget();
@@ -36,7 +35,19 @@ export default function Budget() {
   };
 
   if (loading) {
-    return <PageLoader text="Загрузка данных" fullScreen />;
+    return (
+      <div className="page page-budget">
+        <div className="budget-card">
+          <div className="budget-card-body">
+            <div className="budget-table-wrap">
+              <div style={{ padding: 40, textAlign: 'center', color: 'var(--theme-text-muted)' }}>
+                Загрузка данных
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   if (error) {

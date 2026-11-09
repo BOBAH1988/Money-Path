@@ -5,7 +5,6 @@ import type { BudgetGroup } from '../types';
 import { useAuth } from '../context/AuthContext';
 import { useData } from '../hooks/useData';
 import { loadFromFirestore, COLLECTIONS } from '../lib/firestore';
-import { PageLoader } from '../components/PageLoader';
 
 const CURRENT_YEAR = new Date().getFullYear();
 
@@ -138,7 +137,19 @@ export default function Income() {
   }
 
   if (loading) {
-    return <PageLoader text="Загрузка данных" fullScreen />;
+    return (
+      <div className="page page-budget">
+        <div className="budget-card">
+          <div className="budget-card-body">
+            <div className="budget-table-wrap">
+              <div style={{ padding: 40, textAlign: 'center', color: 'var(--theme-text-muted)' }}>
+                Загрузка данных
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   return (
