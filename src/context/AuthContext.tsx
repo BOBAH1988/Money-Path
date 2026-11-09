@@ -55,15 +55,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   useEffect(() => {
-    // Быстрая проверка localStorage — не ждём Firebase для отображения данных
-    const savedUid = localStorage.getItem('denegnyj_put_auth_uid');
-    if (savedUid) {
-      setUid(savedUid);
-      setIsAuthenticated(true);
-    }
-    setIsAuthReady(true);
-
     if (!auth) {
+      setIsAuthReady(true);
       return;
     }
     const unsub = onAuthStateChanged(auth, async (u) => {
@@ -80,6 +73,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         setIsAuthenticated(false);
         localStorage.removeItem('denegnyj_put_auth_uid');
       }
+      setIsAuthReady(true);
     });
     return () => unsub();
   }, []);
