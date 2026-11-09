@@ -32,10 +32,16 @@ export function useData<T extends { id: string }>(options: UseDataOptions): UseD
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
-    if (!isAuthReady || !userId) {
+    if (!isAuthReady) {
+      setLoading(true);
+      return;
+    }
+    if (!userId) {
+      setItems([]);
       setLoading(false);
       return;
     }
+    setLoading(true);
     void (async () => {
       try {
         const data = await loadFromFirestore<T>(collectionName!, userId);

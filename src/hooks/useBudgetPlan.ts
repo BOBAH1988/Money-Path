@@ -30,10 +30,16 @@ export function useBudgetPlan(): UseBudgetPlanReturn {
   const userId = uid;
 
   useEffect(() => {
-    if (!isAuthReady || !userId) {
+    if (!isAuthReady) {
+      setLoading(true);
+      return;
+    }
+    if (!userId) {
+      setPlan(null);
       setLoading(false);
       return;
     }
+    setLoading(true);
     void (async () => {
       try {
         const data = await loadBudgetPlan(userId);
