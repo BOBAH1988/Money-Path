@@ -86,7 +86,7 @@ export default function Liabilities() {
           items={planned}
           total={totals.totalMonthly}
           totalPlan={totals.totalMonthlyPlan}
-          headers={{ amount: 'Сумма', plan: 'В месяц' }}
+          headers={{ amount: 'Сумма', plan: '% в мес.' }}
           onUpdate={updateFromBudget}
           onRemove={removeItem}
           onAdd={addFromBudget}
@@ -101,7 +101,7 @@ export default function Liabilities() {
                 <span className="summary-value">{totals.totalMonthly.toLocaleString('ru-RU')} ₽</span>
               </div>
               <div className="summary-item">
-                <span className="summary-label">Итого в месяц</span>
+                <span className="summary-label">Итого % в месяц</span>
                 <span className="summary-value">{totals.totalMonthlyPlan.toLocaleString('ru-RU')} ₽</span>
               </div>
             </div>
