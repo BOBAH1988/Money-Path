@@ -1,8 +1,7 @@
-import { StrictMode } from 'react'
-import { createRoot } from 'react-dom/client'
-import './index.css'
-import App from './App.tsx'
-import { syncPendingToFirestore } from './lib/firestore'
+import { StrictMode } from 'react';
+import { createRoot } from 'react-dom/client';
+import './index.css';
+import App from './App.tsx';
 
 const clearLegacyCaches = async () => {
   try {
@@ -34,32 +33,37 @@ const cleanupLegacyServiceWorkers = async () => {
   }
 };
 
+const scheduleIdle = (fn: () => void) => {
+  const ric = (window as Window & { requestIdleCallback?: (cb: () => void, opts?: { timeout?: number }) => number }).requestIdleCallback;
+  if (ric) ric(fn, { timeout: 2500 });
+  else setTimeout(fn, 1200);
+};
+
 void cleanupLegacyServiceWorkers();
 
-// Регистрация Service Worker отключена: для этого приложения SW давал больше проблем
-// (устаревшие чанки, зависания обновления, медленный старт), чем пользы.
-if (import.meta.env.PROD && 'serviceWorker' in navigator) {
-  // no-op: оставлено как якорь; активная логика регистрации удалена.
-}
-
 // При появлении интернета синхронизируем pending-данные с Firestore.
-let onlineSynced = false;
-window.addEventListener('online', () => {
-  if (onlineSynced) return;
-  onlineSynced = true;
-  void syncPendingToFirestore().catch(() => {}).finally(() => {
-    setTimeout(() => { onlineSynced = false; }, 30000);
+let onlineSyncTimer: ReturnType<typeof setTimeout> | null = null;
+const triggerOnlineSync = () => {
+  if (onlineSyncTimer) return;
+  scheduleIdle(() => {
+    void import('./lib/firestore')
+      .then(({ syncPendingToFirestore }) => syncPendingToFirestore())
+      .catch(() => {})
+      .finally(() => {
+        onlineSyncTimer = setTimeout(() => {
+          onlineSyncTimer = null;
+        }, 30000);
+      });
   });
-});
-
-// При загрузке через 404.html fallback (GitHub Pages + HashRouter)
-// путь уже в хеше, роутер прочитает его сам. Восстанавливать в history не нужно.
+};
+window.addEventListener('online', triggerOnlineSync);
+if (navigator.onLine) triggerOnlineSync();
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <App />
   </StrictMode>,
-)
+);
 
 const removeAppLoader = () => {
   const el = document.getElementById('app-loader');

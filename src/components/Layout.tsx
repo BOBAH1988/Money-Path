@@ -8,8 +8,7 @@ import { ConfirmDialog } from '../ui/ConfirmDialog';
 import { PageTitleProvider, PageTitleContext } from './PageTitleContext';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../ui/Toast';
-import { PageLoader } from './PageLoader';
-import { resetBudgetPlan, saveToFirestore, COLLECTIONS } from '../lib/firestore';
+import { COLLECTIONS } from '../lib/dataStore';
 
 const pkgVersion = packageJson.version;
 const currentYear = new Date().getFullYear();
@@ -81,14 +80,13 @@ export default function Layout() {
     []
   );
   const { error: toastError, success: toastSuccess } = useToast();
-  const { isAuthenticated, isAuthReady, uid } = useAuth();
+  const { isAuthenticated, uid } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const ctx = useContext(PageTitleContext);
   const pageTitle = ctx?.pageTitle ?? '';
 
   useLayoutEffect(() => {
-    if (!isAuthReady) return;
     const container = navRef.current;
     if (!container) return;
 
@@ -125,7 +123,7 @@ export default function Layout() {
       ro.observe(container);
       return () => ro.disconnect();
     }
-  }, [isAuthReady]);
+  }, [location.pathname]);
 
   useEffect(() => {
     const clearFlag = sessionStorage.getItem('denegnyj_clear_cache');
@@ -189,12 +187,9 @@ export default function Layout() {
   }, [location.pathname]);
 
 
-  if (!isAuthReady) {
-    return <PageLoader text="Загрузка…" fullScreen />;
-  }
-
   const handleConfirmReset = async () => {
     try {
+      const { resetBudgetPlan, saveToFirestore } = await import('../lib/firestore');
       await resetBudgetPlan(uid);
       if (uid) {
         await Promise.all([
@@ -475,3 +470,5 @@ export default function Layout() {
     </PageTitleProvider>
   );
 }
+
+

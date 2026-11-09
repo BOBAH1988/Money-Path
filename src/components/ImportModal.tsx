@@ -1,9 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
-import {
-  loadFromFirestore,
-  COLLECTIONS,
-} from '../lib/firestore';
+import { COLLECTIONS } from '../lib/dataStore';
+import { loadFromFirestore } from '../lib/firestore';
 import { loadBudgetPlan } from '../lib/budget';
 
 export const ImportModal = ({ onClose }: { onClose: () => void }) => {
@@ -21,6 +19,7 @@ export const ImportModal = ({ onClose }: { onClose: () => void }) => {
       if (e.key === 'Escape') onClose();
     };
     document.addEventListener('keydown', handler);
+    importModalRef.current?.focus();
     return () => {
       document.body.style.overflow = '';
       document.removeEventListener('keydown', handler);
@@ -28,104 +27,74 @@ export const ImportModal = ({ onClose }: { onClose: () => void }) => {
     };
   }, [onClose]);
 
-  const handleDownload = async () => {
-    if (!userId) {
-      setError('Нужно войти в аккаунт');
+  const handleExport = async () => {
+    setError(null);
+    if (!user || !userId) {
+      setError('Войдите в аккаунт, чтобы экспортировать данные.');
       return;
     }
     setLoading(true);
-    setError(null);
     try {
-      const [assets, liabilities, income, incomeArchive, budgetPlan] =
-        await Promise.all([
-          loadFromFirestore(COLLECTIONS.assets, userId),
-          loadFromFirestore(COLLECTIONS.liabilities, userId),
-          loadFromFirestore(COLLECTIONS.income, userId),
-          loadFromFirestore(COLLECTIONS.incomeArchive, userId),
-          loadBudgetPlan(userId),
-        ]);
+      const [assets, liabilities, income, incomeArchive, budget] = await Promise.all([
+        loadFromFirestore<{ id: string }>(COLLECTIONS.assets, userId),
+        loadFromFirestore<{ id: string }>(COLLECTIONS.liabilities, userId),
+        loadFromFirestore<{ id: string }>(COLLECTIONS.income, userId),
+        loadFromFirestore<{ id: string }>(COLLECTIONS.incomeArchive, userId),
+        loadBudgetPlan(userId),
+      ]);
 
-      const exportData = {
+      const payload = {
+        format: 'denegnyj_put_export_v1',
         exportedAt: new Date().toISOString(),
         userId,
-        userEmail: user?.email ?? '',
-        assets,
-        liabilities,
-        income,
-        incomeArchive,
-        budgetPlan,
+        email: user.email ?? '',
+        data: {
+          assets,
+          liabilities,
+          income,
+          incomeArchive,
+          budgetPlan: budget,
+        },
       };
 
-      const json = JSON.stringify(exportData, null, 2);
-      const blob = new Blob([json], { type: 'application/json' });
+      const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
       a.download = `denegnyj_put_${userId}_${new Date().toISOString().slice(0, 10)}.json`;
-      document.body.appendChild(a);
       a.click();
-      document.body.removeChild(a);
       URL.revokeObjectURL(url);
-      onClose();
-    } catch (err: any) {
-      setError(err.message || 'Ошибка скачивания данных');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Не удалось экспортировать данные');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="auth-overlay" onClick={onClose} ref={importModalRef} role="dialog" aria-modal="true">
-      <div className="auth-card" onClick={(e) => e.stopPropagation()}>
-        <button className="auth-close" onClick={onClose} aria-label="Закрыть">
+    <div className="auth-overlay" onClick={onClose} aria-hidden="true">
+      <div
+        className="auth-card"
+        ref={importModalRef}
+        onClick={(e) => e.stopPropagation()}
+        tabIndex={-1}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="import-title"
+      >
+        <button className="auth-close" type="button" onClick={onClose} aria-label="Закрыть">
           ×
         </button>
-        <h2 className="auth-title">Скачать данные</h2>
-
-        {!userId && (
-          <div style={{ padding: 20, textAlign: 'center', color: 'var(--dp-color-danger)' }}>
-            <div style={{ fontSize: 16, fontWeight: 600, marginBottom: 8 }}>
-              Вход в аккаунт необходим
-            </div>
-            <div style={{ fontSize: 14 }}>
-              Войдите в аккаунт, чтобы скачать свои данные
-            </div>
-          </div>
-        )}
-
-        {userId && (
-          <div style={{ marginBottom: 16 }}>
-            {error && (
-              <div className="auth-error">{error}</div>
-            )}
-          </div>
-        )}
-
-        <div style={{ marginTop: 20, padding: 16, background: 'var(--theme-surface)', borderRadius: 8, border: '1px solid var(--theme-border)' }}>
-          <h3 style={{ margin: '0 0 10px 0', fontSize: 13, color: 'var(--theme-text)' }}>
-            Что включается в файл:
-          </h3>
-          <ul style={{ margin: 0, paddingLeft: 18, color: 'var(--theme-text-muted)', fontSize: 13 }}>
-            <li style={{ marginBottom: 4 }}>Активы</li>
-            <li style={{ marginBottom: 4 }}>Пассивы</li>
-            <li style={{ marginBottom: 4 }}>Доход</li>
-            <li style={{ marginBottom: 4 }}>Доходы архив</li>
-            <li style={{ marginBottom: 4 }}>План бюджета</li>
-          </ul>
+        <h2 id="import-title">Импорт</h2>
+        <p className="auth-text">
+          Экспортируйте текущие данные (активы, пассивы, доходы, архив, план бюджета) в файл JSON для переноса или резервной копии.
+        </p>
+        {error && <p className="auth-error" role="alert">{error}</p>}
+        <div className="auth-form">
+          <button type="button" className="auth-btn" onClick={handleExport} disabled={loading}>
+            {loading ? 'Экспорт...' : 'Экспортировать данные (JSON)'}
+          </button>
         </div>
-
-        {userId && (
-          <div style={{ display: 'flex', justifyContent: 'center', marginTop: 16 }}>
-            <button
-              onClick={handleDownload}
-              disabled={loading}
-              className="auth-btn"
-              style={{ width: 'fit-content', padding: '12px 24px' }}
-            >
-              {loading ? 'Готовим файл…' : 'Импорт данных'}
-            </button>
-          </div>
-        )}
       </div>
     </div>
   );

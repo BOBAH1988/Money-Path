@@ -1,13 +1,15 @@
 import { useContext, useEffect, useMemo } from 'react';
 import { PageTitleContext } from '../components/PageTitleContext';
-import { BudgetTable } from '../components/budget/BudgetTable';
-import type { BudgetGroup } from '../types';
-import { COLLECTIONS } from '../lib/firestore';
-import { useData } from '../hooks/useData';
 import { useAuth } from '../context/AuthContext';
+import { COLLECTIONS } from '../lib/dataStore';
+import { useData } from '../hooks/useData';
 import { EmptyState } from '../ui/EmptyState';
+import { BudgetTable } from '../components/budget/BudgetTable';
+import type { BudgetGroup, BudgetPlanItem } from '../types';
+import { applyComputedFields, computeBudgetPageTotals } from '../lib/budget';
+import '../components/budget/budget.css';
 
-interface AssetRow {
+interface Row {
   id: string;
   name: string;
   amount: number;
@@ -18,126 +20,94 @@ export default function Assets() {
   const { setPageTitle } = useContext(PageTitleContext)!;
   const { uid } = useAuth();
   const userId = uid;
+  const { items, addItem, updateItem, removeItem } = useData<Row>({
+    collectionName: COLLECTIONS.assets,
+    userId,
+  });
 
   useEffect(() => {
     setPageTitle('Активы');
   }, [setPageTitle]);
 
-  const { items, loading, error, addItem, updateItem, removeItem } =
-    useData<AssetRow>({
-      collectionName: COLLECTIONS.assets,
-      userId,
-    });
-
-  const budgetItems = useMemo(
+  const budgetItems = useMemo<BudgetPlanItem[]>(
     () =>
       items.map((it) => ({
         id: it.id,
         name: it.name,
-        amount: it.amount,
-        plan: it.monthly,
+        amount: it.amount ?? 0,
+        plan: it.monthly ?? 0,
         group: 'monthly' as BudgetGroup,
         type: 'item' as const,
       })),
     [items]
   );
 
-  const totalAmount = items.reduce((sum: number, it: AssetRow) => sum + it.amount, 0);
-  const totalMonthly = items.reduce((sum: number, it: AssetRow) => sum + it.monthly, 0);
+  const planned = useMemo(() => applyComputedFields(budgetItems).items, [budgetItems]);
+  const totals = useMemo(() => computeBudgetPageTotals(planned), [planned]);
 
-  if (error) {
-    return (
-      <div className="page page-budget">
-        <div className="budget-card">
-          <div className="budget-card-body">
-            <div className="budget-table-wrap">
-              <div style={{ padding: 40, textAlign: 'center', color: 'var(--dp-color-danger)' }}>
-                <div style={{ fontSize: 18, fontWeight: 600, marginBottom: 12 }}>
-                  Ошибка загрузки данных
-                </div>
-                <div style={{ fontSize: 14, marginBottom: 16 }}>{error}</div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  const updateFromBudget = (id: string, patch: Partial<BudgetPlanItem>) => {
+    const next: Partial<Row> = {};
+    if (patch.name !== undefined) next.name = patch.name;
+    if (patch.amount !== undefined) next.amount = patch.amount;
+    if (patch.plan !== undefined) next.monthly = patch.plan;
+    updateItem(id, next);
+  };
 
-  if (loading) {
-    return (
-      <div className="page page-budget">
-        <div className="budget-card">
-          <div className="budget-card-body">
-            <div className="budget-table-wrap">
-              <div style={{ padding: 40, textAlign: 'center', color: 'var(--theme-text-muted)' }}>
-                Загрузка данных
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  if (items.length === 0) {
-    return (
-      <div className="page page-budget">
-        <EmptyState
-          icon="📈"
-          title="Активы не добавлены"
-          description="Добавьте первый актив, например банковский вклад или инвестиции."
-          action={
-            <button
-              className="auth-btn"
-              type="button"
-              onClick={() => addItem({ name: '', amount: 0, monthly: 0 })}
-            >
-              Добавить актив
-            </button>
-          }
-        />
-      </div>
-    );
-  }
+  const addFromBudget = (_group: BudgetGroup, name: string, amount: number, plan: number) => {
+    addItem({ name, amount, monthly: plan });
+  };
 
   return (
     <div className="page page-budget">
-      <div className="budget-summary">
-        <div className="summary-item summary-item-total">
-          <span className="summary-label">Итого</span>
-          <span className="summary-value">{totalAmount.toLocaleString('ru-RU')} ₽</span>
-        </div>
-        <div className="summary-item">
-          <span className="summary-label">Дивиденды в месяц</span>
-          <span className="summary-value">{totalMonthly.toLocaleString('ru-RU')} ₽</span>
-        </div>
+      <div className="budget-page-header">
+        <h1 className="budget-page-header h1">Активы</h1>
+        <p className="budget-page-subtitle">Имущество и вложения — то, что приносит вам доход или имеет ценность</p>
       </div>
 
-      <BudgetTable
-        id="assets-table"
-        group="monthly"
-        title="Активы"
-        items={budgetItems}
-        total={totalAmount}
-        totalPlan={totalMonthly}
-        headers={{
-          name: 'Источник',
-          amount: 'Сумма',
-          plan: '%',
-        }}
-        onUpdate={(id, patch) => {
-          updateItem(id, {
-            ...(patch.name !== undefined && { name: patch.name }),
-            ...(patch.amount !== undefined && { amount: patch.amount }),
-            ...(patch.plan !== undefined && { monthly: patch.plan }),
-          });
-        }}
-        onAdd={(_group, name, amount, plan) => {
-          addItem({ name, amount, monthly: plan });
-        }}
-        onRemove={removeItem}
-      />
+      {items.length === 0 ? (
+        <div className="budget-card">
+          <div className="budget-card-body">
+            <EmptyState
+              icon="📈"
+              title="Пока нет активов"
+              description="Добавьте накопления, инвестиции, недвижимость и другие активы."
+              action={
+                <button className="auth-btn" type="button" onClick={() => addItem({ name: '', amount: 0, monthly: 0 })}>
+                  Добавить актив
+                </button>
+              }
+            />
+          </div>
+        </div>
+      ) : (
+        <BudgetTable
+          title="Активы"
+          group="monthly"
+          items={planned}
+          total={totals.totalMonthly}
+          totalPlan={totals.totalMonthlyPlan}
+          headers={{ amount: 'Сумма', plan: 'Доход в мес.' }}
+          onUpdate={updateFromBudget}
+          onRemove={removeItem}
+          onAdd={addFromBudget}
+        />
+      )}
+      {items.length > 0 && (
+        <div className="budget-card" style={{ marginTop: 8 }}>
+          <div className="budget-card-body">
+            <div className="budget-summary">
+              <div className="summary-item summary-item-total">
+                <span className="summary-label">Итого активы</span>
+                <span className="summary-value">{totals.totalMonthly.toLocaleString('ru-RU')} ₽</span>
+              </div>
+              <div className="summary-item">
+                <span className="summary-label">Доход в месяц</span>
+                <span className="summary-value">{totals.totalMonthlyPlan.toLocaleString('ru-RU')} ₽</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
