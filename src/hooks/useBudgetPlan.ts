@@ -20,6 +20,8 @@ export interface UseBudgetPlanReturn {
   reset: () => Promise<void>;
 }
 
+const toItems = (value: unknown): BudgetPlanItem[] => (Array.isArray(value) ? (value as BudgetPlanItem[]) : []);
+
 export function useBudgetPlan(): UseBudgetPlanReturn {
   const { isAuthReady, uid } = useAuth();
   const { error: toastError, success: toastSuccess } = useToast();
@@ -29,6 +31,7 @@ export function useBudgetPlan(): UseBudgetPlanReturn {
   const [, setLoadedFor] = useState<string | null>(null);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const dirtyRef = useRef(false);
+  const remoteLoadedRef = useRef(false);
   const userId = uid;
 
   useEffect(() => {
@@ -41,8 +44,10 @@ export function useBudgetPlan(): UseBudgetPlanReturn {
     setIsLoading(true);
     setError(null);
     dirtyRef.current = false;
+    remoteLoadedRef.current = false;
     const local = loadLocalBudgetPlan(userId);
-    setPlan({ items: (local.items ?? []) as BudgetPlanItem[], updatedAt: local.updatedAt ?? '' });
+    const hasLocal = toItems(local.items).length > 0;
+    setPlan({ items: toItems(local.items), updatedAt: local.updatedAt ?? '' });
     setIsLoading(false);
     setLoadedFor(userId ?? '__guest__');
 
@@ -52,15 +57,21 @@ export function useBudgetPlan(): UseBudgetPlanReturn {
       try {
         const data = await loadBudgetPlan(userId, (fresh) => {
           if (cancelled || dirtyRef.current) return;
-          const next = { items: (fresh.items ?? []) as BudgetPlanItem[], updatedAt: fresh.updatedAt ?? '' };
+          remoteLoadedRef.current = true;
+          const nextItems = toItems(fresh.items);
+          const next = { items: nextItems, updatedAt: fresh.updatedAt ?? '' };
+          // Не затирать непустой локальный план пустым/устаревшим ответом сервера.
+          if (nextItems.length === 0 && hasLocal) return;
           setPlan(next);
           saveLocalBudgetPlan(next.items, next.updatedAt, userId);
         });
-        if (!cancelled && !dirtyRef.current) {
-          const next = { items: (data.items ?? []) as BudgetPlanItem[], updatedAt: data.updatedAt ?? '' };
-          setPlan(next);
-          saveLocalBudgetPlan(next.items, next.updatedAt, userId);
-        }
+        if (cancelled || dirtyRef.current) return;
+        remoteLoadedRef.current = true;
+        const nextItems = toItems(data.items);
+        if (nextItems.length === 0 && hasLocal) return;
+        const next = { items: nextItems, updatedAt: data.updatedAt ?? '' };
+        setPlan(next);
+        saveLocalBudgetPlan(next.items, next.updatedAt, userId);
       } catch (err) {
         if (!cancelled) setError(err instanceof Error ? err.message : 'Ошибка загрузки плана');
       }
@@ -76,6 +87,9 @@ export function useBudgetPlan(): UseBudgetPlanReturn {
     const updatedAt = plan.updatedAt || new Date().toISOString();
     saveLocalBudgetPlan(plan.items, updatedAt, userId);
     if (!userId) return;
+    // Не отправлять пустой план на сервер, пока удалённый план ещё не загружен:
+    // это защищает от затирания данных при гонках/ошибках сети.
+    if (plan.items.length === 0 && !remoteLoadedRef.current && !dirtyRef.current) return;
     timerRef.current = setTimeout(() => {
       void (async () => {
         try {
@@ -129,11 +143,13 @@ export function useBudgetPlan(): UseBudgetPlanReturn {
       if (userId) {
         const def = await resetBudgetPlan(userId);
         dirtyRef.current = false;
-        const next = { items: (def.items ?? []) as BudgetPlanItem[], updatedAt: def.updatedAt ?? new Date().toISOString() };
+        remoteLoadedRef.current = true;
+        const next = { items: toItems(def.items), updatedAt: def.updatedAt ?? new Date().toISOString() };
         setPlan(next);
         saveLocalBudgetPlan(next.items, next.updatedAt, userId);
       } else {
         dirtyRef.current = false;
+        remoteLoadedRef.current = true;
         const next = { items: [] as BudgetPlanItem[], updatedAt: new Date().toISOString() };
         setPlan(next);
         saveLocalBudgetPlan(next.items, next.updatedAt, userId);
