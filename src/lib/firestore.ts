@@ -127,8 +127,12 @@ export const getAllUsers = async (): Promise<{ uid: string; email: string; creat
       };
     });
   } catch (err) {
+    const code = typeof err === 'object' && err && 'code' in err ? String((err as { code?: unknown }).code) : '';
     console.error('[firestore] getAllUsers ошибка:', err);
-    return [];
+    if (code === 'permission-denied') {
+      throw new Error('Нет доступа к аналитике: опубликуйте правила Firestore, разрешающие администратору чтение коллекции users (см. firestore.rules).');
+    }
+    throw err instanceof Error ? err : new Error('Не удалось загрузить аналитику');
   }
 };
 
