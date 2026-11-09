@@ -60,7 +60,7 @@
 }
 
 @media (max-width: 720px) {
-  .page-budget { padding: 12px; padding-bottom: 90px; }
+  .page-budget { padding: 4px; padding-bottom: 90px; }
 }
 
 .budget-card {

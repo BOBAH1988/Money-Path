@@ -334,8 +334,8 @@ body { margin: 0; font-family: system-ui, sans-serif; background: var(--theme-bg
 }
 
 .layout { display: flex; flex-direction: column; min-height: 100vh; background: var(--theme-bg); }
-.content { flex: 1; padding: 16px; max-width: 900px; margin: 0 auto; width: 100%; }
-.page { padding: 8px; }
+.content { flex: 1; padding: 4px; max-width: 900px; margin: 0 auto; width: 100%; }
+.page { padding: 4px; }
 
 /* ---------- Нижняя навигация PWA-стиль (iPhone приоритет) ---------- */
 .layout {
