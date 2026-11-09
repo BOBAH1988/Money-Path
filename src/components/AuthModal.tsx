@@ -332,7 +332,7 @@ export const AccountMenu = ({ onClose, onAnalytics }: { onClose: () => void; onA
 };
 
 export const AnalyticsModal = ({ onClose }: { onClose: () => void }) => {
-  const { isAdmin } = useAuth();
+  const { isAdmin, uid } = useAuth();
   const [users, setUsers] = useState<{ uid: string; email: string; createdAt: string; lastActive: string }[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -347,7 +347,7 @@ export const AnalyticsModal = ({ onClose }: { onClose: () => void }) => {
       try {
         setLoading(true);
         setError(null);
-        const data = await getAllUsers();
+        const data = await getAllUsers(uid);
         if (!cancelled) setUsers(data);
       } catch (err) {
         if (!cancelled) setError(err instanceof Error ? err.message : 'Ошибка загрузки статистики');
