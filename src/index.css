@@ -1894,6 +1894,25 @@ body { margin: 0; font-family: system-ui, sans-serif; background: var(--theme-bg
   padding-bottom: 12px;
 }
 
+.dashboard-archive-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.dashboard-archive-year {
+  min-width: 82px;
+  padding: 4px 8px;
+  border: 1px solid var(--theme-border);
+  border-radius: 8px;
+  background: var(--theme-surface);
+  color: var(--theme-text);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+}
+
 .dashboard-scale-archive h2 {
   font-size: 14px;
 }

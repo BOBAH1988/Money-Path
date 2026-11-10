@@ -90,6 +90,7 @@ export default function Dashboard() {
   const { uid, isAuthReady } = useAuth();
   const { error: toastError } = useToast();
   const [authOpen, setAuthOpen] = useState(false);
+  const [selectedArchiveYear, setSelectedArchiveYear] = useState<number | null>(null);
   const userId = uid;
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(true);
@@ -169,12 +170,17 @@ export default function Dashboard() {
     [income]
   );
 
-  const archiveYear = useMemo(
-    () => incomeArchive.length
-      ? incomeArchive.reduce((latest, row) => Math.max(latest, row.year), incomeArchive[0].year)
-      : CURRENT_YEAR,
+  const archiveYears = useMemo(
+    () => [...new Set(
+      incomeArchive
+        .filter((row) => row.months.some((value) => value !== 0))
+        .map((row) => row.year)
+    )].sort((a, b) => b - a),
     [incomeArchive],
   );
+  const archiveYear = selectedArchiveYear !== null && archiveYears.includes(selectedArchiveYear)
+    ? selectedArchiveYear
+    : archiveYears[0] ?? CURRENT_YEAR;
 
   const averageIncome = useMemo(() => {
     const rows = incomeArchive.filter((r) => r.year === archiveYear);
@@ -211,7 +217,7 @@ export default function Dashboard() {
     return totalByMonth;
   }, [incomeArchive, archiveYear]);
 
-  const hasArchivedIncome = monthlyArchiveIncome.some((value) => value !== 0);
+  const hasArchivedIncome = archiveYears.length > 0;
 
   if (isLoading) {
     return (
@@ -318,7 +324,19 @@ export default function Dashboard() {
 
         {hasArchivedIncome && (
           <section className="dashboard-scale-group dashboard-scale-archive">
-            <h2>Архив доходов за {archiveYear} год</h2>
+            <div className="dashboard-archive-heading">
+              <h2>Архив доходов</h2>
+              <select
+                className="dashboard-archive-year"
+                aria-label="Год архива доходов"
+                value={archiveYear}
+                onChange={(event) => setSelectedArchiveYear(Number(event.target.value))}
+              >
+                {archiveYears.map((year) => (
+                  <option key={year} value={year}>{year}</option>
+                ))}
+              </select>
+            </div>
             <BarChart
               series={[
                 { labels: ['Средний доход за год'], values: [averageIncome] },
