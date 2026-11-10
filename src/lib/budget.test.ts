@@ -5,23 +5,17 @@ import {
   applyComputedFields,
   safeNegate,
   loadBudgetPlan,
+  saveBudgetPlan,
 } from './budget';
 
 const mocks = vi.hoisted(() => ({
-  doc: vi.fn(() => ({})),
-  getDoc: vi.fn(),
-  setDoc: vi.fn(),
+  loadBudgetPlan: vi.fn(),
+  syncPendingToFirestore: vi.fn(),
 }));
 
-vi.mock('firebase/firestore', () => ({
-  doc: mocks.doc,
-  getDoc: mocks.getDoc,
-  setDoc: mocks.setDoc,
-}));
-
-vi.mock('./firebase', () => ({
-  firestoreDb: {},
-  firebaseError: null,
+vi.mock('./firestore', () => ({
+  loadBudgetPlan: mocks.loadBudgetPlan,
+  syncPendingToFirestore: mocks.syncPendingToFirestore,
 }));
 
 const item = (id: string, name: string, amount: number): BudgetPlanItem => ({
@@ -36,7 +30,8 @@ const item = (id: string, name: string, amount: number): BudgetPlanItem => ({
 beforeEach(() => {
   vi.clearAllMocks();
   localStorage.clear();
-  mocks.doc.mockReturnValue({} as any);
+  mocks.loadBudgetPlan.mockResolvedValue({ items: [], updatedAt: '' });
+  mocks.syncPendingToFirestore.mockResolvedValue(undefined);
 });
 
 describe('safeNegate', () => {
@@ -95,14 +90,20 @@ describe('loadBudgetPlan', () => {
     expect(plan.items.length).toBe(0);
   });
 
+  it('saves and loads a guest budget plan locally', async () => {
+    const items = [item('guest-1', 'Локальный план', 100)];
+
+    await saveBudgetPlan({ items, updatedAt: '2026-11-10T00:00:00.000Z' });
+    const plan = await loadBudgetPlan(undefined);
+
+    expect(plan.items).toEqual(items);
+    expect(plan.updatedAt).toBe('2026-11-10T00:00:00.000Z');
+  });
+
   it('loads from Firestore when document exists', async () => {
-    mocks.getDoc.mockResolvedValue({
-      exists: () => true,
-      data: () => ({
-        updatedAt: 't0',
-        userId,
-        items: [item('1', 'Актив 1', 100)],
-      }),
+    mocks.loadBudgetPlan.mockResolvedValue({
+      updatedAt: 't0',
+      items: [item('1', 'Актив 1', 100)],
     });
 
     const plan = await loadBudgetPlan(userId);
@@ -112,18 +113,16 @@ describe('loadBudgetPlan', () => {
   });
 
   it('returns empty plan when Firestore document does not exist', async () => {
-    mocks.getDoc.mockResolvedValue({ exists: () => false });
+    mocks.loadBudgetPlan.mockResolvedValue({ items: [], updatedAt: '' });
 
     const plan = await loadBudgetPlan(userId);
 
     expect(plan.items.length).toBe(0);
   });
 
-  it('returns empty plan on Firestore error', async () => {
-    mocks.getDoc.mockRejectedValue(new Error('network error'));
+  it('preserves the error when Firestore fails instead of treating it as empty data', async () => {
+    mocks.loadBudgetPlan.mockRejectedValue(new Error('network error'));
 
-    const plan = await loadBudgetPlan(userId);
-
-    expect(plan.items.length).toBe(0);
+    await expect(loadBudgetPlan(userId)).rejects.toThrow('network error');
   });
 });

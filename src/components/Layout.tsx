@@ -8,7 +8,6 @@ import { ConfirmDialog } from '../ui/ConfirmDialog';
 import { PageTitleProvider, PageTitleContext } from './PageTitleContext';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../ui/Toast';
-import { COLLECTIONS } from '../lib/dataStore';
 
 const pkgVersion = packageJson.version;
 const currentYear = new Date().getFullYear();
@@ -173,33 +172,16 @@ export default function Layout() {
     return () => media.removeEventListener('change', handler);
   }, []);
 
-  useEffect(() => {
-    const run = () => {
-      for (const it of items) if (it.to !== location.pathname) prefetchRoute(it.to);
-    };
-    const ric = (window as any).requestIdleCallback as ((cb: () => void) => number) | undefined;
-    const id = ric ? ric(run) : window.setTimeout(run, 1200);
-    return () => {
-      const cic = (window as any).cancelIdleCallback as ((id: number) => void) | undefined;
-      if (cic && ric) cic(id as number);
-      else window.clearTimeout(id as number);
-    };
-  }, [location.pathname]);
-
-
   const handleConfirmReset = async () => {
     try {
-      const { resetBudgetPlan, saveToFirestore } = await import('../lib/firestore');
-      await resetBudgetPlan(uid);
-      if (uid) {
-        await Promise.all([
-          saveToFirestore(COLLECTIONS.assets, [], uid),
-          saveToFirestore(COLLECTIONS.liabilities, [], uid),
-          saveToFirestore(COLLECTIONS.income, [], uid),
-          saveToFirestore(COLLECTIONS.incomeArchive, [], uid),
-        ]);
-      }
-      toastSuccess('Данные сброшены', 'Все данные удалены и приложение перезагружено');
+      const { clearAccountData } = await import('../lib/firestore');
+      const result = await clearAccountData(uid);
+      toastSuccess(
+        result.synced ? 'Данные сброшены' : 'Данные очищены на устройстве',
+        result.synced
+          ? 'Облачные данные удалены'
+          : 'Удаление сохранено и будет синхронизировано при подключении к интернету',
+      );
       setConfirmReset(false);
       window.location.reload();
     } catch (err) {
@@ -322,7 +304,7 @@ export default function Layout() {
                     onClick={handleClearCache}
                   >
                    <span className="menu-icon">🗑️</span>
-                    Сбросить кэш
+                    Проверить обновления
                   </button>
                 </li>
                <li>
@@ -470,5 +452,3 @@ export default function Layout() {
     </PageTitleProvider>
   );
 }
-
-

@@ -1,8 +1,6 @@
 import { useEffect, useState, useMemo, useContext } from 'react';
 import { PageTitleContext } from '../components/PageTitleContext';
-import { COLLECTIONS } from '../lib/firestore';
-import { firestoreDb } from '../lib/firebase';
-import { doc, deleteDoc } from 'firebase/firestore';
+import { COLLECTIONS } from '../lib/dataStore';
 import { useAuth } from '../context/AuthContext';
 import { useData } from '../hooks/useData';
 import { ConfirmDialog } from '../ui/ConfirmDialog';
@@ -112,9 +110,6 @@ export default function IncomeArchive() {
   const confirmDelete = () => {
     if (!confirmDeleteId) return;
     removeItem(confirmDeleteId);
-    if (userId && firestoreDb) {
-      deleteDoc(doc(firestoreDb, `users/${userId}/income_archive`, confirmDeleteId)).catch(() => {});
-    }
     setConfirmDeleteId(null);
     toastSuccess('Удалено', 'Строка удалена');
   };

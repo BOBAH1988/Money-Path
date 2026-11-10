@@ -120,7 +120,7 @@ npm test          # запуск всех автотестов (14 шт.)
 src/
 ├── pages/Budget.tsx          # страница бюджета (/budget)
 ├── hooks/useBudget.ts        # логика состояния бюджета
-├── lib/budget.ts             # дефолтные значения, localStorage, расчёт итогов
+├── lib/budget.ts             # local-first план бюджета и расчёт итогов
 ├── components/budget/        # компоненты таблицы и строк
 ├── types/index.ts            # типы данных (BudgetPlanItem, BudgetPlan)
 └── index.css                 # стили (включая бюджет)
