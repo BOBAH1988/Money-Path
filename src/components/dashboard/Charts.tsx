@@ -153,31 +153,35 @@ interface BarChartProps {
 }
 
 export const BarChart = ({ series }: BarChartProps) => {
-  const maxValue = Math.max(...series.flatMap((item) => item.values), 0);
+  const maxValue = Math.max(...series.flatMap((item) => item.values.map(Math.abs)), 0);
 
   return (
     <div className="dashboard-bar-chart" role="list">
       {series.map((item, index) => {
         const label = item.labels[0] ?? '';
         const value = item.values[0] ?? 0;
-        const width = maxValue > 0 ? (value / maxValue) * 100 : 0;
+        const displayValue = value === 0 ? 0 : value;
+        const width = maxValue > 0 ? (Math.abs(value) / maxValue) * 100 : 0;
 
         return (
           <div className="dashboard-bar-chart-row" key={`${label}-${index}`} role="listitem">
             <div className="dashboard-bar-chart-heading">
               <span>{label}</span>
-              <strong>{value.toLocaleString('ru-RU')} ₽</strong>
+              <strong>{displayValue.toLocaleString('ru-RU')} ₽</strong>
             </div>
             <div
               className="dashboard-bar-chart-track"
               role="progressbar"
               aria-label={label}
-              aria-valuenow={value}
+              aria-valuenow={Math.abs(value)}
               aria-valuemin={0}
               aria-valuemax={maxValue || 1}
             >
               <div
-                className={`dashboard-bar-chart-fill${index === 0 ? ' dashboard-bar-chart-fill-primary' : ''}`}
+                className={[
+                  'dashboard-bar-chart-fill',
+                  value < 0 ? 'dashboard-bar-chart-fill-negative' : index === 0 ? 'dashboard-bar-chart-fill-primary' : '',
+                ].filter(Boolean).join(' ')}
                 style={{ width: `${width}%` }}
               />
             </div>
