@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { loginSchema, registerSchema, forgotSchema, type LoginFormData, type RegisterFormData, type ForgotFormData } from '../lib/validation';
 import { useToast } from '../ui/Toast';
@@ -17,7 +18,7 @@ export const AuthModal = ({ onClose }: { onClose: () => void }) => {
   const [success, setSuccess] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [agreeTerms, setAgreeTerms] = useState(false);
-  const [agreeCookies, setAgreeCookies] = useState(false);
+  const [agreePrivacy, setAgreePrivacy] = useState(false);
   const previousAuthActive = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
@@ -78,7 +79,7 @@ export const AuthModal = ({ onClose }: { onClose: () => void }) => {
     clearMessages();
     setSubmitting(true);
     try {
-      const formData = { email, password, confirmPassword, agreeTerms, agreeCookies };
+      const formData = { email, password, confirmPassword, agreeTerms, agreePrivacy };
       if (!validateForm(formData)) {
         setError(validationErrors.join(', '));
         setSubmitting(false);
@@ -217,18 +218,19 @@ export const AuthModal = ({ onClose }: { onClose: () => void }) => {
                       onChange={(e) => setAgreeTerms(e.target.checked)}
                       required
                     />
-                    Я ознакомлен с правилами использования и согласен с ними
+                    Я принимаю <Link to="/terms" onClick={onClose}>условия использования</Link>
                   </label>
                 </div>
                 <div className="auth-field auth-checkbox-field">
                   <label className="auth-checkbox-label">
                     <input
                       type="checkbox"
-                      checked={agreeCookies}
-                      onChange={(e) => setAgreeCookies(e.target.checked)}
+                      checked={agreePrivacy}
+                      onChange={(e) => setAgreePrivacy(e.target.checked)}
                       required
                     />
-                    Я согласен на использование cookie-файлов
+                    Я согласен на обработку персональных данных согласно{' '}
+                    <Link to="/privacy" onClick={onClose}>уведомлению о конфиденциальности</Link>
                   </label>
                 </div>
               </>
@@ -248,7 +250,7 @@ export const AuthModal = ({ onClose }: { onClose: () => void }) => {
             <button
               type="submit"
               className="auth-btn"
-              disabled={submitting || (mode === 'register' && (!agreeTerms || !agreeCookies))}
+              disabled={submitting || (mode === 'register' && (!agreeTerms || !agreePrivacy))}
             >
               {submitting ? 'Подождите...' : mode === 'login' ? 'Войти' : mode === 'register' ? 'Зарегистрироваться' : 'Отправить ссылку'}
             </button>

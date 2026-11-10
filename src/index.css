@@ -335,6 +335,23 @@ body { margin: 0; font-family: system-ui, sans-serif; background: var(--theme-bg
 
 .layout { display: flex; flex-direction: column; min-height: 100vh; background: var(--theme-bg); }
 .content { flex: 1; padding: 4px; max-width: 900px; margin: 0 auto; width: 100%; }
+.legal-page {
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 8px 8px 90px;
+  color: var(--theme-text);
+  line-height: 1.65;
+}
+.legal-page h2 { margin: 24px 0 8px; font-size: 17px; }
+.legal-page p, .legal-page li { color: var(--theme-text); font-size: 14px; }
+.legal-page ul { padding-left: 22px; }
+.legal-page a { color: var(--dp-color-primary); }
+.legal-page-notice {
+  padding: 12px;
+  border-left: 3px solid var(--dp-color-warning);
+  background: var(--theme-surface);
+  border-radius: 6px;
+}
 .page { padding: 4px; }
 
 /* ---------- Нижняя навигация PWA-стиль (iPhone приоритет) ---------- */
@@ -1923,13 +1940,14 @@ body { margin: 0; font-family: system-ui, sans-serif; background: var(--theme-bg
 .bottom-nav-footer {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 8px 12px;
   font-size: 11px;
   color: var(--theme-text-muted);
-  flex-wrap: nowrap;
-  overflow: hidden;
+  flex-wrap: wrap;
+  overflow: visible;
   justify-content: center;
   width: 100%;
+  padding: 4px 8px;
 }
 
 .footer-text {
@@ -1942,10 +1960,12 @@ body { margin: 0; font-family: system-ui, sans-serif; background: var(--theme-bg
 
 .footer-link {
   flex-shrink: 0;
+  margin-left: 0;
 }
 
 .footer-version {
   flex-shrink: 0;
+  margin-left: 0;
 }
 
 .bottom-nav-item {

@@ -19,7 +19,7 @@ export const registerSchema = z.object({
   password: passwordSchema,
   confirmPassword: z.string(),
   agreeTerms: z.boolean().refine((v) => v === true, 'Нужно согласиться с правилами использования'),
-  agreeCookies: z.boolean().refine((v) => v === true, 'Нужно согласиться на использование cookie'),
+  agreePrivacy: z.boolean().refine((v) => v === true, 'Нужно согласиться на обработку персональных данных'),
 }).refine((data) => data.password === data.confirmPassword, {
   message: 'Пароли не совпадают',
   path: ['confirmPassword'],
