@@ -3,8 +3,7 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { loginSchema, registerSchema, forgotSchema, type LoginFormData, type RegisterFormData, type ForgotFormData } from '../lib/validation';
 import { useToast } from '../ui/Toast';
-import { getAllUsers } from '../lib/firestore';
-import { backupFileName, downloadBackup, exportBackup, parseBackupFile, restoreBackup, type BackupArchive } from '../lib/backup';
+import type { BackupArchive } from '../lib/backup';
 import { ConfirmDialog } from '../ui/ConfirmDialog';
 
 type Mode = 'login' | 'register' | 'forgot' | 'verify';
@@ -308,6 +307,7 @@ export const AccountMenu = ({ onClose, onAnalytics }: { onClose: () => void; onA
     if (!uid) return;
     setExporting(true);
     try {
+      const { backupFileName, downloadBackup, exportBackup } = await import('../lib/backup');
       const archive = await exportBackup(uid);
       downloadBackup(archive, backupFileName(uid));
       toastSuccess('Данные скачаны', 'Резервная копия сохранена в JSON-файле');
@@ -323,6 +323,7 @@ export const AccountMenu = ({ onClose, onAnalytics }: { onClose: () => void; onA
     event.target.value = '';
     if (!file) return;
     try {
+      const { parseBackupFile } = await import('../lib/backup');
       setPendingArchive(await parseBackupFile(file));
     } catch (err) {
       toastError('Ошибка файла', err instanceof Error ? err.message : 'Не удалось прочитать файл данных');
@@ -333,6 +334,7 @@ export const AccountMenu = ({ onClose, onAnalytics }: { onClose: () => void; onA
     if (!pendingArchive || !uid) return;
     setRestoring(true);
     try {
+      const { restoreBackup } = await import('../lib/backup');
       const report = await restoreBackup(pendingArchive, uid);
       toastSuccess('Данные загружены', `Восстановлено записей: ${report.totalRecords}`);
       setPendingArchive(null);
@@ -483,6 +485,7 @@ export const AnalyticsModal = ({ onClose }: { onClose: () => void }) => {
       try {
         setLoading(true);
         setError(null);
+        const { getAllUsers } = await import('../lib/firestore');
         const data = await getAllUsers(uid);
         if (!cancelled) setUsers(data);
       } catch (err) {
