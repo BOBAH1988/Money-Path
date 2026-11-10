@@ -268,21 +268,6 @@ export default function Dashboard() {
       </div>
 
       <div className="dashboard-scales">
-        {hasArchivedIncome && (
-          <section className="dashboard-scale-group">
-            <h2>Архив доходов за {archiveYear} год</h2>
-            <BarChart
-              series={[
-                { labels: ['Средний доход за год'], values: [averageIncome] },
-                ...MONTHS.map((month, index) => ({
-                  labels: [month],
-                  values: [monthlyArchiveIncome[index] ?? 0],
-                })),
-              ]}
-            />
-          </section>
-        )}
-
         <section className="dashboard-scale-group">
           <h2>Доходы и расходы</h2>
           <BarChart
@@ -330,6 +315,21 @@ export default function Dashboard() {
             ]}
           />
         </section>
+
+        {hasArchivedIncome && (
+          <section className="dashboard-scale-group dashboard-scale-archive">
+            <h2>Архив доходов за {archiveYear} год</h2>
+            <BarChart
+              series={[
+                { labels: ['Средний доход за год'], values: [averageIncome] },
+                ...MONTHS.map((month, index) => ({
+                  labels: [month],
+                  values: [monthlyArchiveIncome[index] ?? 0],
+                })),
+              ]}
+            />
+          </section>
+        )}
       </div>
     </div>
   );
