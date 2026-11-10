@@ -35,7 +35,7 @@ describe('computeBudgetPageTotals', () => {
     expect(t.totalAll).toBe(450);
     expect(t.totalMonthlyPlan).toBe(600);
     expect(t.totalPlannedPlan).toBe(60);
-    expect(t.regularTotal).toBe(540);
+    expect(t.regularTotal).toBe(600);
   });
 
   it('ignores subtotal and total items', () => {
@@ -58,12 +58,12 @@ describe('computeBudgetPageTotals', () => {
     expect(t.totalMonthlyPlan).toBe(0);
   });
 
-  it('regularTotal equals monthly plan minus planned plan', () => {
+  it('regularTotal equals total plan minus the plan for additional expenses', () => {
     const items: BudgetPlanItem[] = [
-      item({ id: '1', group: 'monthly', amount: 0, plan: 1000 }),
-      item({ id: '2', group: 'planned', amount: 0, plan: 300 }),
+      item({ id: '1', group: 'monthly', amount: 0, plan: 30_900 }),
+      item({ id: '2', group: 'planned', amount: 0, plan: 4_000 }),
     ];
     const t = computeBudgetPageTotals(items);
-    expect(t.regularTotal).toBe(700);
+    expect(t.regularTotal).toBe(30_900);
   });
 });
