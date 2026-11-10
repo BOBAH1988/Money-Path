@@ -8,7 +8,7 @@ import { useAuth } from '../context/AuthContext';
 import { loadFromFirestore, loadLocalCollection, storageKeyFor, COLLECTIONS } from '../lib/firestore';
 import { EmptyState } from '../ui/EmptyState';
 import { AuthModal } from '../components/AuthModal';
-import { LineChart, BarChart } from '../components/dashboard/Charts';
+import { BarChart } from '../components/dashboard/Charts';
 import { useToast } from '../ui/Toast';
 
 const CURRENT_YEAR = new Date().getFullYear();
@@ -103,10 +103,14 @@ export default function Dashboard() {
   const hasData = useMemo(
     () =>
       assets.some((a) => (a.amount ?? 0) > 0) ||
+      assets.some((a) => (a.monthly ?? 0) > 0) ||
       liabilities.some((l) => (l.amount ?? 0) > 0) ||
+      liabilities.some((l) => (l.monthly ?? 0) > 0) ||
       income.some((i) => (i.amount ?? 0) > 0) ||
+      income.some((i) => (i.monthly ?? 0) > 0) ||
+      totals.totalAll > 0 ||
       incomeArchive.some((r) => r.months.some((v) => v && v !== 0)),
-    [assets, liabilities, income, incomeArchive]
+    [assets, liabilities, income, incomeArchive, totals.totalAll]
   );
 
   useEffect(() => {
@@ -191,10 +195,9 @@ export default function Dashboard() {
   const summaryIncome = incomeAmount;
   const summaryExpenses = totals.totalAll;
   const summaryDiff = summaryIncome - summaryExpenses;
-  const summaryOk = summaryExpenses <= summaryIncome;
   const summaryEqual = summaryExpenses === summaryIncome;
 
-  const incomeChartData = useMemo(() => {
+  const monthlyArchiveIncome = useMemo(() => {
     const rows = incomeArchive.filter((r) => r.year === archiveYear);
     if (rows.length === 0) {
       return new Array(12).fill(0);
@@ -205,19 +208,14 @@ export default function Dashboard() {
         if (v && v !== 0) totalByMonth[idx] += v;
       });
     });
-    const max = Math.max(...totalByMonth, 1);
-    const normalized = totalByMonth.map((v) => {
-      if (v === 0) return 0;
-      return Math.round((v / max) * 100);
-    });
-    return normalized;
+    return totalByMonth;
   }, [incomeArchive, archiveYear]);
 
-  const hasArchivedIncome = incomeChartData.some((value) => value !== 0);
+  const hasArchivedIncome = monthlyArchiveIncome.some((value) => value !== 0);
 
   if (isLoading) {
     return (
-      <div className="page page-budget">
+      <div className="page page-budget page-dashboard">
         <div className="budget-card">
           <div className="budget-card-body" style={{ padding: 40, textAlign: 'center', color: 'var(--theme-text-muted)' }}>
             Загрузка данных…
@@ -229,7 +227,7 @@ export default function Dashboard() {
 
   if (!hasData) {
     return (
-      <div className="page page-budget">
+      <div className="page page-budget page-dashboard">
         <div className="budget-card">
           <div className="budget-card-body">
             <EmptyState
@@ -261,171 +259,77 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="page page-budget">
+    <div className="page page-budget page-dashboard">
       <div className="budget-page-header">
         <h1 className="budget-page-header h1">Главная</h1>
         <p className="budget-page-subtitle">
-          Текущая сводка и архив доходов за последний год с данными
+          Сводка по текущему бюджету и архив доходов по месяцам
         </p>
       </div>
 
-      {hasArchivedIncome && (
-        <div className="budget-card" style={{ margin: '0 4px' }}>
-          <div className="budget-card-header">
-            <h2 className="budget-card-title">Архив доходов за {archiveYear} год</h2>
-          </div>
-          <div className="budget-card-body">
-            <div className="budget-summary" style={{ padding: '0 4px' }}>
-              <div className="summary-item summary-item-total">
-                <span className="summary-label">Средний доход за год</span>
-                <span className="summary-value">
-                  {averageIncome.toLocaleString('ru-RU')} ₽
-                </span>
-              </div>
-            </div>
-            <div className="budget-table-wrap">
-              <LineChart data={incomeChartData} labels={MONTHS} />
-            </div>
-          </div>
-        </div>
-      )}
-
-      <div className="budget-card" style={{ margin: '0 4px' }}>
-        <div className="budget-card-header">
-          <h2 className="budget-card-title">Распределение текущих расходов</h2>
-        </div>
-        <div className="budget-card-body">
-          <div className="budget-summary" style={{ padding: '0 4px' }}>
-            <div className="summary-item summary-item-total">
-              <span className="summary-label">Общее итого</span>
-              <span className="summary-value">{totals.totalAll.toLocaleString('ru-RU')} ₽</span>
-            </div>
-            <div className="summary-item">
-              <span className="summary-label">Регулярные расходы</span>
-              <span className="summary-value">{totals.regularTotal.toLocaleString('ru-RU')} ₽</span>
-            </div>
-          </div>
-          <div className="budget-table-wrap">
+      <div className="dashboard-scales">
+        {hasArchivedIncome && (
+          <section className="dashboard-scale-group">
+            <h2>Архив доходов за {archiveYear} год</h2>
             <BarChart
               series={[
-                { labels: ['Расходы'], values: [totals.totalAll] },
-                { labels: ['Регулярные'], values: [totals.regularTotal] },
+                { labels: ['Средний доход за год'], values: [averageIncome] },
+                ...MONTHS.map((month, index) => ({
+                  labels: [month],
+                  values: [monthlyArchiveIncome[index] ?? 0],
+                })),
               ]}
             />
-          </div>
-        </div>
-      </div>
+          </section>
+        )}
 
-      <div className="budget-card" style={{ margin: '0 4px' }}>
-        <div className="budget-card-header">
-          <h2 className="budget-card-title">Сводка</h2>
-        </div>
-        <div className="budget-card-body">
-          <div className="budget-summary" style={{ padding: '0 4px' }}>
-            <div className="summary-item summary-item-total">
-              <span className="summary-label">Доходы</span>
-              <span className="summary-value">
-                {summaryIncome.toLocaleString('ru-RU')} ₽
-              </span>
-            </div>
-            <div className="summary-item">
-              <span className="summary-label">Расходы</span>
-              <span className="summary-value">
-                {summaryExpenses.toLocaleString('ru-RU')} ₽
-              </span>
-            </div>
-          </div>
-          <div
-            style={{
-              margin: '8px 4px 4px',
-              padding: '12px 14px',
-              borderRadius: 12,
-              background: summaryOk ? 'rgba(52, 211, 153, 0.12)' : 'rgba(248, 113, 113, 0.12)',
-              border: `1px solid ${summaryOk ? 'var(--dp-color-success)' : 'var(--dp-color-danger)'}`,
-              color: summaryOk ? 'var(--dp-color-success)' : 'var(--dp-color-danger)',
-              fontSize: 14,
-              fontWeight: 600,
-              display: 'flex',
-              alignItems: 'center',
-              gap: 8,
-            }}
-          >
-            <span style={{ fontSize: 18 }}>{summaryOk ? '✅' : '⚠️'}</span>
-            <span>
-              {summaryEqual
-                ? 'Расходы равны доходам'
-                : summaryOk
-                  ? `Хорошо: расходы меньше доходов на ${summaryDiff.toLocaleString('ru-RU')} ₽`
-                  : `Необходимо пересмотреть расходы: расходы превышают доходы на ${Math.abs(summaryDiff).toLocaleString('ru-RU')} ₽`}
-            </span>
-          </div>
-        </div>
-      </div>
+        <section className="dashboard-scale-group">
+          <h2>Доходы и расходы</h2>
+          <BarChart
+            series={[
+              { labels: ['Доходы'], values: [summaryIncome] },
+              { labels: ['Расходы'], values: [summaryExpenses] },
+              { labels: ['Остаток'], values: [summaryDiff] },
+            ]}
+          />
+          <p className={`dashboard-scale-note${summaryDiff < 0 ? ' dashboard-scale-note-danger' : ''}`}>
+            {summaryEqual
+              ? 'Расходы равны доходам'
+              : summaryDiff > 0
+                ? `Остаток после расходов: ${summaryDiff.toLocaleString('ru-RU')} ₽`
+                : `Расходы превышают доходы на ${Math.abs(summaryDiff).toLocaleString('ru-RU')} ₽`}
+          </p>
+        </section>
 
-      <div className="budget-card" style={{ margin: '0 4px' }}>
-        <div className="budget-card-header">
-          <h2 className="budget-card-title">Доходы</h2>
-        </div>
-        <div className="budget-card-body">
-          <div className="budget-summary" style={{ padding: '0 4px' }}>
-            <div className="summary-item summary-item-total">
-              <span className="summary-label">Средний доход</span>
-              <span className="summary-value">
-                {incomeAmount.toLocaleString('ru-RU')} ₽
-              </span>
-            </div>
-            <div className="summary-item">
-              <span className="summary-label">Планируемый доход</span>
-              <span className="summary-value">
-                {incomeMonthly.toLocaleString('ru-RU')} ₽
-              </span>
-            </div>
-          </div>
-        </div>
-      </div>
+        <section className="dashboard-scale-group">
+          <h2>Расходы</h2>
+          <BarChart
+            series={[
+              { labels: ['Расходы в текущем месяце'], values: [totals.totalAll] },
+              { labels: ['Регулярные расходы'], values: [totals.regularTotal] },
+            ]}
+          />
+        </section>
 
-      <div className="budget-card" style={{ margin: '0 4px' }}>
-        <div className="budget-card-header">
-          <h2 className="budget-card-title">Расходы</h2>
-        </div>
-        <div className="budget-card-body">
-          <div className="budget-summary" style={{ padding: '0 4px' }}>
-            <div className="summary-item summary-item-total">
-              <span className="summary-label">Общее итого</span>
-              <span className="summary-value">
-                {totals.totalAll.toLocaleString('ru-RU')} ₽
-              </span>
-            </div>
-            <div className="summary-item">
-              <span className="summary-label">Регулярные расходы</span>
-              <span className="summary-value">
-                {totals.regularTotal.toLocaleString('ru-RU')} ₽
-              </span>
-            </div>
-          </div>
-        </div>
-      </div>
+        <section className="dashboard-scale-group">
+          <h2>Доходы</h2>
+          <BarChart
+            series={[
+              { labels: ['Текущие доходы'], values: [incomeAmount] },
+              { labels: ['Планируемый доход'], values: [incomeMonthly] },
+            ]}
+          />
+        </section>
 
-      <div className="budget-card" style={{ margin: '0 4px' }}>
-        <div className="budget-card-header">
-          <h2 className="budget-card-title">Активы и Пассивы</h2>
-        </div>
-        <div className="budget-card-body">
-          <div className="budget-summary" style={{ padding: '0 4px' }}>
-            <div className="summary-item summary-item-total">
-              <span className="summary-label">Активы итого</span>
-              <span className="summary-value">
-                {totalAssets.toLocaleString('ru-RU')} ₽
-              </span>
-            </div>
-            <div className="summary-item">
-              <span className="summary-label">Пассивы итого</span>
-              <span className="summary-value">
-                {totalLiabilities.toLocaleString('ru-RU')} ₽
-              </span>
-            </div>
-          </div>
-        </div>
+        <section className="dashboard-scale-group">
+          <h2>Активы и пассивы</h2>
+          <BarChart
+            series={[
+              { labels: ['Активы'], values: [totalAssets] },
+              { labels: ['Пассивы'], values: [totalLiabilities] },
+            ]}
+          />
+        </section>
       </div>
     </div>
   );
