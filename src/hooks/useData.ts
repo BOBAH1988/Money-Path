@@ -130,8 +130,9 @@ export function useData<T extends { id: string }>(options: UseDataOptions): UseD
   }, [isAuthReady, userId, collectionName, localOnly, toastError]);
 
   useEffect(() => {
-    itemsRef.current = items;
     if (!isAuthReady) return;
+    if (itemsRef.current !== items) return;
+    itemsRef.current = items;
     saveLocalCollection(localCollectionName, items, userId);
   }, [items, isAuthReady, userId, localCollectionName]);
 

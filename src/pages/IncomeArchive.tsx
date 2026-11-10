@@ -3,6 +3,7 @@ import { PageTitleContext } from '../components/PageTitleContext';
 import { COLLECTIONS } from '../lib/dataStore';
 import { useAuth } from '../context/AuthContext';
 import { useData } from '../hooks/useData';
+import { getIncomeArchiveMonthWindow } from '../lib/incomeArchive';
 import { ConfirmDialog } from '../ui/ConfirmDialog';
 import { useToast } from '../ui/Toast';
 
@@ -21,6 +22,7 @@ interface IncomeArchiveRow {
 }
 
 const emptyMonths = () => new Array(12).fill(0);
+const emptyVisibleMonths = () => new Array(3).fill(0);
 
 const fmt = (v: number) => (v || 0).toLocaleString('ru-RU');
 
@@ -39,18 +41,17 @@ export default function IncomeArchive() {
   }, [setPageTitle]);
 
   const currentYear = CURRENT_YEAR;
-  const [selectedYear, setSelectedYear] = useState(currentYear);
   const [monthStart, setMonthStart] = useState(() => {
     const now = new Date();
-    const cur = now.getMonth();
-    return (cur - 2 + 12) % 12;
+    return currentYear * 12 + Math.max(0, now.getMonth() - 2);
   });
+  const selectedYear = Math.floor(monthStart / 12);
 
-  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const [confirmDeleteIds, setConfirmDeleteIds] = useState<string[]>([]);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [showAddRow, setShowAddRow] = useState(false);
   const [addName, setAddName] = useState('');
-  const [addMonths, setAddMonths] = useState<number[]>(emptyMonths());
+  const [addMonths, setAddMonths] = useState<number[]>(emptyVisibleMonths());
 
   const availableYears = useMemo(() => {
     const set = new Set<number>();
@@ -61,17 +62,28 @@ export default function IncomeArchive() {
     return Array.from(set).sort((a, b) => b - a);
   }, [items, currentYear]);
 
-  useEffect(() => {
-    if (!availableYears.includes(selectedYear)) {
-      setSelectedYear(availableYears[0]);
-    }
-  }, [availableYears, selectedYear]);
-
   const yearItems = useMemo(() => items.filter((row) => row.year === selectedYear), [items, selectedYear]);
-  const visibleMonths = useMemo(() => [monthStart, (monthStart + 1) % 12, (monthStart + 2) % 12], [monthStart]);
+  const visibleMonths = useMemo(() => getIncomeArchiveMonthWindow(monthStart), [monthStart]);
+  const visibleYearItems = useMemo(
+    () => items.filter((row) => visibleMonths.some((month) => month.year === row.year)),
+    [items, visibleMonths],
+  );
+  const visibleRows = useMemo(() => {
+    const groups = new Map<string, IncomeArchiveRow[]>();
+    visibleYearItems.forEach((row) => {
+      const key = row.name || row.id;
+      groups.set(key, [...(groups.get(key) ?? []), row]);
+    });
+    return Array.from(groups.values(), (rows) => ({
+      key: rows[0]!.id,
+      name: rows[0]?.name ?? '',
+      rows,
+    }));
+  }, [visibleYearItems]);
 
   const rowTotal = (row: IncomeArchiveRow) => row.months.reduce((s, v) => s + (v || 0), 0);
-  const colTotal = (idx: number) => yearItems.reduce((s, row) => s + (row.months[idx] || 0), 0);
+  const colTotal = (year: number, idx: number) =>
+    items.filter((row) => row.year === year).reduce((sum, row) => sum + (row.months[idx] || 0), 0);
   const grandTotal = yearItems.reduce((s, row) => s + rowTotal(row), 0);
 
   const filledMonthsCount = useMemo(() => {
@@ -81,41 +93,63 @@ export default function IncomeArchive() {
   }, [yearItems]);
   const averageIncome = filledMonthsCount > 0 ? Math.round(grandTotal / filledMonthsCount) : 0;
 
-  const updateCell = (id: string, monthIdx: number, value: number) => {
-    const row = items.find((it) => it.id === id);
-    if (!row) return;
+  const updateCell = (rows: IncomeArchiveRow[], year: number, monthIdx: number, value: number) => {
+    const row = rows.find((item) => item.year === year);
+    if (!row) {
+      const months = emptyMonths();
+      months[monthIdx] = value;
+      addItem({ name: rows[0]?.name ?? '', year, months });
+      return;
+    }
     const nextMonths = [...row.months];
     nextMonths[monthIdx] = value;
-    updateItem(id, { months: nextMonths });
+    updateItem(row.id, { months: nextMonths });
   };
 
-  const updateName = (id: string, name: string) => {
-    updateItem(id, { name });
+  const updateName = (rows: IncomeArchiveRow[], name: string) => {
+    rows.forEach((row) => updateItem(row.id, { name }));
   };
 
   const handleAdd = () => {
     const name = addName.trim();
-    if (!name) { setShowAddRow(false); setAddName(''); setAddMonths(emptyMonths()); return; }
-    const months = addMonths.map((v) => (typeof v === 'number' ? v : 0));
-    addItem({ name, year: selectedYear, months });
+    if (!name) { setShowAddRow(false); setAddName(''); setAddMonths(emptyVisibleMonths()); return; }
+    const monthsByYear = new Map<number, number[]>();
+    visibleMonths.forEach((month, index) => {
+      const months = monthsByYear.get(month.year) ?? emptyMonths();
+      months[month.index] = addMonths[index] ?? 0;
+      monthsByYear.set(month.year, months);
+    });
+    monthsByYear.forEach((months, year) => {
+      if (year === selectedYear || months.some((value) => value !== 0)) {
+        addItem({ name, year, months });
+      }
+    });
     setAddName('');
-    setAddMonths(emptyMonths());
+    setAddMonths(emptyVisibleMonths());
     setShowAddRow(false);
   };
 
-  const handleRemove = (id: string) => {
-    setConfirmDeleteId(id);
+  const handleRemove = (rows: IncomeArchiveRow[]) => {
+    setConfirmDeleteIds(rows.map((row) => row.id));
   };
 
   const confirmDelete = () => {
-    if (!confirmDeleteId) return;
-    removeItem(confirmDeleteId);
-    setConfirmDeleteId(null);
+    if (!confirmDeleteIds.length) return;
+    confirmDeleteIds.forEach(removeItem);
+    setConfirmDeleteIds([]);
     toastSuccess('Удалено', 'Строка удалена');
   };
 
-  const prevWindow = () => setMonthStart((s) => (s - 2 + 12) % 12);
-  const nextWindow = () => setMonthStart((s) => (s + 2) % 12);
+  const changeWindow = (start: number) => {
+    setEditingId(null);
+    setShowAddRow(false);
+    setAddName('');
+    setAddMonths(emptyVisibleMonths());
+    setMonthStart(start);
+  };
+
+  const prevWindow = () => changeWindow(monthStart - 1);
+  const nextWindow = () => changeWindow(monthStart + 1);
 
   const finishEdit = () => setEditingId(null);
 
@@ -169,7 +203,7 @@ export default function IncomeArchive() {
             <h2 className="budget-card-title" style={{ margin: 0 }}>Доходы архив</h2>
             <select
               value={selectedYear}
-              onChange={(e) => setSelectedYear(Number(e.target.value))}
+              onChange={(e) => changeWindow(Number(e.target.value) * 12)}
               style={{
                 padding: '6px 10px',
                 borderRadius: 8,
@@ -200,8 +234,10 @@ export default function IncomeArchive() {
               <thead>
                 <tr>
                   <th className="budget-head budget-head-name">Источник</th>
-                  {visibleMonths.map((idx) => (
-                    <th key={idx} className="budget-head budget-head-amount">{MONTHS[idx]}</th>
+                  {visibleMonths.map(({ year, index }) => (
+                    <th key={`${year}-${index}`} className="budget-head budget-head-amount">
+                      {MONTHS[index]}<span className="archive-month-year">{year}</span>
+                    </th>
                   ))}
                   <th className="budget-head budget-head-actions">
                     {showAddRow || editingId ? (
@@ -213,16 +249,16 @@ export default function IncomeArchive() {
                 </tr>
               </thead>
               <tbody>
-                {items.filter((r) => r.year === selectedYear).map((row) => {
-                  const isEditing = editingId === row.id;
+                {visibleRows.map((row) => {
+                  const isEditing = editingId === row.key;
                   return (
-                    <tr key={row.id} className="budget-row">
+                    <tr key={row.key} className="budget-row">
                       <td className="budget-cell budget-cell-name">
                         {isEditing ? (
                           <input
                             className="budget-input"
                             value={row.name}
-                            onChange={(e) => updateName(row.id, e.target.value)}
+                            onChange={(e) => updateName(row.rows, e.target.value)}
                             onKeyDown={(e) => e.key === 'Enter' && finishEdit()}
                             autoFocus
                           />
@@ -230,26 +266,29 @@ export default function IncomeArchive() {
                           <span className="row-name">{row.name || '—'}</span>
                         )}
                       </td>
-                    {visibleMonths.map((idx) => (
-                      <td key={idx} className="budget-cell budget-cell-amount">
-                        {isEditing ? (
-                          <input
-                            className="budget-input budget-input-amount"
-                            value={row.months[idx] || ''}
-                            onChange={(e) => updateCell(row.id, idx, Number(e.target.value.replace(/[^\d]/g, '')) || 0)}
-                            onKeyDown={(e) => e.key === 'Enter' && finishEdit()}
-                          />
-                        ) : (
-                          <span className="row-amount">{fmt(row.months[idx])}</span>
-                        )}
-                      </td>
-                    ))}
+                    {visibleMonths.map(({ year, index }) => {
+                      const yearRow = row.rows.find((entry) => entry.year === year);
+                      return (
+                        <td key={`${year}-${index}`} className="budget-cell budget-cell-amount">
+                          {isEditing ? (
+                            <input
+                              className="budget-input budget-input-amount"
+                              value={yearRow?.months[index] || ''}
+                              onChange={(e) => updateCell(row.rows, year, index, Number(e.target.value.replace(/[^\d]/g, '')) || 0)}
+                              onKeyDown={(e) => e.key === 'Enter' && finishEdit()}
+                            />
+                          ) : (
+                            <span className="row-amount">{fmt(yearRow?.months[index] ?? 0)}</span>
+                          )}
+                        </td>
+                      );
+                    })}
                       <td className="budget-cell budget-cell-actions">
                         {!isEditing && (
-                          <button className="btn-edit" onClick={() => setEditingId(row.id)} aria-label="Редактировать">✎</button>
+                          <button className="btn-edit" onClick={() => setEditingId(row.key)} aria-label="Редактировать">✎</button>
                         )}
                         {isEditing && (
-                          <button className="btn-delete" onClick={() => { handleRemove(row.id); setEditingId(null); }} aria-label="Удалить">🗑️</button>
+                          <button className="btn-delete" onClick={() => { handleRemove(row.rows); setEditingId(null); }} aria-label="Удалить">🗑️</button>
                         )}
                       </td>
                     </tr>
@@ -268,16 +307,16 @@ export default function IncomeArchive() {
                         autoFocus
                       />
                     </td>
-                    {visibleMonths.map((idx) => (
-                      <td key={idx} className="budget-cell budget-cell-amount">
+                    {visibleMonths.map(({ year, index }, visibleIndex) => (
+                      <td key={`${year}-${index}`} className="budget-cell budget-cell-amount">
                         <input
                           className="budget-input budget-input-amount"
-                          value={addMonths[idx] || ''}
+                          value={addMonths[visibleIndex] || ''}
                           onChange={(e) => {
                             const v = Number(e.target.value.replace(/[^\d]/g, '')) || 0;
                             setAddMonths((prev) => {
                               const next = [...prev];
-                              next[idx] = v;
+                              next[visibleIndex] = v;
                               return next;
                             });
                           }}
@@ -294,9 +333,9 @@ export default function IncomeArchive() {
 
                 <tr className="budget-row total">
                   <td className="budget-cell budget-cell-name"><span className="footer-label">Итого:</span></td>
-                  {visibleMonths.map((idx) => (
-                    <td key={idx} className="budget-cell budget-cell-amount" style={{ whiteSpace: 'nowrap', fontWeight: 700 }}>
-                      {colTotal(idx).toLocaleString('ru-RU')}
+                  {visibleMonths.map(({ year, index }) => (
+                    <td key={`${year}-${index}`} className="budget-cell budget-cell-amount" style={{ whiteSpace: 'nowrap', fontWeight: 700 }}>
+                      {colTotal(year, index).toLocaleString('ru-RU')}
                     </td>
                   ))}
                   <td className="budget-cell budget-cell-actions" />
@@ -307,11 +346,11 @@ export default function IncomeArchive() {
         </div>
       </div>
       <ConfirmDialog
-        open={confirmDeleteId !== null}
-        onClose={() => setConfirmDeleteId(null)}
+        open={confirmDeleteIds.length > 0}
+        onClose={() => setConfirmDeleteIds([])}
         onConfirm={confirmDelete}
         title="Удалить строку?"
-        description="Удаление необратимо. Данные будут безвозвратно потеряны."
+        description="Удаление записей источника за отображаемые годы необратимо."
         confirmLabel="Удалить"
         cancelLabel="Отмена"
         confirmVariant="danger"

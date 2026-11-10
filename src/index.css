@@ -1951,6 +1951,13 @@ body { margin: 0; font-family: system-ui, sans-serif; background: var(--theme-bg
   color: var(--dp-color-danger);
 }
 
+.archive-month-year {
+  display: block;
+  font-size: 10px;
+  font-weight: 500;
+  text-transform: none;
+}
+
 /* ============================================================
    ConfirmDialog
    ============================================================ */

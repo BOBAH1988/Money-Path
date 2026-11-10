@@ -79,6 +79,20 @@ describe('useData', () => {
     expect(result.current.error).toBeTruthy();
   });
 
+  it('does not overwrite a guest local snapshot before it is loaded', async () => {
+    const cached: AssetRow[] = [{ id: 'guest-1', name: 'Архив', amount: 100, monthly: 5 }];
+    localStorageMock.setItem('denegnyj_put_assets', JSON.stringify(cached));
+
+    const { result } = renderHook(() => useData<AssetRow>({
+      collectionName: COLLECTIONS.assets,
+    }), { wrapper: wrap });
+
+    await new Promise((resolve) => setTimeout(resolve, 50));
+
+    expect(result.current.items).toEqual(cached);
+    expect(JSON.parse(localStorageMock.getItem('denegnyj_put_assets') ?? '[]')).toEqual(cached);
+  });
+
   it('persists an offline edit in the local snapshot and pending queue across remounts', async () => {
     const cached: AssetRow[] = [{ id: 'asset-1', name: 'Вклад', amount: 100, monthly: 5 }];
     localStorageMock.setItem('denegnyj_put_uid-123_assets', JSON.stringify(cached));
