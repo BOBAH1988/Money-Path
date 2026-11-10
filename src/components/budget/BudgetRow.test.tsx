@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import { render, screen, fireEvent, cleanup } from '@testing-library/react';
+import { useState } from 'react';
 import { BudgetRow } from './BudgetRow';
 import { ToastProvider } from '../../ui/Toast';
 
@@ -177,6 +178,53 @@ describe('BudgetRow', () => {
     expect(amountInput).toHaveValue('12500');
     const planInput = screen.getAllByRole('textbox')[2];
     expect(planInput).toHaveValue('12500');
+  });
+
+  it('saves normalized input only once when exiting edit mode', () => {
+    const onUpdate = vi.fn();
+    const Harness = () => {
+      const [item, setItem] = useState({
+        id: '1',
+        name: 'Ипотека',
+        amount: 0,
+        plan: 0,
+        group: 'monthly' as const,
+        type: 'item' as const,
+      });
+      const [isEditing, setIsEditing] = useState(true);
+
+      return (
+        <>
+          <button onClick={() => setIsEditing(false)}>Done</button>
+        <table>
+          <tbody>
+            <BudgetRow
+              item={item}
+              onUpdate={(id, patch) => {
+                onUpdate(id, patch);
+                setItem((current) => ({ ...current, ...patch }));
+              }}
+              onRemove={vi.fn()}
+              isEditing={isEditing}
+              onStartEdit={vi.fn()}
+              onFinishEdit={() => setIsEditing(false)}
+            />
+          </tbody>
+        </table>
+        </>
+      );
+    };
+
+    render(
+      <ToastProvider>
+        <Harness />
+      </ToastProvider>
+    );
+    fireEvent.change(screen.getAllByRole('textbox')[1], { target: { value: '1 000' } });
+    fireEvent.click(screen.getByText('Done'));
+
+    expect(onUpdate).toHaveBeenCalledTimes(1);
+    expect(onUpdate).toHaveBeenCalledWith('1', { name: 'Ипотека', amount: 1000, plan: 0 });
   });
 
   it('calls onStartEdit when clicking edit button', () => {
