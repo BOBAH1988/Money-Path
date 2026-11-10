@@ -2009,6 +2009,20 @@ body { margin: 0; font-family: system-ui, sans-serif; background: var(--theme-bg
   color: var(--theme-text-muted);
 }
 
+@media (max-width: 600px) {
+  .bottom-nav-footer {
+    flex-wrap: nowrap;
+    gap: 6px;
+    width: auto;
+    align-self: stretch;
+    padding: 4px 0;
+  }
+
+  .footer-legal-link {
+    display: none;
+  }
+}
+
 .legal-consent-overlay {
   position: fixed;
   inset: 0;
