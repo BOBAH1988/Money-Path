@@ -56,12 +56,24 @@ describe.skipIf(!emulatorAvailable)('Firestore security rules', () => {
   });
 
   it('lets the admin list profiles but not read a profile directly or access financial data', async () => {
-    const db = testEnv.authenticatedContext('admin', { email: adminEmail }).firestore();
+    const db = testEnv.authenticatedContext('admin', {
+      email: adminEmail,
+      email_verified: true,
+    }).firestore();
 
     await assertSucceeds(getDocs(collection(db, 'users')));
     await assertFails(getDoc(doc(db, 'users/alice')));
     await assertFails(getDoc(doc(db, 'users/alice/assets/asset-1')));
     await assertFails(setDoc(doc(db, 'users/alice/assets/asset-1'), { amount: 1 }));
+  });
+
+  it('does not grant admin access to an unverified email', async () => {
+    const db = testEnv.authenticatedContext('unverified-admin', {
+      email: adminEmail,
+      email_verified: false,
+    }).firestore();
+
+    await assertFails(getDocs(collection(db, 'users')));
   });
 
   it('denies unauthenticated access and profile deletion', async () => {
