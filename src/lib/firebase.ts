@@ -3,7 +3,7 @@ import { getAuth, type Auth } from 'firebase/auth';
 import type { Firestore } from 'firebase/firestore';
 
 const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || 'AIzaSyDEkZmGzUTl2FOfGBS8UDBDEXcdIPY1vxE',
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
   authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || 'money-path-af37c.firebaseapp.com',
   projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || 'money-path-af37c',
   storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || 'money-path-af37c.firebasestorage.app',
@@ -19,11 +19,15 @@ let firestorePromise: Promise<Firestore> | null = null;
 const isTestEnv = typeof import.meta.env !== 'undefined' && import.meta.env.MODE === 'test';
 
 if (!isTestEnv) {
-  try {
-    app = initializeApp(firebaseConfig);
-    auth = getAuth(app);
-  } catch (err) {
-    firebaseError = err instanceof Error ? err : new Error(String(err));
+  if (!firebaseConfig.apiKey) {
+    firebaseError = new Error('Firebase API key is not configured');
+  } else {
+    try {
+      app = initializeApp(firebaseConfig);
+      auth = getAuth(app);
+    } catch (err) {
+      firebaseError = err instanceof Error ? err : new Error(String(err));
+    }
   }
 } else {
   firebaseError = new Error('Firebase disabled in test mode');

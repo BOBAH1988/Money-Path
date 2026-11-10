@@ -1,7 +1,7 @@
 {
   "name": "denegnyj-put",
   "private": true,
-  "version": "1.1.51",
+  "version": "1.1.52",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -16,6 +16,11 @@
     "backup:all": "node scripts/backup.cjs backup --all",
     "backup:restore": "node scripts/backup.cjs restore",
     "backup:list": "node scripts/backup.cjs list"
+  },
+  "overrides": {
+    "@firebase/firestore": {
+      "@grpc/grpc-js": "^1.13.6"
+    }
   },
   "dependencies": {
     "firebase": "^13.2.0",
