@@ -57,6 +57,21 @@ describe('useBudgetPlan', () => {
     expect(result.current.items[0].name).toBe('Тест');
   });
 
+  it('persists a guest budget plan across hook remounts', async () => {
+    const firstMount = renderHook(() => useBudgetPlan(), { wrapper: wrap });
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    const planItem = { id: 'guest-plan', name: 'Аренда', amount: 500, plan: 500, group: 'monthly' as const, type: 'item' as const };
+
+    act(() => {
+      firstMount.result.current.addItem(planItem);
+    });
+    firstMount.unmount();
+
+    const secondMount = renderHook(() => useBudgetPlan(), { wrapper: wrap });
+
+    expect(secondMount.result.current.items).toEqual([planItem]);
+  });
+
   it('removes item from plan', async () => {
     const { result } = renderHook(() => useBudgetPlan(), { wrapper: wrap });
     await new Promise((r) => setTimeout(r, 50));

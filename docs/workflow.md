@@ -43,6 +43,17 @@ npm test
 npm run build
 ```
 
+### Проверка правил и синхронизации Firestore
+
+Обычный `npm test` пропускает интеграционные тесты правил, если Firestore Emulator не запущен. Установите Firebase CLI и запустите:
+
+```bash
+firebase emulators:exec --only firestore --project demo-money-path \
+  'FIRESTORE_EMULATOR_HOST=127.0.0.1:8080 npm test -- --run rules-tests/firestore.rules.test.ts'
+```
+
+Этот набор проверяет изоляцию аккаунтов, права администратора и чтение/обновление одних данных двумя клиентами одного аккаунта. Он использует локальный эмулятор и не обращается к production Firestore.
+
 ### Шаг 3. Убедиться, что приложение запускается
 ```bash
 npm run dev
