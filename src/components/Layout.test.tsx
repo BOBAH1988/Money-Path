@@ -64,4 +64,27 @@ describe('Layout: тёмная тема', () => {
     renderLayout();
     expect(document.documentElement).not.toHaveClass('dark');
   });
+
+  it('reserves scroll space for the full fixed bottom navigation', () => {
+    const { container } = renderLayout();
+    const bottomNav = container.querySelector<HTMLElement>('.bottom-nav');
+    const layout = container.querySelector<HTMLElement>('.layout');
+    expect(bottomNav).not.toBeNull();
+    expect(layout).not.toBeNull();
+
+    bottomNav!.getBoundingClientRect = () => ({
+      width: 400,
+      height: 210,
+      top: 0,
+      right: 400,
+      bottom: 210,
+      left: 0,
+      x: 0,
+      y: 0,
+      toJSON: () => ({}),
+    });
+    fireEvent(window, new Event('resize'));
+
+    expect(layout!.style.getPropertyValue('--bottom-nav-height')).toBe('226px');
+  });
 });

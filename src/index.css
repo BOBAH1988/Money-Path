@@ -359,8 +359,7 @@ body { margin: 0; font-family: system-ui, sans-serif; background: var(--theme-bg
   position: relative;
   min-height: 100vh;
   padding-top: 56px;   /* место под top-bar */
-  padding-bottom: 70px; /* место под bottom nav */
-  padding-bottom: calc(70px + env(safe-area-inset-bottom));
+  padding-bottom: var(--bottom-nav-height, 220px);
 }
 
 /* ---------- Верхняя панель приложения ---------- */
