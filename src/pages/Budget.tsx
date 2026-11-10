@@ -51,7 +51,7 @@ export default function Budget() {
   }
 
   return (
-    <div className="page page-budget">
+    <div className={`page page-budget${plannedVisible ? ' page-budget-expanded' : ''}`}>
       {error && (
         <div className="budget-card" role="status">
           <div className="budget-card-body" style={{ color: 'var(--dp-color-danger)' }}>
