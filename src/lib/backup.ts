@@ -1,4 +1,4 @@
-import { COLLECTIONS, type FirestoreCollection } from './dataStore';
+import { ALL_COLLECTIONS, COLLECTIONS, storageKeyFor, type FirestoreCollection } from './dataStore';
 import { loadFromFirestore, saveToFirestore } from './firestore';
 
 export const BACKUP_VERSION = 1;
@@ -159,6 +159,33 @@ export const restoreBackup = async (
     budgetPlanRestored,
     totalRecords,
   };
+};
+
+export const restoreBackupLocally = (
+  archive: BackupArchive,
+  clearExisting = false,
+): RestoreReport => {
+  if (clearExisting) {
+    for (const collectionName of ALL_COLLECTIONS) {
+      localStorage.removeItem(storageKeyFor(collectionName));
+    }
+  }
+
+  const restoredCollections: Record<string, number> = {};
+  for (const collectionName of BACKUP_COLLECTIONS) {
+    const items = archive.collections[collectionName];
+    if (!Array.isArray(items)) continue;
+    localStorage.setItem(storageKeyFor(collectionName), JSON.stringify(items));
+    restoredCollections[collectionName] = items.length;
+  }
+
+  const budgetPlanRestored = Boolean(archive.budgetPlan && Array.isArray(archive.budgetPlan.items));
+  if (budgetPlanRestored && archive.budgetPlan) {
+    localStorage.setItem(storageKeyFor(COLLECTIONS.budgetPlan), JSON.stringify(archive.budgetPlan));
+  }
+
+  const totalRecords = Object.values(restoredCollections).reduce((sum, count) => sum + count, 0);
+  return { restoredCollections, budgetPlanRestored, totalRecords };
 };
 
 /**

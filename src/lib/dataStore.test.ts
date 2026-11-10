@@ -41,6 +41,18 @@ describe('offline sync queue', () => {
     ]);
   });
 
+  it('keeps pending changes isolated between accounts', () => {
+    enqueueCollectionUpsert(COLLECTIONS.assets, 'account-a', { id: 'asset-1', amount: 10 });
+    enqueueCollectionUpsert(COLLECTIONS.assets, 'account-b', { id: 'asset-1', amount: 20 });
+
+    expect(getPendingCollectionOperations(COLLECTIONS.assets, 'account-a')).toMatchObject([
+      { type: 'upsert', item: { id: 'asset-1', amount: 10 } },
+    ]);
+    expect(getPendingCollectionOperations(COLLECTIONS.assets, 'account-b')).toMatchObject([
+      { type: 'upsert', item: { id: 'asset-1', amount: 20 } },
+    ]);
+  });
+
   it('clears only the requested account cache', () => {
     localStorage.setItem(`denegnyj_put_${userId}_assets`, '[{"id":"cloud"}]');
     localStorage.setItem('denegnyj_put_assets', '[{"id":"guest"}]');
