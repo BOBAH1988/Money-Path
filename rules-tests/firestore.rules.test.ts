@@ -6,7 +6,15 @@ import {
   initializeTestEnvironment,
   type RulesTestEnvironment,
 } from '@firebase/rules-unit-testing';
-import { collection, deleteDoc, doc, getDoc, getDocs, setDoc } from 'firebase/firestore';
+import {
+  collection,
+  deleteDoc,
+  doc,
+  getDoc,
+  getDocFromServer,
+  getDocs,
+  setDoc,
+} from 'firebase/firestore';
 
 const projectId = 'money-path-rules-test';
 const adminEmail = '79042044926@ya.ru';
@@ -53,6 +61,33 @@ describe.skipIf(!emulatorAvailable)('Firestore security rules', () => {
     await assertFails(getDoc(doc(db, 'users/bob')));
     await assertFails(setDoc(doc(db, 'users/bob/assets/asset-1'), { amount: 1 }));
     await assertFails(getDocs(collection(db, 'users/bob/assets')));
+  });
+
+  it('synchronizes independent records and same-record edits between two devices for one account', async () => {
+    const deviceA = testEnv.authenticatedContext('alice', { email: 'alice@example.com' }).firestore();
+    const deviceB = testEnv.authenticatedContext('alice', { email: 'alice@example.com' }).firestore();
+    const firstAsset = doc(deviceA, 'users/alice/assets/device-a');
+    const secondAsset = doc(deviceB, 'users/alice/assets/device-b');
+
+    await assertSucceeds(setDoc(firstAsset, { amount: 100 }));
+    await assertSucceeds(setDoc(secondAsset, { amount: 200 }));
+
+    const deviceBSeesFirst = await getDocFromServer(doc(deviceB, 'users/alice/assets/device-a'));
+    const deviceASeesSecond = await getDocFromServer(doc(deviceA, 'users/alice/assets/device-b'));
+    if (!deviceBSeesFirst.exists() || !deviceASeesSecond.exists()) {
+      throw new Error('A device could not read another device’s synchronized record');
+    }
+
+    await assertSucceeds(setDoc(doc(deviceB, 'users/alice/assets/device-a'), { amount: 150 }));
+    const updatedOnA = await getDocFromServer(firstAsset);
+    if (updatedOnA.data()?.amount !== 150) {
+      throw new Error('The updated record was not visible from the other device');
+    }
+
+    const independentRecord = await getDocFromServer(secondAsset);
+    if (independentRecord.data()?.amount !== 200) {
+      throw new Error('Updating one record unexpectedly changed another record');
+    }
   });
 
   it('lets the admin list profiles but not read a profile directly or access financial data', async () => {

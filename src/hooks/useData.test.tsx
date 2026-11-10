@@ -79,6 +79,36 @@ describe('useData', () => {
     expect(result.current.error).toBeTruthy();
   });
 
+  it('persists an offline edit in the local snapshot and pending queue across remounts', async () => {
+    const cached: AssetRow[] = [{ id: 'asset-1', name: 'Вклад', amount: 100, monthly: 5 }];
+    localStorageMock.setItem('denegnyj_put_uid-123_assets', JSON.stringify(cached));
+
+    const firstMount = renderHook(() => useData<AssetRow>({
+      collectionName: COLLECTIONS.assets,
+      userId: 'uid-123',
+    }), { wrapper: wrap });
+    await new Promise((resolve) => setTimeout(resolve, 50));
+
+    act(() => {
+      firstMount.result.current.updateItem('asset-1', { amount: 250 });
+    });
+
+    expect(JSON.parse(localStorageMock.getItem('denegnyj_put_uid-123_assets') ?? '[]')).toMatchObject([
+      { id: 'asset-1', amount: 250 },
+    ]);
+    expect(JSON.parse(localStorageMock.getItem('denegnyj_put_pending_uid-123_assets') ?? '[]')).toMatchObject([
+      { type: 'upsert', item: { id: 'asset-1', amount: 250 } },
+    ]);
+    firstMount.unmount();
+
+    const secondMount = renderHook(() => useData<AssetRow>({
+      collectionName: COLLECTIONS.assets,
+      userId: 'uid-123',
+    }), { wrapper: wrap });
+
+    expect(secondMount.result.current.items).toMatchObject([{ id: 'asset-1', amount: 250 }]);
+  });
+
   it('adds item to state', async () => {
     const { result } = renderHook(() =>
       useData<AssetRow>({
