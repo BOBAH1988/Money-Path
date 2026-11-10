@@ -316,7 +316,20 @@
   border-top: 2px solid var(--theme-border);
 }
 .budget-row.total .budget-cell-name { font-weight: 700; color: var(--theme-text); }
-.budget-row.total .budget-cell-amount { font-weight: 800; color: var(--theme-accent); font-size: 16px; }
+.budget-row.total .budget-cell-amount {
+  padding-right: 18px;
+  font-weight: 800;
+  color: var(--theme-accent);
+  font-size: 14px;
+}
+.budget-row.total .budget-cell-plan {
+  padding-left: 18px;
+  font-size: 14px;
+}
+.budget-row.total .row-currency {
+  margin-left: 4px;
+  font-size: 11px;
+}
 .budget-row.subtotal .row-name { color: var(--theme-text-muted); font-style: italic; }
 .budget-row.subtotal .row-amount { color: var(--theme-accent); }
 
