@@ -1,7 +1,14 @@
 import type { BudgetPlan, BudgetPlanItem, BudgetGroup } from '../types';
-import { firestoreDb as db } from './firebase';
-import { COLLECTIONS } from './dataStore';
-import { doc, getDoc, setDoc } from 'firebase/firestore';
+import {
+  loadBudgetPlan as loadCloudBudgetPlan,
+  syncPendingToFirestore,
+} from './firestore';
+import {
+  enqueueBudgetPlan,
+  getPendingBudgetPlan,
+  loadLocalBudgetPlan,
+  saveLocalBudgetPlan,
+} from './dataStore';
 
 const now = () => new Date().toISOString();
 
@@ -20,51 +27,38 @@ const migrateItems = (items: unknown[]): BudgetPlanItem[] =>
     } as BudgetPlanItem;
   });
 
-const budgetDocRef = (userId: string) => doc(db!, `users/${userId}/${COLLECTIONS.budgetPlan}`, 'budget_plan');
-const budgetDocRefLegacy = (userId: string) => doc(db!, COLLECTIONS.budgetPlan, `users/${userId}/budget_plan`);
-
-/* Данные бюджета хранятся только на сервере (Firestore). Локальное хранилище
-   больше не используется, чтобы план был одинаковым на всех устройствах после входа
-   под одним аккаунтом. */
-export const loadBudgetPlan = async (userId?: string): Promise<BudgetPlan> => {
-  if (!userId || !db) return emptyBudgetPlan;
-
-  try {
-    const read = async (ref: ReturnType<typeof doc>) => {
-      const snap = await getDoc(ref);
-      if (!snap.exists()) return null;
-      const parsed = snap.data() as Partial<BudgetPlan> & { items?: unknown[] };
-      if (!parsed || !Array.isArray(parsed.items)) return null;
-      return { updatedAt: parsed.updatedAt || now(), items: migrateItems(parsed.items) } as BudgetPlan;
-    };
-    return (await read(budgetDocRef(userId))) ?? (await read(budgetDocRefLegacy(userId))) ?? emptyBudgetPlan;
-  } catch {
-    return emptyBudgetPlan;
+export const loadBudgetPlan = async (
+  userId?: string,
+  onFresh?: (plan: BudgetPlan) => void,
+): Promise<BudgetPlan> => {
+  const local = loadLocalBudgetPlan(userId);
+  if (!userId) {
+    return local
+      ? { updatedAt: local.updatedAt || now(), items: migrateItems(local.items) }
+      : emptyBudgetPlan;
   }
+  if (getPendingBudgetPlan(userId)) await syncPendingToFirestore(userId);
+  const cloudPlan = await loadCloudBudgetPlan(userId, (fresh) => {
+    const plan = { updatedAt: fresh.updatedAt || now(), items: migrateItems(fresh.items) };
+    saveLocalBudgetPlan(plan.items, userId, plan.updatedAt);
+    onFresh?.(plan);
+  });
+  const result = { updatedAt: cloudPlan.updatedAt || now(), items: migrateItems(cloudPlan.items) };
+  saveLocalBudgetPlan(result.items, userId, result.updatedAt);
+  return result;
 };
 
 export const saveBudgetPlan = async (plan: BudgetPlan, userId?: string): Promise<void> => {
   const normalized: BudgetPlan = { updatedAt: plan.updatedAt || now(), items: migrateItems(plan.items ?? []) };
-  if (!userId || !db) return;
-  try {
-    await setDoc(budgetDocRef(userId), {
-      ...normalized,
-      userId,
-    });
-  } catch {
-    // ignore
-  }
+  saveLocalBudgetPlan(normalized.items, userId, normalized.updatedAt);
+  if (!userId) return;
+  enqueueBudgetPlan(userId, normalized.items, normalized.updatedAt);
+  await syncPendingToFirestore(userId);
 };
 
 export const resetBudgetPlan = async (_empty = false, userId?: string): Promise<BudgetPlan> => {
   const reset = { updatedAt: now(), items: [] as BudgetPlanItem[] };
-  if (userId && db) {
-    try {
-      await setDoc(budgetDocRef(userId), { ...reset, userId });
-    } catch {
-      // ignore
-    }
-  }
+  await saveBudgetPlan(reset, userId);
   return reset;
 };
 

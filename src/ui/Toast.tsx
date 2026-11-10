@@ -56,13 +56,30 @@ export const ToastProvider = ({ children }: Props) => {
     setToasts((prev) => prev.filter((t) => t.id !== id));
   }, []);
 
+  const success = useCallback(
+    (title: string, message?: string, duration?: number) => addToast('success', title, message, duration),
+    [addToast],
+  );
+  const error = useCallback(
+    (title: string, message?: string, duration?: number) => addToast('error', title, message, duration),
+    [addToast],
+  );
+  const warning = useCallback(
+    (title: string, message?: string, duration?: number) => addToast('warning', title, message, duration),
+    [addToast],
+  );
+  const info = useCallback(
+    (title: string, message?: string, duration?: number) => addToast('info', title, message, duration),
+    [addToast],
+  );
+
   const value: ToastContextValue = {
     toasts,
     toast: addToast,
-    success: (title, message, duration) => addToast('success', title, message, duration),
-    error: (title, message, duration) => addToast('error', title, message, duration),
-    warning: (title, message, duration) => addToast('warning', title, message, duration),
-    info: (title, message, duration) => addToast('info', title, message, duration),
+    success,
+    error,
+    warning,
+    info,
     dismiss,
   };
 

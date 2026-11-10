@@ -50,30 +50,15 @@ export default function Budget() {
     );
   }
 
-  if (error) {
-    return (
-      <div className="page page-budget">
-        <div className="budget-card">
-          <div className="budget-card-body">
-            <div className="budget-table-wrap">
-              <div style={{ padding: 40, textAlign: 'center', color: 'var(--dp-color-danger)' }}>
-                <div style={{ fontSize: 18, fontWeight: 600, marginBottom: 12 }}>
-                  Ошибка загрузки данных
-                </div>
-                <div style={{ fontSize: 14, marginBottom: 16 }}>{error}</div>
-                <div style={{ fontSize: 13, color: 'var(--theme-text-muted)' }}>
-                  Убедитесь, что база Firestore создана в консоли Firebase и правила доступа открыты.
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="page page-budget">
+      {error && (
+        <div className="budget-card" role="status">
+          <div className="budget-card-body" style={{ color: 'var(--dp-color-danger)' }}>
+            Не удалось обновить данные из облака. Показаны сохранённые на устройстве данные. {error}
+          </div>
+        </div>
+      )}
       <div className="budget-summary">
         <div className="summary-item summary-item-total">
           <span className="summary-label">Общее итого</span>

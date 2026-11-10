@@ -1,6 +1,6 @@
 import { initializeApp, type FirebaseApp } from 'firebase/app';
-import { initializeFirestore, persistentLocalCache, persistentMultipleTabManager, type Firestore } from 'firebase/firestore';
 import { getAuth, type Auth } from 'firebase/auth';
+import type { Firestore } from 'firebase/firestore';
 
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY || 'AIzaSyDEkZmGzUTl2FOfGBS8UDBDEXcdIPY1vxE',
@@ -12,19 +12,15 @@ const firebaseConfig = {
 };
 
 let app: FirebaseApp | null = null;
-let firestoreDb: Firestore | null = null;
 let auth: Auth | null = null;
 let firebaseError: Error | null = null;
+let firestorePromise: Promise<Firestore> | null = null;
 
-const isTestEnv =
-  typeof import.meta.env !== 'undefined' && import.meta.env.MODE === 'test';
+const isTestEnv = typeof import.meta.env !== 'undefined' && import.meta.env.MODE === 'test';
 
 if (!isTestEnv) {
   try {
     app = initializeApp(firebaseConfig);
-    firestoreDb = initializeFirestore(app, {
-      localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() }),
-    });
     auth = getAuth(app);
   } catch (err) {
     firebaseError = err instanceof Error ? err : new Error(String(err));
@@ -33,4 +29,24 @@ if (!isTestEnv) {
   firebaseError = new Error('Firebase disabled in test mode');
 }
 
-export { app, firestoreDb, auth, firebaseError };
+export const getFirestoreDb = async (): Promise<Firestore> => {
+  if (!app) throw firebaseError ?? new Error('Firebase не инициализирован');
+  if (!firestorePromise) {
+    firestorePromise = import('firebase/firestore').then((firestore) =>
+      firestore.initializeFirestore(app!, {
+        localCache: firestore.persistentLocalCache({
+          tabManager: firestore.persistentMultipleTabManager(),
+        }),
+      }),
+    ).catch((err: unknown) => {
+      firebaseError = err instanceof Error ? err : new Error(String(err));
+      firestorePromise = null;
+      throw firebaseError;
+    });
+  }
+  return firestorePromise;
+};
+
+export const getFirebaseError = () => firebaseError;
+
+export { app, auth, firebaseError };

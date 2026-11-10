@@ -54,15 +54,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         setUid(u.uid);
         setIsAuthenticated(true);
         // Синхронизация не должна блокировать первый рендер приложения.
-        void (async () => {
-          try {
-            const { syncPendingToFirestore, trackUser } = await import('../lib/firestore');
-            await syncPendingToFirestore();
-            await trackUser(u.uid, u.email ?? '');
-          } catch {
-            // ignore
-          }
-        })();
+        void import('../lib/firestore').then(({ syncPendingToFirestore, trackUser }) =>
+          Promise.all([
+            syncPendingToFirestore(u.uid).catch((err) => {
+              console.error('[firestore] syncPendingToFirestore ошибка:', err);
+            }),
+            trackUser(u.uid, u.email ?? ''),
+          ]),
+        ).catch((err) => console.error('[firestore] инициализация синхронизации ошибка:', err));
       } else {
         setUid(undefined);
         setIsAuthenticated(false);
