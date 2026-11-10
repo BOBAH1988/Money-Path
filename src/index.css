@@ -1812,41 +1812,6 @@ body { margin: 0; font-family: system-ui, sans-serif; background: var(--theme-bg
 /* ============================================================
    Дашборд: период, графики, индикаторы
    ============================================================ */
-.year-month-picker {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  padding: 12px 14px;
-  border: 1px solid var(--dp-border, #e2e8f0);
-  border-radius: 12px;
-  background: var(--theme-card, #fff);
-}
-
-.year-month-picker-label {
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--dp-color-text-muted, #64748b);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-}
-
-.year-month-picker-select {
-  width: 100%;
-  padding: 8px 10px;
-  font-size: 14px;
-  font-weight: 500;
-  color: var(--dp-color-text, #0f172a);
-  background: var(--theme-card, #fff);
-  border: 1px solid var(--dp-border, #e2e8f0);
-  border-radius: 8px;
-  cursor: pointer;
-}
-
-.year-month-picker-select:focus {
-  outline: 2px solid var(--dp-color-primary, #007aff);
-  border-color: transparent;
-}
-
 .chart-label-top {
   margin-bottom: 4px;
 }
