@@ -9,7 +9,6 @@ import { loadFromFirestore, loadLocalCollection, storageKeyFor, COLLECTIONS } fr
 import { EmptyState } from '../ui/EmptyState';
 import { AuthModal } from '../components/AuthModal';
 import { LineChart, BarChart } from '../components/dashboard/Charts';
-import { YearMonthPicker } from '../components/dashboard/YearMonthPicker';
 import { useToast } from '../ui/Toast';
 
 const CURRENT_YEAR = new Date().getFullYear();
@@ -166,16 +165,15 @@ export default function Dashboard() {
     [income]
   );
 
-  const currentYear = CURRENT_YEAR;
-  const [selectedYear, setSelectedYear] = useState(currentYear);
-  const [selectedMonth, setSelectedMonth] = useState<number>(() => {
-    const now = new Date();
-    const cur = now.getMonth();
-    return (cur - 2 + 12) % 12;
-  });
+  const archiveYear = useMemo(
+    () => incomeArchive.length
+      ? incomeArchive.reduce((latest, row) => Math.max(latest, row.year), incomeArchive[0].year)
+      : CURRENT_YEAR,
+    [incomeArchive],
+  );
 
   const averageIncome = useMemo(() => {
-    const rows = incomeArchive.filter((r) => r.year === selectedYear);
+    const rows = incomeArchive.filter((r) => r.year === archiveYear);
     if (rows.length === 0) return 0;
     const total = rows.reduce(
       (s, r) => s + r.months.reduce((a, b) => a + (b || 0), 0),
@@ -188,26 +186,16 @@ export default function Dashboard() {
       })
     );
     return filled.size > 0 ? Math.round(total / filled.size) : 0;
-  }, [incomeArchive, selectedYear]);
+  }, [incomeArchive, archiveYear]);
 
-  const incomeCurrent = averageIncome;
-
-  const summaryIncome = incomeCurrent;
+  const summaryIncome = incomeAmount;
   const summaryExpenses = totals.totalAll;
   const summaryDiff = summaryIncome - summaryExpenses;
   const summaryOk = summaryExpenses <= summaryIncome;
   const summaryEqual = summaryExpenses === summaryIncome;
 
-  const [selectedYearArchive] = useState<number | null>(null);
-
   const incomeChartData = useMemo(() => {
-    const targetYear =
-      selectedYearArchive ??
-      (Array.isArray(incomeArchive) && incomeArchive.length > 0
-        ? incomeArchive[0].year
-        : null) ??
-      selectedYear;
-    const rows = incomeArchive.filter((r) => r.year === targetYear);
+    const rows = incomeArchive.filter((r) => r.year === archiveYear);
     if (rows.length === 0) {
       return new Array(12).fill(0);
     }
@@ -223,15 +211,9 @@ export default function Dashboard() {
       return Math.round((v / max) * 100);
     });
     return normalized;
-  }, [incomeArchive, selectedYear, selectedYearArchive]);
+  }, [incomeArchive, archiveYear]);
 
-  const [archiveSummary] = useState({
-    income: 0,
-    plan: 0,
-    expense: 0,
-  });
-
-  const showChart = incomeChartData.some((v) => v !== 0) || archiveSummary.income > 0;
+  const hasArchivedIncome = incomeChartData.some((value) => value !== 0);
 
   if (isLoading) {
     return (
@@ -283,91 +265,56 @@ export default function Dashboard() {
       <div className="budget-page-header">
         <h1 className="budget-page-header h1">Главная</h1>
         <p className="budget-page-subtitle">
-          Сводка по доходам, расходам, активам и пассивам за выбранный период
+          Текущая сводка и архив доходов за последний год с данными
         </p>
       </div>
 
+      {hasArchivedIncome && (
+        <div className="budget-card" style={{ margin: '0 4px' }}>
+          <div className="budget-card-header">
+            <h2 className="budget-card-title">Архив доходов за {archiveYear} год</h2>
+          </div>
+          <div className="budget-card-body">
+            <div className="budget-summary" style={{ padding: '0 4px' }}>
+              <div className="summary-item summary-item-total">
+                <span className="summary-label">Средний доход за год</span>
+                <span className="summary-value">
+                  {averageIncome.toLocaleString('ru-RU')} ₽
+                </span>
+              </div>
+            </div>
+            <div className="budget-table-wrap">
+              <LineChart data={incomeChartData} labels={MONTHS} />
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="budget-card" style={{ margin: '0 4px' }}>
         <div className="budget-card-header">
-          <h2 className="budget-card-title">Настройка периода</h2>
+          <h2 className="budget-card-title">Распределение текущих расходов</h2>
         </div>
         <div className="budget-card-body">
-          <div className="year-month-picker">
-            <YearMonthPicker
-              value={new Date(selectedYear, selectedMonth, 1)}
-              onChange={(value) => {
-                setSelectedYear(value.getFullYear());
-                setSelectedMonth(value.getMonth());
-              }}
+          <div className="budget-summary" style={{ padding: '0 4px' }}>
+            <div className="summary-item summary-item-total">
+              <span className="summary-label">Общее итого</span>
+              <span className="summary-value">{totals.totalAll.toLocaleString('ru-RU')} ₽</span>
+            </div>
+            <div className="summary-item">
+              <span className="summary-label">Регулярные расходы</span>
+              <span className="summary-value">{totals.regularTotal.toLocaleString('ru-RU')} ₽</span>
+            </div>
+          </div>
+          <div className="budget-table-wrap">
+            <BarChart
+              series={[
+                { labels: ['Расходы'], values: [totals.totalAll] },
+                { labels: ['Регулярные'], values: [totals.regularTotal] },
+              ]}
             />
           </div>
         </div>
       </div>
-
-      {showChart && (
-        <>
-          <div className="budget-card" style={{ margin: '0 4px' }}>
-            <div className="budget-card-header">
-              <h2 className="budget-card-title">Доходы за период</h2>
-            </div>
-            <div className="budget-card-body">
-              <div className="budget-summary" style={{ padding: '0 4px' }}>
-                <div className="summary-item summary-item-total">
-                  <span className="summary-label">Средний доход</span>
-                  <span className="summary-value">
-                    {incomeCurrent.toLocaleString('ru-RU')} ₽
-                  </span>
-                </div>
-                <div className="summary-item">
-                  <span className="summary-label">Планируемый доход</span>
-                  <span className="summary-value">
-                    {incomeMonthly.toLocaleString('ru-RU')} ₽
-                  </span>
-                </div>
-              </div>
-              <div className="budget-table-wrap">
-                <LineChart data={incomeChartData} labels={MONTHS} />
-              </div>
-            </div>
-          </div>
-
-          <div className="budget-card" style={{ margin: '0 4px' }}>
-            <div className="budget-card-header">
-              <h2 className="budget-card-title">Распределение расходов</h2>
-            </div>
-            <div className="budget-card-body">
-              <div className="budget-summary" style={{ padding: '0 4px' }}>
-                <div className="summary-item summary-item-total">
-                  <span className="summary-label">Общее итого</span>
-                  <span className="summary-value">
-                    {totals.totalAll.toLocaleString('ru-RU')} ₽
-                  </span>
-                </div>
-                <div className="summary-item">
-                  <span className="summary-label">Регулярные расходы</span>
-                  <span className="summary-value">
-                    {totals.regularTotal.toLocaleString('ru-RU')} ₽
-                  </span>
-                </div>
-              </div>
-              <div className="budget-table-wrap">
-                <BarChart
-                  series={[
-                    {
-                      labels: ['Расходы'],
-                      values: [totals.totalAll],
-                    },
-                    {
-                      labels: ['Регулярные'],
-                      values: [totals.regularTotal],
-                    },
-                  ]}
-                />
-              </div>
-            </div>
-          </div>
-        </>
-      )}
 
       <div className="budget-card" style={{ margin: '0 4px' }}>
         <div className="budget-card-header">
