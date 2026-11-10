@@ -1,148 +1,66 @@
-# Правила работы над проектом Денежный путь
+# Рабочий процесс разработки
 
-Этот документ — краткая инструкция, как вносить изменения, коммитить и запушить, чтобы видеть результат на GitHub Pages.
+Этот документ описывает локальную разработку, обязательные проверки и публикацию Money-Path. Авторитетные версии Node.js и Firebase CLI задаются workflow в `.github/workflows/deploy.yml`; при расхождении следуйте настройкам CI.
 
----
+## Требования
 
-## 1. Версионирование (0.0.X)
+- Node.js версии, настроенной в CI (сейчас Node.js 24).
+- npm.
+- Для локальных тестов Firestore Rules — Java 21 или новее и Firebase CLI.
 
-Формат версии: `0.0.X` (в `package.json`).
-
-| Часть версии | Кто меняет | Как |
-|-------------|------------|-----|
-| `0.0` (мажор.минор) | **Вы вручную** | Отредактируйте `version` в `package.json` |
-| `X` (патч) | **Автоматически** | Увеличивается на 1 при каждом `git commit` через pre-commit хук |
-
-Текущая версия: смотрите в `package.json`.
-
-> ⚠️ Патч-версия увеличивается **автоматически** перед каждым коммитом. Вам не нужно её трогать.
-
----
-
-## 2. Цикл разработки (локально)
-
-### Шаг 1. Внести изменения
-Отредактируйте файлы в `src/` (компоненты, страницы, стили, типы, логика).
-
-### Шаг 2. Проверить всё перед коммитом
-Перед коммитом обязательно запустите:
+## Настройка
 
 ```bash
-cd /Users/vladimir/Documents/GitHub/Money-Path
+git clone https://github.com/BOBAH1988/Money-Path.git
+cd Money-Path
+npm ci
+npm run dev
+```
 
-# Запускает последовательно: lint → test → build
+Vite выведет локальный URL, обычно `http://localhost:5173/`.
+
+## Проверки
+
+Перед коммитом выполните:
+
+```bash
 npm run check
 ```
 
-Если одна из проверок упадёт — исправьте ошибку, затем повторите проверку.
-
-Отдельно можно запустить:
-```bash
-npm run lint
-npm test
-npm run build
-```
-
-### Проверка правил и синхронизации Firestore
-
-Обычный `npm test` пропускает интеграционные тесты правил, если Firestore Emulator не запущен. Установите Firebase CLI и запустите:
+Команда запускает oxlint, тесты Vitest и TypeScript/Vite production-сборку. Тесты правил Firestore пропускаются, если эмулятор не доступен. Для полного набора используйте локальный эмулятор:
 
 ```bash
-firebase emulators:exec --only firestore --project demo-money-path \
+npx --yes firebase-tools@14.22.0 emulators:exec \
+  --only firestore \
+  --project demo-money-path \
+  --non-interactive \
   'FIRESTORE_EMULATOR_HOST=127.0.0.1:8080 npm test -- --run rules-tests/firestore.rules.test.ts'
 ```
 
-Этот набор проверяет изоляцию аккаунтов, права администратора и чтение/обновление одних данных двумя клиентами одного аккаунта. Он использует локальный эмулятор и не обращается к production Firestore.
+Тестовый проект `demo-money-path` предназначен для эмулятора; не подменяйте его production-проектом.
 
-### Шаг 3. Убедиться, что приложение запускается
-```bash
-npm run dev
-```
-Откройте `http://localhost:5173/` и проверьте страницу **Бюджет** (`/budget`).
+Отдельные проверки доступны через `npm run lint`, `npm test` и `npm run build`.
 
----
+## Версия
 
-## 3. Коммит и пуш (делаете вы сами)
+Версия приложения находится в `package.json` и использует формат `major.minor.patch`. Pre-commit hook автоматически увеличивает patch-часть и синхронизирует версию в `package-lock.json`. Установка hook выполняется npm-скриптом `prepare`; если hook отсутствует после установки зависимостей, проверьте, не отключены ли npm lifecycle scripts.
 
-Когда изменения готовы и проверки проходят:
+## Публикация
 
-```bash
-cd /Users/vladimir/Documents/GitHub/Money-Path
+Push в `main` запускает GitHub Actions. Workflow выполняет lint, тесты, сборку, Firestore Emulator suite и после успешной проверки публикует `dist/` в GitHub Pages.
 
-# 1. Добавить все изменённые файлы
-git add .
+- Состояние workflow: [GitHub Actions](https://github.com/BOBAH1988/Money-Path/actions).
+- Production URL: [BOBAH1988.github.io/Money-Path](https://BOBAH1988.github.io/Money-Path/).
+- Для ручного включения Pages выберите **Settings → Pages → Build and deployment → GitHub Actions**.
+- Vite base path должен оставаться `/Money-Path/`, пока сайт обслуживается из подпути GitHub Pages.
 
-# 2. Сделать коммит (версия увеличится автоматически до следующей патч-цифры)
-git commit -m "краткое описание изменений"
+Не выполняйте повторный push в ответ на неуспешный workflow, не изучив упавший job и commit SHA. Исправление публикуется отдельным commit; проверьте успешный workflow именно для нового SHA.
 
-# 3. Запушить в GitHub
-git push origin main
-```
+## Если проверки или деплой завершились ошибкой
 
-После коммита в консоли вы увидите:
-```
-Версия увеличена до 0.0.X
-```
+1. Найдите упавший шаг в GitHub Actions и сохраните commit SHA, тип проверки и очищенный от персональных данных текст ошибки.
+2. Локально воспроизведите проблему (`npm run lint`, `npm test`, `npm run build` либо Firestore Emulator suite).
+3. Исправьте причину, повторите необходимые проверки и проверьте `git diff --check`.
+4. После push убедитесь, что проверки и deploy завершились успешно для ожидаемого SHA.
 
-Где `X` — следующее число после текущей версии.
-
----
-
-## 4. Посмотреть изменения на сайте
-
-После успешного пуша:
-
-1. GitHub Actions автоматически соберёт проект и прогоняет тесты.
-2. Если зелёная галочка ✅ — сайт обновлён.
-3. Откройте: `https://BOBAH1988.github.io/Money-Path/`
-4. Перейдите на вкладку **Бюджет**.
-
-Статус сборки: `https://github.com/BOBAH1988/Money-Path/actions`
-
----
-
-## 5. Что делать, если что-то сломалось
-
-| Проблема | Решение |
-|----------|---------|
-| Тесты не проходят | Исправьте код, запустите `npm test` повторно |
-| Сборка не проходит | Запустите `npm run build`, прочитайте ошибку TypeScript |
-| Белый экран на GitHub Pages | Убедитесь, что в `vite.config.ts` есть `base: '/Money-Path/'` |
-| Версия не увеличивается | Запустите `npm install` (установится pre-commit хук повторно) |
-
----
-
-## 6. Полезные команды
-
-```bash
-npm run dev       # запуск для разработки (localhost:5173)
-npm run build     # сборка для продакшена (папка dist/)
-npm run preview   # предпросмотр сборки локально
-npm run check     # проверка всего: lint + test + build (запускать перед коммитом)
-npm run lint      # проверка кода линтером
-npm test          # запуск всех автотестов (14 шт.)
-```
-
----
-
-## 7. Структура ключевых файлов
-
-```
-src/
-├── pages/Budget.tsx          # страница бюджета (/budget)
-├── hooks/useBudget.ts        # логика состояния бюджета
-├── lib/budget.ts             # local-first план бюджета и расчёт итогов
-├── components/budget/        # компоненты таблицы и строк
-├── types/index.ts            # типы данных (BudgetPlanItem, BudgetPlan)
-└── index.css                 # стили (включая бюджет)
-
-.github/workflows/deploy.yml  # GitHub Actions: сборка + деплой
-vite.config.ts                # Vite конфиг (base: '/Money-Path/')
-package.json                  # версия, скрипты, зависимости
-README.md                     # полная документация
-docs/workflow.md              # этот файл (правила работы)
-```
-
----
-
-После внесения изменений — делайте `git add .`, `git commit -m "..."`, `git push origin main` и наблюдайте за результатом на GitHub Pages.
+Для ошибок синхронизации, потери данных и восстановления следуйте [операционному runbook](operations.md). Не очищайте localStorage/IndexedDB и очередь синхронизации до проверки резервной копии. Ключевые исправления и известные ограничения перечислены в [журнале ошибок](incident-log.md).
