@@ -14,6 +14,7 @@ const mocks = vi.hoisted(() => ({
   getDocFromCache: vi.fn(async () => { throw new Error('cache miss'); }),
   getDocFromServer: vi.fn(),
   writeBatch: vi.fn(() => ({ delete: vi.fn(), commit: vi.fn(async () => undefined) })),
+  clearFirestorePersistence: vi.fn(async () => undefined),
 }));
 
 vi.mock('firebase/firestore', () => ({
@@ -35,6 +36,7 @@ vi.mock('firebase/firestore', () => ({
 vi.mock('./firebase', () => ({
   getFirestoreDb: vi.fn(async () => ({})),
   getFirebaseError: vi.fn(() => null),
+  clearFirestorePersistence: mocks.clearFirestorePersistence,
 }));
 
 import {
@@ -49,7 +51,10 @@ import {
   syncPendingToFirestore,
   enqueueCollectionClear,
   enqueueCollectionDelete,
+  deleteAccountData,
+  recordLegalConsent,
 } from './firestore';
+import { PRIVACY_NOTICE_VERSION, TERMS_VERSION } from './legal';
 
 describe('saveToFirestore', () => {
   const userId = 'uid-123';
@@ -294,6 +299,42 @@ describe('saveBudgetPlan', () => {
   it('does nothing when userId is missing', async () => {
     await saveBudgetPlan(undefined, [{ id: '1', name: 'Test', amount: 100, plan: 50, group: 'monthly', type: 'item' }]);
     expect(mocks.setDoc as any).not.toHaveBeenCalled();
+  });
+});
+
+describe('account privacy operations', () => {
+  beforeEach(() => {
+    localStorage.clear();
+    vi.clearAllMocks();
+    mocks.collection.mockReturnValue({} as any);
+    mocks.doc.mockReturnValue({ __doc: true });
+  });
+
+  it('records the current legal document versions on the profile', async () => {
+    await recordLegalConsent('consent-user');
+
+    expect(mocks.setDoc).toHaveBeenCalledWith(
+      { __doc: true },
+      expect.objectContaining({
+        acceptedTermsVersion: TERMS_VERSION,
+        acceptedPrivacyVersion: PRIVACY_NOTICE_VERSION,
+      }),
+      { merge: true },
+    );
+  });
+
+  it('deletes the user collections, profile, legacy plan, cache, and local queues', async () => {
+    const userId = 'delete-user';
+    const privateCacheKey = `denegnyj_put_${userId}_assets`;
+    localStorage.setItem(privateCacheKey, '[{"id":"private"}]');
+    mocks.getDocsFromServer.mockResolvedValue({ empty: true, docs: [] });
+
+    await deleteAccountData(userId);
+
+    expect(mocks.collection).toHaveBeenCalledWith({}, `users/${userId}/assets`);
+    expect(mocks.deleteDoc).toHaveBeenCalledTimes(2);
+    expect(mocks.clearFirestorePersistence).toHaveBeenCalledOnce();
+    expect(localStorage.getItem(privateCacheKey)).toBeNull();
   });
 });
 

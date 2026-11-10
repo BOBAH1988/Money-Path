@@ -6,6 +6,9 @@ import {
   onAuthStateChanged,
   sendPasswordResetEmail,
   sendEmailVerification,
+  EmailAuthProvider,
+  reauthenticateWithCredential,
+  deleteUser,
   type User,
 } from 'firebase/auth';
 import { auth } from '../lib/firebase';
@@ -18,9 +21,11 @@ interface AuthContextValue {
   isAuthenticated: boolean;
   isAuthReady: boolean;
   isAdmin: boolean;
+  legalConsentRevision: number;
   login: (email: string, password: string) => Promise<void>;
   register: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
+  deleteAccount: (password: string) => Promise<void>;
   sendPasswordReset: (email: string) => Promise<void>;
   resendVerification: (user: User) => Promise<void>;
 }
@@ -40,6 +45,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   // uid берём только из Firebase Auth. Не hydrate-им из localStorage до onAuthStateChanged,
   // иначе эффекты загрузки данных стартуют с чужим/устаревшим uid до появления ID-токена
   const [uid, setUid] = useState<string | undefined>(undefined);
+  const [legalConsentRevision, setLegalConsentRevision] = useState(0);
 
   const isAdmin = isAuthenticated && user ? user.email === ADMIN_EMAIL && user.emailVerified : false;
 
@@ -94,7 +100,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         // ignore
       }
       try {
-        const { trackUser } = await import('../lib/firestore');
+        const { recordLegalConsent, trackUser } = await import('../lib/firestore');
+        await recordLegalConsent(credential.user.uid);
+        setLegalConsentRevision((revision) => revision + 1);
         await trackUser(credential.user.uid, email);
       } catch (err) {
         // eslint-disable-next-line no-console
@@ -102,6 +110,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           `[firestore] register trackUser uid=${credential.user.uid} ошибка:`,
           err instanceof Error ? err.message : err
         );
+        throw err;
       }
     } catch (err) {
       // eslint-disable-next-line no-console
@@ -124,6 +133,26 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     setIsAuthenticated(false);
   };
 
+  const deleteAccount = async (password: string) => {
+    if (!auth || !user?.email) throw new Error('Не удалось определить аккаунт для удаления');
+    const credential = EmailAuthProvider.credential(user.email, password);
+    await reauthenticateWithCredential(user, credential);
+    const { deleteAccountData } = await import('../lib/firestore');
+    await deleteAccountData(user.uid);
+    try {
+      await deleteUser(user);
+    } catch (err) {
+      const reason = err instanceof Error ? ` (${err.message})` : '';
+      throw new Error(
+        `Данные удалены, но аккаунт Firebase не удалось удалить${reason}. Перезагрузите страницу и повторите удаление аккаунта.`,
+        { cause: err },
+      );
+    }
+    setUser(null);
+    setUid(undefined);
+    setIsAuthenticated(false);
+  };
+
   const sendPasswordReset = async (email: string) => {
     if (!auth) throw new Error('Firebase Auth не инициализирован');
     await sendPasswordResetEmail(auth, email);
@@ -140,9 +169,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     isAuthenticated,
     isAuthReady,
     isAdmin,
+    legalConsentRevision,
     login,
     register,
     logout,
+    deleteAccount,
     sendPasswordReset,
     resendVerification,
   };

@@ -2009,6 +2009,100 @@ body { margin: 0; font-family: system-ui, sans-serif; background: var(--theme-bg
   color: var(--theme-text-muted);
 }
 
+.legal-consent-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: rgba(15, 23, 42, 0.72);
+}
+
+.legal-consent-card {
+  width: min(100%, 520px);
+  max-height: min(90vh, 720px);
+  overflow-y: auto;
+  padding: 28px;
+  border-radius: 16px;
+  background: var(--theme-surface, #fff);
+  color: var(--theme-text, #111827);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.28);
+}
+
+.legal-consent-card h2 {
+  margin: 0 0 16px;
+}
+
+.legal-consent-card a {
+  color: var(--theme-accent, #2563eb);
+}
+
+.legal-consent-checkbox {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin: 16px 0;
+  line-height: 1.5;
+}
+
+.legal-consent-checkbox input {
+  flex: 0 0 auto;
+  margin-top: 4px;
+}
+
+.legal-consent-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 22px;
+}
+
+.legal-consent-actions button {
+  min-height: 42px;
+  padding: 10px 16px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.legal-consent-actions button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.account-delete-btn {
+  color: #b91c1c;
+  border-color: #fecaca;
+}
+
+.account-delete-btn:hover {
+  background: #fef2f2;
+}
+
+.account-delete-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.account-delete-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.account-delete-form input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 10px 12px;
+  border: 1px solid var(--border, #d1d5db);
+  border-radius: 8px;
+  font: inherit;
+}
+
 
 /* Page loader (Suspense / route loading) */
 .page-loader {

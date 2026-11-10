@@ -47,6 +47,13 @@ export const getFirestoreDb = async (): Promise<Firestore> => {
   return firestorePromise;
 };
 
+export const clearFirestorePersistence = async (): Promise<void> => {
+  const firestoreDb = await getFirestoreDb();
+  const firestore = await import('firebase/firestore');
+  await firestore.terminate(firestoreDb);
+  await firestore.clearIndexedDbPersistence(firestoreDb);
+};
+
 export const getFirebaseError = () => firebaseError;
 
 export { app, auth, firebaseError };
