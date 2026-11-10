@@ -67,6 +67,8 @@ export default function Layout() {
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const [installModalOpen, setInstallModalOpen] = useState(false);
   const navRef = useRef<HTMLDivElement>(null);
+  const bottomNavRef = useRef<HTMLElement>(null);
+  const layoutRef = useRef<HTMLDivElement>(null);
   const [hiddenIndices, setHiddenIndices] = useState<Set<number>>(new Set());
   const [consentState, setConsentState] = useState<ConsentState>('loading');
   const [consentForUid, setConsentForUid] = useState<string | undefined>();
@@ -193,6 +195,32 @@ export default function Layout() {
     }
   }, [location.pathname]);
 
+  useLayoutEffect(() => {
+    const layout = layoutRef.current;
+    const bottomNav = bottomNavRef.current;
+    if (!layout || !bottomNav) return;
+
+    const updateBottomNavSpace = () => {
+      layout.style.setProperty(
+        '--bottom-nav-height',
+        `${Math.ceil(bottomNav.getBoundingClientRect().height + 16)}px`,
+      );
+    };
+
+    updateBottomNavSpace();
+    window.addEventListener('resize', updateBottomNavSpace);
+    if (typeof ResizeObserver === 'undefined') {
+      return () => window.removeEventListener('resize', updateBottomNavSpace);
+    }
+
+    const observer = new ResizeObserver(updateBottomNavSpace);
+    observer.observe(bottomNav);
+    return () => {
+      observer.disconnect();
+      window.removeEventListener('resize', updateBottomNavSpace);
+    };
+  }, []);
+
   useEffect(() => {
     const clearFlag = sessionStorage.getItem('denegnyj_clear_cache');
     if (clearFlag) {
@@ -277,7 +305,7 @@ export default function Layout() {
 
   return (
     <PageTitleProvider>
-      <div className="layout">
+      <div className="layout" ref={layoutRef}>
         {/* Верхняя панель приложения */}
         <header className="top-bar">
           <div className="top-bar-left">
@@ -311,7 +339,7 @@ export default function Layout() {
         <main className="content"><Outlet /></main>
 
       {/* Нижняя навигация PWA */}
-      <nav className="bottom-nav">
+      <nav className="bottom-nav" ref={bottomNavRef}>
         <div className="bottom-nav-center" ref={navRef}>
           <div className="bottom-nav-buttons">
             {items.map((item, idx) => (
