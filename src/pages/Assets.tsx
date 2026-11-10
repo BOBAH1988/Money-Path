@@ -3,7 +3,6 @@ import { PageTitleContext } from '../components/PageTitleContext';
 import { useAuth } from '../context/AuthContext';
 import { COLLECTIONS } from '../lib/dataStore';
 import { useData } from '../hooks/useData';
-import { EmptyState } from '../ui/EmptyState';
 import { BudgetTable } from '../components/budget/BudgetTable';
 import type { BudgetGroup, BudgetPlanItem } from '../types';
 import { applyComputedFields, computeBudgetPageTotals } from '../lib/budget';
@@ -28,6 +27,12 @@ export default function Assets() {
   useEffect(() => {
     setPageTitle('Активы');
   }, [setPageTitle]);
+
+  useEffect(() => {
+    items
+      .filter((item) => !(item.name ?? '').trim() && !item.amount && !item.monthly)
+      .forEach((item) => removeItem(item.id));
+  }, [items, removeItem]);
 
   const budgetItems = useMemo<BudgetPlanItem[]>(
     () =>
@@ -64,34 +69,17 @@ export default function Assets() {
         <p className="budget-page-subtitle">Имущество и вложения — то, что приносит вам доход или имеет ценность</p>
       </div>
 
-      {items.length === 0 ? (
-        <div className="budget-card">
-          <div className="budget-card-body">
-            <EmptyState
-              icon="📈"
-              title="Пока нет активов"
-              description="Добавьте накопления, инвестиции, недвижимость и другие активы."
-              action={
-                <button className="auth-btn" type="button" onClick={() => addItem({ name: '', amount: 0, monthly: 0 })}>
-                  Добавить актив
-                </button>
-              }
-            />
-          </div>
-        </div>
-      ) : (
-        <BudgetTable
-          title="Активы"
-          group="monthly"
-          items={planned}
-          total={totals.totalMonthly}
-          totalPlan={totals.totalMonthlyPlan}
-          headers={{ amount: 'Сумма', plan: 'В мес.' }}
-          onUpdate={updateFromBudget}
-          onRemove={removeItem}
-          onAdd={addFromBudget}
-        />
-      )}
+      <BudgetTable
+        title="Активы"
+        group="monthly"
+        items={planned}
+        total={totals.totalMonthly}
+        totalPlan={totals.totalMonthlyPlan}
+        headers={{ amount: 'Сумма', plan: 'В мес.' }}
+        onUpdate={updateFromBudget}
+        onRemove={removeItem}
+        onAdd={addFromBudget}
+      />
       {items.length > 0 && (
         <div className="budget-card" style={{ marginTop: 8 }}>
           <div className="budget-card-body">
