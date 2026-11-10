@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { render, cleanup } from '@testing-library/react';
+import { fireEvent, render, cleanup } from '@testing-library/react';
 import { BudgetTable } from './BudgetTable';
 import { ToastProvider } from '../../ui/Toast';
 import type { BudgetPlanItem } from '../../types';
@@ -43,6 +43,22 @@ const getSubtotalRow = (container: HTMLElement) =>
   container.querySelector('tr.budget-row.subtotal');
 
 describe('BudgetTable totals', () => {
+  it('starts without an empty item row and only adds after entering a name', () => {
+    const onAdd = vi.fn();
+    const { container, getByLabelText, getByPlaceholderText } = renderTable({ onAdd });
+
+    expect(container.querySelectorAll('tr.budget-row:not(.total)')).toHaveLength(0);
+    fireEvent.click(getByLabelText('Добавить строку'));
+
+    expect(container.querySelectorAll('tr.budget-row-editing')).toHaveLength(1);
+    fireEvent.keyDown(getByPlaceholderText('Новая строка'), { key: 'Enter' });
+    expect(onAdd).not.toHaveBeenCalled();
+
+    fireEvent.change(getByPlaceholderText('Новая строка'), { target: { value: 'Кредит' } });
+    fireEvent.keyDown(getByPlaceholderText('Новая строка'), { key: 'Enter' });
+    expect(onAdd).toHaveBeenCalledWith('monthly', 'Кредит', 0, 0);
+  });
+
   it('footer row shows combined amount/plan totals (monthly + planned) when plannedItems are provided', () => {
     const monthlyItems: BudgetPlanItem[] = [
       buildItem({ id: 'm1', group: 'monthly', amount: 1000, plan: 2000 }),

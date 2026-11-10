@@ -3,7 +3,6 @@ import { PageTitleContext } from '../components/PageTitleContext';
 import { useAuth } from '../context/AuthContext';
 import { COLLECTIONS } from '../lib/dataStore';
 import { useData } from '../hooks/useData';
-import { EmptyState } from '../ui/EmptyState';
 import { BudgetTable } from '../components/budget/BudgetTable';
 import type { BudgetGroup, BudgetPlanItem } from '../types';
 import { applyComputedFields, computeBudgetPageTotals } from '../lib/budget';
@@ -28,6 +27,12 @@ export default function Income() {
   useEffect(() => {
     setPageTitle('Доходы');
   }, [setPageTitle]);
+
+  useEffect(() => {
+    items
+      .filter((item) => !(item.name ?? '').trim() && !item.amount && !item.monthly)
+      .forEach((item) => removeItem(item.id));
+  }, [items, removeItem]);
 
   const budgetItems = useMemo<BudgetPlanItem[]>(
     () =>
@@ -64,34 +69,17 @@ export default function Income() {
         <p className="budget-page-subtitle">Источники дохода — текущие и планируемые поступления</p>
       </div>
 
-      {items.length === 0 ? (
-        <div className="budget-card">
-          <div className="budget-card-body">
-            <EmptyState
-              icon="💵"
-              title="Пока нет доходов"
-              description="Добавьте источники дохода, чтобы учитывать поступления."
-              action={
-                <button className="auth-btn" type="button" onClick={() => addItem({ name: '', amount: 0, monthly: 0 })}>
-                  Добавить доход
-                </button>
-              }
-            />
-          </div>
-        </div>
-      ) : (
-        <BudgetTable
-          title="Доходы"
-          group="monthly"
-          items={planned}
-          total={totals.totalMonthly}
-          totalPlan={totals.totalMonthlyPlan}
-          headers={{ amount: 'Сумма', plan: 'План' }}
-          onUpdate={updateFromBudget}
-          onRemove={removeItem}
-          onAdd={addFromBudget}
-        />
-      )}
+      <BudgetTable
+        title="Доходы"
+        group="monthly"
+        items={planned}
+        total={totals.totalMonthly}
+        totalPlan={totals.totalMonthlyPlan}
+        headers={{ amount: 'Сумма', plan: 'План' }}
+        onUpdate={updateFromBudget}
+        onRemove={removeItem}
+        onAdd={addFromBudget}
+      />
       {items.length > 0 && (
         <div className="budget-card" style={{ marginTop: 8 }}>
           <div className="budget-card-body">
