@@ -139,7 +139,7 @@ npx --yes firebase-tools@14.22.0 emulators:exec \
 
 ## Firebase и безопасность
 
-Для разработки и развёртывания Firebase Auth и Firestore должны быть настроены в проекте Firebase. Клиентские Firebase config-параметры передаются приложению через переменные `VITE_FIREBASE_*`; GitHub Actions получает production-значения из настроек Secrets репозитория. Не добавляйте приватные ключи, пароли или service-account credentials в клиентский код.
+Для разработки и развёртывания Firebase Auth и Firestore должны быть настроены в проекте Firebase. Клиентские параметры конфигурации можно передать через `VITE_FIREBASE_*`; у веб-приложения также есть публичный Firebase API key для fallback, который попадёт в браузерную сборку. Ограничьте его по HTTP referrer и используемым API в Google Cloud Console. Не добавляйте приватные ключи, пароли или service-account credentials в клиентский код.
 
 Правила [`firestore.rules`](firestore.rules) ограничивают доступ к данным владельцем аккаунта; администратор имеет отдельный ограниченный доступ к списку профилей. Перед изменением правил запускайте emulator-тесты. Для production проект и актуальная схема размещения данных описаны в [уведомлении о конфиденциальности](https://BOBAH1988.github.io/Money-Path/#/privacy) и `docs/operations.md`.
 
