@@ -44,6 +44,8 @@ import {
   saveBudgetPlan,
   resetBudgetPlan,
   getPendingCollectionOperations,
+  getPendingBudgetPlan,
+  loadLocalBudgetPlan,
   syncPendingToFirestore,
   enqueueCollectionClear,
   enqueueCollectionDelete,
@@ -152,6 +154,36 @@ describe('saveToFirestore', () => {
 
     expect(mocks.writeBatch).toHaveBeenCalledTimes(1);
     expect(getPendingCollectionOperations(collectionName, userId)).toHaveLength(0);
+  });
+
+  it('retains a failed clear and retries it without losing the operation', async () => {
+    mocks.getDocsFromServer.mockResolvedValue({ docs: [{ ref: {} }] });
+    mocks.writeBatch.mockReturnValueOnce({
+      delete: vi.fn(),
+      commit: vi.fn(async () => { throw new Error('offline'); }),
+    } as any);
+    enqueueCollectionClear(collectionName, userId);
+
+    await expect(syncPendingToFirestore(userId)).rejects.toThrow('offline');
+    expect(getPendingCollectionOperations(collectionName, userId)).toMatchObject([{ type: 'clear' }]);
+
+    await syncPendingToFirestore(userId);
+    expect(getPendingCollectionOperations(collectionName, userId)).toHaveLength(0);
+    expect(mocks.writeBatch).toHaveBeenCalledTimes(2);
+  });
+
+  it('retains an offline budget plan locally and in its queue until retry succeeds', async () => {
+    mocks.setDoc.mockRejectedValueOnce(new Error('offline'));
+    const items = [{ id: 'plan-1', name: 'Rent', amount: 500 }];
+
+    await expect(saveBudgetPlan(userId, items, '2026-11-10T00:00:00.000Z')).rejects.toThrow('offline');
+    expect(loadLocalBudgetPlan(userId)?.items).toEqual(items);
+    expect(getPendingBudgetPlan(userId)?.items).toEqual(items);
+
+    mocks.setDoc.mockResolvedValue(undefined);
+    await syncPendingToFirestore(userId);
+    expect(getPendingBudgetPlan(userId)).toBeNull();
+    expect(loadLocalBudgetPlan(userId)?.items).toEqual(items);
   });
 });
 

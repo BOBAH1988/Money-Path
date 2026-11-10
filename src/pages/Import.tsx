@@ -2,8 +2,15 @@ import { useState, useRef, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../ui/Toast';
 import { ConfirmDialog } from '../ui/ConfirmDialog';
-import { exportBackup, restoreBackup, backupFileName, type BackupArchive, type RestoreReport } from '../lib/backup';
-import { ALL_COLLECTIONS, type FirestoreCollection } from '../lib/dataStore';
+import {
+  exportBackup,
+  restoreBackup,
+  restoreBackupLocally,
+  parseBackupFile,
+  backupFileName,
+  type BackupArchive,
+  type RestoreReport,
+} from '../lib/backup';
 
 
 function formatDate(iso: string): string {
@@ -16,23 +23,6 @@ function formatDate(iso: string): string {
 
 function countCollections(collections: BackupArchive['collections']): number {
   return Object.values(collections).reduce((s, a) => s + (a?.length ?? 0), 0);
-}
-
-function readArchiveFile(file: File): Promise<BackupArchive> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => {
-      try {
-        const parsed = JSON.parse(String(reader.result || ''));
-        if (!parsed || typeof parsed !== 'object') throw new Error('Некорректный JSON');
-        resolve(parsed as BackupArchive);
-      } catch (e) {
-        reject(e instanceof Error ? e : new Error('Не удалось прочитать архив'));
-      }
-    };
-    reader.onerror = () => reject(new Error('Не удалось прочитать файл'));
-    reader.readAsText(file);
-  });
 }
 
 export default function Import() {
@@ -77,7 +67,7 @@ export default function Import() {
     if (!file) return;
     e.target.value = '';
     try {
-      const archive = await readArchiveFile(file);
+      const archive = await parseBackupFile(file);
       setPendingArchive(archive);
       setConfirmOpen(true);
     } catch (err) {
@@ -94,13 +84,8 @@ export default function Import() {
         const report: RestoreReport = await restoreBackup(pendingArchive, uid);
         toastSuccess('Данные восстановлены', `Восстановлено записей: ${report.totalRecords}. Обновите страницу.`);
       } else {
-        if (clearBeforeRestore) {
-          for (const col of ALL_COLLECTIONS as FirestoreCollection[]) localStorage.removeItem(`denegnyj_put_${col}`);
-        }
-        for (const [col, items] of Object.entries(pendingArchive.collections)) {
-          if (items && items.length) localStorage.setItem(`denegnyj_put_${col}`, JSON.stringify(items));
-        }
-        toastSuccess('Данные восстановлены', 'Обновите страницу, чтобы увидеть изменения.');
+        const report = restoreBackupLocally(pendingArchive, clearBeforeRestore);
+        toastSuccess('Данные восстановлены', `Восстановлено записей: ${report.totalRecords}. Обновите страницу, чтобы увидеть изменения.`);
       }
       setRestored(true);
     } catch (err) {

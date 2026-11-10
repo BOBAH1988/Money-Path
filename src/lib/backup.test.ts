@@ -27,6 +27,7 @@ vi.mock('./budget', () => ({
 import {
   exportBackup,
   restoreBackup,
+  restoreBackupLocally,
   parseBackupFile,
   downloadBackup,
   backupFileName,
@@ -137,6 +138,48 @@ describe('restoreBackup', () => {
       budgetPlan: null,
     } as unknown as BackupArchive;
     await expect(restoreBackup(archive)).rejects.toThrow(/userId/);
+  });
+});
+
+describe('restoreBackupLocally', () => {
+  it('restores guest collections and budget plan locally', () => {
+    const archive = {
+      version: BACKUP_VERSION,
+      userId,
+      createdAt: '2026-01-01T00:00:00.000Z',
+      source: 'firestore',
+      collections: {
+        assets: makeItems(2),
+        liabilities: makeItems(1),
+        income: [],
+        income_archive: [],
+      },
+      budgetPlan: emptyPlan,
+    } as BackupArchive;
+
+    const report = restoreBackupLocally(archive, true);
+
+    expect(report.totalRecords).toBe(3);
+    expect(report.budgetPlanRestored).toBe(true);
+    expect(JSON.parse(localStorage.getItem('denegnyj_put_assets') ?? 'null')).toEqual(archive.collections.assets);
+    expect(JSON.parse(localStorage.getItem('denegnyj_put_budget_plan') ?? 'null')).toEqual(emptyPlan);
+  });
+
+  it('leaves existing guest data intact when the archive omits the budget plan', () => {
+    localStorage.setItem('denegnyj_put_budget_plan', JSON.stringify(emptyPlan));
+    const archive = {
+      version: BACKUP_VERSION,
+      userId,
+      createdAt: '2026-01-01T00:00:00.000Z',
+      source: 'firestore',
+      collections: { assets: [], liabilities: [], income: [], income_archive: [] },
+      budgetPlan: null,
+    } as BackupArchive;
+
+    const report = restoreBackupLocally(archive);
+
+    expect(report.budgetPlanRestored).toBe(false);
+    expect(JSON.parse(localStorage.getItem('denegnyj_put_budget_plan') ?? 'null')).toEqual(emptyPlan);
   });
 });
 
