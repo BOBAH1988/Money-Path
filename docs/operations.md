@@ -41,4 +41,4 @@ Console monitoring is a project-owner action; source control and Firebase CLI ca
 - Cloud Billing budgets and alerts are not configured. Billing is currently disabled by owner choice; do not enable paid billing without explicit approval and a selected billing account.
 - Review current Firestore/Auth usage and establish baseline thresholds in Firebase/Google Cloud Console; the repository CLI cannot provide this usage baseline.
 - Managed Firestore backups are off by owner choice; see the recovery section before enabling them.
-- The app footer already publishes a feedback email address. Confirm it is monitored and publish a privacy notice and terms that accurately identify the data controller, processing, retention, and user rights before public launch. The registration consent checkboxes currently do not link to these documents.
+- The app now publishes terms and a privacy notice in its footer and registration flow. Have Russian privacy counsel review the documents and the disclosed US Firestore region, provide any legally required operator address, and confirm the feedback email is monitored before public launch.

@@ -265,6 +265,8 @@ export default function Layout() {
           <a className="footer-link" href="mailto:79042044926@ya.ru">
             Обратная связь
           </a>
+          <NavLink className="footer-link" to="/terms">Условия</NavLink>
+          <NavLink className="footer-link" to="/privacy">Конфиденциальность</NavLink>
           <span className="footer-version">v{pkgVersion}</span>
         </div>
       </nav>
