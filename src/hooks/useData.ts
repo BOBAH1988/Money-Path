@@ -4,12 +4,14 @@ import { useAuth } from '../context/AuthContext';
 import {
   loadLocalCollection,
   saveLocalCollection,
+  enqueueCollectionUpsert,
+  enqueueCollectionDelete,
+  getPendingCollectionOperations,
   type FirestoreCollection,
 } from '../lib/dataStore';
 import {
-  saveToFirestore,
   loadFromFirestore,
-  deleteFromFirestore,
+  syncPendingToFirestore,
 } from '../lib/firestore';
 
 export interface UseDataOptions {
@@ -33,9 +35,11 @@ export function useData<T extends { id: string }>(options: UseDataOptions): UseD
   const [items, setItems] = useState<T[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const dirtyRef = useRef(false);
+  const itemsRef = useRef<T[]>([]);
+  const mutationVersionRef = useRef(0);
   const localOnly = !collectionName;
+  const localCollectionName = collectionName ?? '__local__';
 
   useEffect(() => {
     if (!isAuthReady) {
@@ -45,11 +49,12 @@ export function useData<T extends { id: string }>(options: UseDataOptions): UseD
     let cancelled = false;
     setIsLoading(true);
     setError(null);
-    dirtyRef.current = false;
 
     if (localOnly) {
       const local = loadLocalCollection<T>('__local__', userId);
       if (!cancelled) {
+        dirtyRef.current = false;
+        itemsRef.current = local;
         setItems(local);
         setIsLoading(false);
       }
@@ -57,81 +62,121 @@ export function useData<T extends { id: string }>(options: UseDataOptions): UseD
     }
 
     const local = loadLocalCollection<T>(collectionName!, userId);
+    const pending = userId ? getPendingCollectionOperations(collectionName!, userId).length > 0 : false;
+    const initialMutationVersion = mutationVersionRef.current;
+    dirtyRef.current = pending;
+    itemsRef.current = local;
     setItems(local);
     setIsLoading(false);
 
     if (!userId) return () => { cancelled = true; };
 
+    const refreshWhenOnline = () => {
+      if (document.visibilityState === 'hidden') return;
+      const version = mutationVersionRef.current;
+      void syncPendingToFirestore(userId)
+        .then(() => loadFromFirestore<T>(collectionName!, userId))
+        .then((fresh) => {
+          if (cancelled || mutationVersionRef.current !== version) return;
+          dirtyRef.current = false;
+          itemsRef.current = fresh;
+          setItems(fresh);
+          setError(null);
+          saveLocalCollection(collectionName!, fresh, userId);
+        })
+        .catch((err) => {
+          if (cancelled) return;
+          const message = err instanceof Error ? err.message : 'Ошибка синхронизации';
+          setError(message);
+          toastError('Ошибка синхронизации', message);
+        });
+    };
+    window.addEventListener('online', refreshWhenOnline);
+    window.addEventListener('focus', refreshWhenOnline);
+    document.addEventListener('visibilitychange', refreshWhenOnline);
+
     void (async () => {
       try {
+        if (pending) {
+          await syncPendingToFirestore(userId);
+          if (mutationVersionRef.current === initialMutationVersion) dirtyRef.current = false;
+        }
         const data = await loadFromFirestore<T>(collectionName!, userId, (fresh) => {
           if (cancelled || dirtyRef.current) return;
+          itemsRef.current = fresh;
           setItems(fresh);
           saveLocalCollection(collectionName!, fresh, userId);
         });
         if (!cancelled && !dirtyRef.current) {
+          itemsRef.current = data;
           setItems(data);
+          setError(null);
           saveLocalCollection(collectionName!, data, userId);
         }
       } catch (err) {
-        if (!cancelled) setError(err instanceof Error ? err.message : 'Ошибка загрузки данных');
+        if (!cancelled) {
+          const message = err instanceof Error ? err.message : 'Ошибка загрузки данных';
+          setError(message);
+          toastError('Ошибка синхронизации', message);
+        }
       }
     })();
     return () => {
       cancelled = true;
+      window.removeEventListener('online', refreshWhenOnline);
+      window.removeEventListener('focus', refreshWhenOnline);
+      document.removeEventListener('visibilitychange', refreshWhenOnline);
     };
-  }, [isAuthReady, userId, collectionName, localOnly]);
+  }, [isAuthReady, userId, collectionName, localOnly, toastError]);
 
   useEffect(() => {
-    if (timerRef.current) clearTimeout(timerRef.current);
-    if (!isAuthReady || !collectionName) return;
-    saveLocalCollection(collectionName, items, userId);
-    if (!userId) return;
-    timerRef.current = setTimeout(() => {
-      void (async () => {
-        try {
-          await saveToFirestore<T>(collectionName, items, userId);
-        } catch (err) {
-          toastError('Ошибка сохранения', err instanceof Error ? err.message : 'Не удалось сохранить данные');
-        }
-      })();
-    }, 600);
-    return () => {
-      if (timerRef.current) clearTimeout(timerRef.current);
-    };
-  }, [items, isAuthReady, userId, collectionName, toastError]);
+    itemsRef.current = items;
+    if (!isAuthReady) return;
+    saveLocalCollection(localCollectionName, items, userId);
+  }, [items, isAuthReady, userId, localCollectionName]);
+
+  const persistMutation = useCallback((next: T[], kind: 'upsert' | 'delete', item?: T, itemId?: string) => {
+    dirtyRef.current = true;
+    itemsRef.current = next;
+    mutationVersionRef.current += 1;
+    saveLocalCollection(localCollectionName, next, userId);
+    setItems(next);
+    if (!collectionName || !userId) return;
+    try {
+      if (kind === 'upsert' && item) enqueueCollectionUpsert(collectionName, userId, item);
+      if (kind === 'delete' && itemId) enqueueCollectionDelete(collectionName, userId, itemId);
+    } catch (err) {
+      toastError('Не удалось сохранить изменения', err instanceof Error ? err.message : 'Ошибка локального хранилища');
+      return;
+    }
+    void syncPendingToFirestore(userId).catch((err) => {
+      toastError('Синхронизация ожидает подключения', err instanceof Error ? err.message : 'Изменения сохранены на устройстве');
+    });
+  }, [collectionName, localCollectionName, toastError, userId]);
 
   const addItem = useCallback(
     (item: Omit<T, 'id'>) => {
-      dirtyRef.current = true;
       const newItem: T = { ...item, id: crypto.randomUUID() } as T;
-      setItems((prev) => [...prev, newItem]);
+      persistMutation([...itemsRef.current, newItem], 'upsert', newItem);
     },
-    [],
+    [persistMutation],
   );
 
   const updateItem = useCallback(
     (id: string, patch: Partial<T>) => {
-      dirtyRef.current = true;
-      setItems((prev) => prev.map((it) => (it.id === id ? { ...it, ...patch } : it)));
+      const current = itemsRef.current.find((item) => item.id === id);
+      if (!current) return;
+      const updated = { ...current, ...patch };
+      persistMutation(itemsRef.current.map((item) => item.id === id ? updated : item), 'upsert', updated);
     },
-    [],
+    [persistMutation],
   );
 
   const removeItem = useCallback(
     (id: string) => {
-      dirtyRef.current = true;
-      setItems((prev) => prev.filter((it) => it.id !== id));
-      if (!userId || !collectionName) return;
-      void (async () => {
-        try {
-          await deleteFromFirestore(collectionName, id, userId);
-        } catch {
-          // ignore
-        }
-      })();
+      persistMutation(itemsRef.current.filter((item) => item.id !== id), 'delete', undefined, id);
     },
-    [collectionName, userId],
+    [persistMutation],
   );
 
   return { items, loading: !isAuthReady || isLoading, error, addItem, updateItem, removeItem };

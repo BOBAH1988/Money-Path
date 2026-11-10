@@ -60,6 +60,25 @@ describe('useData', () => {
     expect(result.current.loading).toBe(false);
   });
 
+  it('keeps the local snapshot visible when Firestore is unavailable', async () => {
+    const cached: AssetRow[] = [{ id: 'cached-1', name: 'Локальная запись', amount: 100, monthly: 5 }];
+    localStorageMock.setItem('denegnyj_put_uid-123_assets', JSON.stringify(cached));
+
+    const { result } = renderHook(() =>
+      useData<AssetRow>({
+        collectionName: COLLECTIONS.assets,
+        userId: 'uid-123',
+      }),
+      { wrapper: wrap },
+    );
+
+    await new Promise((r) => setTimeout(r, 50));
+
+    expect(result.current.items).toEqual(cached);
+    expect(result.current.loading).toBe(false);
+    expect(result.current.error).toBeTruthy();
+  });
+
   it('adds item to state', async () => {
     const { result } = renderHook(() =>
       useData<AssetRow>({
