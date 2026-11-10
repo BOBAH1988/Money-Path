@@ -66,7 +66,7 @@ export default function Budget() {
         </div>
         <div className="summary-item">
           <span className="summary-label">Регулярные расходы</span>
-          <span className="summary-value">{(totalMonthlyPlan - totalPlannedPlan).toLocaleString('ru-RU')} ₽</span>
+          <span className="summary-value">{totals.regularTotal.toLocaleString('ru-RU')} ₽</span>
         </div>
       </div>
 
