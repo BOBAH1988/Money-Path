@@ -139,6 +139,17 @@
 .budget-cell-plan { text-align: right; font-variant-numeric: tabular-nums; width: 90px; padding-right: 2px; }
 .budget-cell-actions { text-align: center; width: 28px; }
 
+@media (max-width: 600px) {
+  .budget-table { table-layout: fixed; }
+  .budget-head-amount,
+  .budget-head-plan { width: 76px; padding-right: 2px; padding-left: 2px; }
+  .budget-head-actions,
+  .budget-cell-actions { width: 36px; min-width: 36px; padding-right: 0; padding-left: 0; }
+  .budget-cell-amount,
+  .budget-cell-plan { width: 76px; padding-right: 2px; padding-left: 2px; font-size: 13px; }
+  .budget-input-amount { width: 100%; min-width: 0; }
+}
+
 .row-name { font-weight: 500; color: var(--theme-text); }
 .row-hint { display: block; font-size: 11px; color: var(--theme-text-muted); margin-top: 2px; }
 .row-amount { font-weight: 600; color: var(--theme-text); }
