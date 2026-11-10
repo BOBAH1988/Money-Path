@@ -63,6 +63,10 @@
   .page-budget { padding: 4px; padding-bottom: 90px; }
 }
 
+.page-budget-expanded {
+  padding-bottom: calc(160px + env(safe-area-inset-bottom));
+}
+
 .budget-card {
   background: var(--theme-card);
   border: 1px solid var(--theme-border);
