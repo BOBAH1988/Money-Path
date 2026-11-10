@@ -143,7 +143,7 @@ npx --yes firebase-tools@14.22.0 emulators:exec \
 
 Правила [`firestore.rules`](firestore.rules) ограничивают доступ к данным владельцем аккаунта; администратор имеет отдельный ограниченный доступ к списку профилей. Перед изменением правил запускайте emulator-тесты. Для production проект и актуальная схема размещения данных описаны в [уведомлении о конфиденциальности](https://BOBAH1988.github.io/Money-Path/#/privacy) и `docs/operations.md`.
 
-Проверка `npm audit` на 10 ноября 2026 года всё ещё выявляет high-severity advisory в транзитивном `@grpc/grpc-js`. Безопасного обновления в объявленном Firebase/Firestore диапазоне на тот момент не было; принудительный override не применяется. Детали и дальнейшие действия ведутся в [`docs/security.md`](docs/security.md).
+Проверки `npm audit` и `npm audit --omit=dev` проходят без уязвимостей. Для транзитивного `@grpc/grpc-js` задан временный scoped override до совместимого обновления Firebase/Firestore; подробности — в [`docs/security.md`](docs/security.md).
 
 ## Тестирование и публикация
 

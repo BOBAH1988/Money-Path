@@ -2,23 +2,23 @@
 
 ## Dependency audit — 2026-11-10
 
-`npm audit --omit=dev` was rerun on 2026-11-10 and still reports four high-severity package findings (two advisories, repeated through the dependency chain) for `@grpc/grpc-js@1.9.16`, pulled in by `firebase@13.2.0` through `@firebase/firestore@4.19.1`. The full `npm audit` also reports one additional high-severity package finding through the development-only `@firebase/rules-unit-testing` dependency. Registry metadata confirmed Firebase `13.2.0` and Firestore `4.19.1` are the latest published stable versions at the time of this check, and Firestore declares `@grpc/grpc-js: ~1.9.0`. The advisories are:
+The current dependency tree uses `@grpc/grpc-js@1.14.7` through an npm override scoped to `@firebase/firestore`. This is newer than Firestore `4.19.1`'s declared `~1.9.0` range, because Firebase `13.2.0` / Firestore `4.19.1` are the latest published versions checked and still declare that older range. The override selects the patched `1.x` line without downgrading Firebase. Both `npm audit` and `npm audit --omit=dev` report zero vulnerabilities.
+
+The advisories that prompted the override are:
 
 - [GHSA-m9gg-hp2v-232j](https://github.com/advisories/GHSA-m9gg-hp2v-232j): certificate authorization behavior in server-side gRPC authentication contexts.
 - [GHSA-f596-whhp-79r4](https://github.com/advisories/GHSA-f596-whhp-79r4): server method-handler errors exposed in gRPC status messages.
 
-Both advisories concern applications running gRPC servers and list `1.13.6` as the first patched version. The Money-Path production app uses Firebase's browser SDK; the generated Firestore client chunk contains no gRPC server implementation markers. `firebase-admin`, which uses a patched `@grpc/grpc-js@1.14.7`, is a development dependency and is not included in the deployed client app.
+Both advisories list `1.13.6` as the first patched version and concern applications running gRPC servers. Money-Path uses Firebase's browser SDK; `firebase-admin` is development-only. The override is nevertheless applied to the transitive dependency so the lockfile no longer contains the vulnerable version. The production build, unit tests, Firestore rules/emulator tests, and both npm audits passed with `1.14.7`.
 
-The installed production bundle was checked again: no gRPC server implementation markers were found in the generated Firestore client chunk. These findings still appear in the package audit because npm evaluates the dependency tree, not which code is reachable in the browser bundle.
-
-`npm audit fix` was applied without `--force`; it removed the reported moderate `glob`/`minimatch` findings from development dependencies. The remaining gRPC-related advisories have no compatible upstream patch available yet. Forcing a newer gRPC version through an override would violate Firestore's declared dependency range and has not been validated, so no dependency override or Firebase downgrade was applied. Weekly Dependabot npm version checks, vulnerability alerts, and automated security fixes are enabled; review any proposed Firebase update and re-run `npm audit` plus the complete test/build suite before merging.
-
-This is a triaged npm audit finding, not a clean audit: npm continues to report the dependency because its audit does not determine whether server-only code is reachable in the browser bundle. Reassess when Firebase releases a compatible Firestore dependency update, and before introducing server-side gRPC or SSR code. Re-run `npm audit --omit=dev` after dependency updates.
+The override intentionally exceeds Firestore's declared dependency range. Keep it until Firebase/Firestore publishes a compatible range that includes a patched gRPC version; then remove the override and re-run the full checks. When upgrading Firebase or `@grpc/grpc-js`, also verify Dependabot alerts refresh and close automatically rather than dismissing them manually.
 
 ## Dependabot security update — 2026-11-10
 
-The Dependabot security-update run [42781606038](https://github.com/BOBAH1988/Money-Path/actions/runs/42781606038) failed while trying to update `@grpc/grpc-js` to the first patched version, `1.13.6`. Dependabot reported `security_update_not_possible`; its proposed npm resolution would downgrade dependencies. The dependency path is `firebase` → `@firebase/firestore` → `@grpc/grpc-js`, and the installed Firestore package constrains gRPC to `~1.9.0`.
-
-This is not a failure of the application's build or deployment. The app deploy workflow for commit `b5e4c99` completed successfully, while the two GitHub Dependabot alerts for `@grpc/grpc-js` remain open (one high and one low severity). Do not close or dismiss those alerts as a workaround. Revisit after Firebase/Firestore publishes a compatible dependency range, then rerun the audit and project checks.
+The Dependabot security-update run [42781606038](https://github.com/BOBAH1988/Money-Path/actions/runs/42781606038) failed because Firestore constrained `@grpc/grpc-js` to `~1.9.0`, preventing Dependabot from resolving the patched version without downgrading packages. A scoped npm override now resolves this path to `1.14.7`; see the dependency audit section above. Verify GitHub's alerts refresh after the updated lockfile is pushed. Do not dismiss an alert manually as a workaround.
 
 The same Dependabot run included a GitHub-hosted-runner notice that `ubuntu-latest` will migrate to a newer Ubuntu image. It is informational and unrelated to the update failure; it did not fail the application deployment workflow.
+
+## Google API key secret-scanning alert — 2026-11-10
+
+A Firebase web API key was hardcoded as a fallback in `src/lib/firebase.ts` and was detected by GitHub secret scanning. The fallback has been removed; Firebase initialization now requires `VITE_FIREBASE_API_KEY` and reports a clear configuration error when it is absent. The key must still be rotated or restricted in Google Cloud Console because removing it from the current source does not revoke the exposed value or erase it from prior Git history. Configure HTTP referrer restrictions for the production site and allow only the APIs required by the Firebase web app. A Firebase web API key is delivered to browsers and is not an authorization boundary; enforce access through Firebase Security Rules and API-key restrictions.
