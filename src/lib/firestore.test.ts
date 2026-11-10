@@ -13,6 +13,7 @@ const mocks = vi.hoisted(() => ({
   getDoc: vi.fn(),
   getDocFromCache: vi.fn(async () => { throw new Error('cache miss'); }),
   getDocFromServer: vi.fn(),
+  writeBatch: vi.fn(() => ({ delete: vi.fn(), commit: vi.fn(async () => undefined) })),
 }));
 
 vi.mock('firebase/firestore', () => ({
@@ -28,20 +29,32 @@ vi.mock('firebase/firestore', () => ({
   getDoc: mocks.getDoc,
   getDocFromCache: mocks.getDocFromCache,
   getDocFromServer: mocks.getDocFromServer,
+  writeBatch: mocks.writeBatch,
 }));
 
 vi.mock('./firebase', () => ({
-  firestoreDb: {},
-  firebaseError: null,
+  getFirestoreDb: vi.fn(async () => ({})),
+  getFirebaseError: vi.fn(() => null),
 }));
 
-import { saveToFirestore, loadFromFirestore, loadBudgetPlan, saveBudgetPlan, resetBudgetPlan } from './firestore';
+import {
+  saveToFirestore,
+  loadFromFirestore,
+  loadBudgetPlan,
+  saveBudgetPlan,
+  resetBudgetPlan,
+  getPendingCollectionOperations,
+  syncPendingToFirestore,
+  enqueueCollectionClear,
+  enqueueCollectionDelete,
+} from './firestore';
 
 describe('saveToFirestore', () => {
   const userId = 'uid-123';
   const collectionName = 'assets';
 
   beforeEach(() => {
+    localStorage.clear();
     vi.clearAllMocks();
     mocks.collection.mockReturnValue({} as any);
     mocks.doc.mockReturnValue({} as any);
@@ -101,6 +114,45 @@ describe('saveToFirestore', () => {
     expect(mocks.deleteDoc as any).not.toHaveBeenCalled();
     expect(mocks.getDocs as any).not.toHaveBeenCalled();
   });
+
+  it('keeps failed writes queued and retries them without losing the change', async () => {
+    mocks.setDoc.mockRejectedValueOnce(new Error('offline'));
+    await expect(saveToFirestore(collectionName, [{ id: 'retry-1', name: 'Pending' }], userId))
+      .rejects.toThrow('offline');
+
+    expect(getPendingCollectionOperations(collectionName, userId)).toHaveLength(1);
+
+    mocks.setDoc.mockResolvedValue(undefined);
+    await syncPendingToFirestore(userId);
+
+    expect(getPendingCollectionOperations(collectionName, userId)).toHaveLength(0);
+    expect(mocks.setDoc).toHaveBeenCalledTimes(2);
+  });
+
+  it('keeps failed deletions queued until Firestore confirms them', async () => {
+    enqueueCollectionDelete(collectionName, userId, 'deleted-1');
+    mocks.deleteDoc.mockRejectedValueOnce(new Error('offline'));
+
+    await expect(syncPendingToFirestore(userId)).rejects.toThrow('offline');
+    expect(getPendingCollectionOperations(collectionName, userId)).toMatchObject([
+      { type: 'delete', itemId: 'deleted-1' },
+    ]);
+
+    mocks.deleteDoc.mockResolvedValue(undefined);
+    await syncPendingToFirestore(userId);
+    expect(getPendingCollectionOperations(collectionName, userId)).toHaveLength(0);
+  });
+
+  it('applies an explicit collection clear on the server', async () => {
+    const ref = {};
+    mocks.getDocsFromServer.mockResolvedValue({ docs: [{ ref }] });
+
+    enqueueCollectionClear(collectionName, userId);
+    await syncPendingToFirestore(userId);
+
+    expect(mocks.writeBatch).toHaveBeenCalledTimes(1);
+    expect(getPendingCollectionOperations(collectionName, userId)).toHaveLength(0);
+  });
 });
 
 describe('loadFromFirestore', () => {
@@ -108,6 +160,7 @@ describe('loadFromFirestore', () => {
   const collectionName = 'assets';
 
   beforeEach(() => {
+    localStorage.clear();
     vi.clearAllMocks();
     mocks.collection.mockReturnValue({} as any);
     mocks.doc.mockReturnValue({} as any);
@@ -142,12 +195,19 @@ describe('loadFromFirestore', () => {
 
     expect(data.length).toBe(0);
   });
+
+  it('does not convert a server read failure into an empty collection', async () => {
+    mocks.getDocsFromServer.mockRejectedValue(new Error('network error'));
+
+    await expect(loadFromFirestore(collectionName, userId)).rejects.toThrow('network error');
+  });
 });
 
 describe('loadBudgetPlan', () => {
   const userId = 'uid-123';
 
   beforeEach(() => {
+    localStorage.clear();
     vi.clearAllMocks();
     mocks.collection.mockReturnValue({} as any);
     mocks.doc.mockReturnValue({} as any);
@@ -184,6 +244,7 @@ describe('saveBudgetPlan', () => {
   const userId = 'uid-123';
 
   beforeEach(() => {
+    localStorage.clear();
     vi.clearAllMocks();
     mocks.collection.mockReturnValue({} as any);
     mocks.doc.mockReturnValue({} as any);
@@ -208,6 +269,7 @@ describe('resetBudgetPlan', () => {
   const userId = 'uid-123';
 
   beforeEach(() => {
+    localStorage.clear();
     vi.clearAllMocks();
     mocks.collection.mockReturnValue({} as any);
     mocks.doc.mockReturnValue({} as any);
