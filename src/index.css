@@ -1065,7 +1065,8 @@ body { margin: 0; font-family: system-ui, sans-serif; background: var(--theme-bg
   white-space: nowrap;
 }
 
-.account-actions {
+.account-actions,
+.account-menu-actions {
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -1073,6 +1074,8 @@ body { margin: 0; font-family: system-ui, sans-serif; background: var(--theme-bg
 
 .account-action-btn {
   width: 100%;
+  min-height: 42px;
+  box-sizing: border-box;
   padding: 10px 16px;
   border: 1px solid var(--border, #e5e7eb);
   border-radius: 8px;
