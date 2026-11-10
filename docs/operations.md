@@ -24,7 +24,7 @@ Console monitoring is a project-owner action; source control and Firebase CLI ca
 - Before a risky release or bulk account action, create and verify a fresh archive. Do not treat local browser storage as a backup.
 - To restore, sign into the intended account, import the archive, confirm the restore summary, and check the dashboard, assets, liabilities, income, archive, and budget plan. Keep the original file until verification is complete.
 - For an account-specific sync incident: ask the user to keep the app/device data intact, export an archive if still available, inspect the app's sync error and browser console without requesting financial values, then retry after connectivity is restored. Do not clear browser storage or remove queued changes before the account owner has a verified backup.
-- Firestore managed point-in-time recovery/backups have not been verified or configured by this repository. The Firebase project owner must check **Firestore → Backups** and billing eligibility in the console, choose a retention window, configure it if supported, and perform a restore drill before relying on it.
+- Firestore currently has no managed backup schedules or backup copies. A daily schedule with 7-day retention was considered, but Firebase rejected creation because Cloud Billing is disabled; the owner chose to keep billing and managed backups off. User-controlled JSON archives remain the available recovery path. If billing is enabled later, review backup charges, configure the selected retention, wait for the first backup, and complete a restore drill before relying on managed recovery.
 
 ## Incident checklist
 
@@ -37,8 +37,8 @@ Console monitoring is a project-owner action; source control and Firebase CLI ca
 
 ## Owner setup still required
 
-- Confirm GitHub Actions failure notifications reach a monitored inbox.
-- Create Cloud Billing budget alerts and confirm recipients.
-- Review current Firestore/Auth usage and establish baseline thresholds.
-- Decide whether Firebase managed backups are available and run a recovery drill.
-- Publish and monitor a support contact and privacy incident response process before public launch.
+- Confirm GitHub Actions failure notifications reach a monitored inbox; the current GitHub CLI token lacks the `notifications` permission needed to inspect or change the user's subscription.
+- Cloud Billing budgets and alerts are not configured. Billing is currently disabled by owner choice; do not enable paid billing without explicit approval and a selected billing account.
+- Review current Firestore/Auth usage and establish baseline thresholds in Firebase/Google Cloud Console; the repository CLI cannot provide this usage baseline.
+- Managed Firestore backups are off by owner choice; see the recovery section before enabling them.
+- The app footer already publishes a feedback email address. Confirm it is monitored and publish a privacy notice and terms that accurately identify the data controller, processing, retention, and user rights before public launch. The registration consent checkboxes currently do not link to these documents.
