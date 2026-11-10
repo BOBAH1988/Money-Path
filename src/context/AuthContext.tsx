@@ -41,7 +41,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   // иначе эффекты загрузки данных стартуют с чужим/устаревшим uid до появления ID-токена
   const [uid, setUid] = useState<string | undefined>(undefined);
 
-  const isAdmin = isAuthenticated && user ? user.email === ADMIN_EMAIL : false;
+  const isAdmin = isAuthenticated && user ? user.email === ADMIN_EMAIL && user.emailVerified : false;
 
   useEffect(() => {
     if (!auth) {

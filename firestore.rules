@@ -9,7 +9,9 @@ service cloud.firestore {
       return signedIn() && request.auth.uid == userId;
     }
     function isAdmin() {
-      return signedIn() && request.auth.token.email == '79042044926@ya.ru';
+      return signedIn()
+        && request.auth.token.email == '79042044926@ya.ru'
+        && request.auth.token.email_verified == true;
     }
 
     // Аналитика администратора читает только список профилей, не пользовательские финансовые данные.
