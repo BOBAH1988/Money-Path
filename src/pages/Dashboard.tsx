@@ -1,11 +1,11 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { PageTitleContext } from '../components/PageTitleContext';
 import { useBudget } from '../hooks/useBudget';
 import { computeBudgetPageTotals } from '../lib/budget';
 import { useAuth } from '../context/AuthContext';
-import { clearAccountData, loadFromFirestore, loadLocalCollection, storageKeyFor, COLLECTIONS } from '../lib/firestore';
+import { loadFromFirestore, loadLocalCollection, storageKeyFor, COLLECTIONS } from '../lib/firestore';
 import { EmptyState } from '../ui/EmptyState';
 import { AuthModal } from '../components/AuthModal';
 import { LineChart, BarChart } from '../components/dashboard/Charts';
@@ -87,9 +87,9 @@ const MONTHS = [
 
 export default function Dashboard() {
   const { setPageTitle } = useContext(PageTitleContext)!;
-  const { items, reset: resetBudget } = useBudget();
+  const { items } = useBudget();
   const { uid, isAuthReady } = useAuth();
-  const { success: toastSuccess, error: toastError } = useToast();
+  const { error: toastError } = useToast();
   const [authOpen, setAuthOpen] = useState(false);
   const userId = uid;
   const navigate = useNavigate();
@@ -100,7 +100,6 @@ export default function Dashboard() {
   const [liabilities, setLiabilities] = useState<LiabilityRow[]>([]);
   const [income, setIncome] = useState<IncomeRow[]>([]);
   const [incomeArchive, setIncomeArchive] = useState<IncomeArchiveRow[]>([]);
-  const dataRevisionRef = useRef(0);
 
   const hasData = useMemo(
     () =>
@@ -121,7 +120,6 @@ export default function Dashboard() {
       return;
     }
     let cancelled = false;
-    const revision = dataRevisionRef.current;
     setAssets(loadLocalCollection<AssetRow>(COLLECTIONS.assets, userId));
     setLiabilities(loadLocalCollection<LiabilityRow>(COLLECTIONS.liabilities, userId));
     setIncome(loadLocalCollection<IncomeRow>(COLLECTIONS.income, userId));
@@ -136,10 +134,10 @@ export default function Dashboard() {
           try { localStorage.setItem(storageKeyFor(name, userId), JSON.stringify(rows)); } catch {}
         };
         await Promise.all([
-          loadFromFirestore<AssetRow>(COLLECTIONS.assets, userId, (fresh) => { if (!cancelled && dataRevisionRef.current === revision) { setAssets(fresh); saveLocal(COLLECTIONS.assets, fresh); } }),
-          loadFromFirestore<LiabilityRow>(COLLECTIONS.liabilities, userId, (fresh) => { if (!cancelled && dataRevisionRef.current === revision) { setLiabilities(fresh); saveLocal(COLLECTIONS.liabilities, fresh); } }),
-          loadFromFirestore<IncomeRow>(COLLECTIONS.income, userId, (fresh) => { if (!cancelled && dataRevisionRef.current === revision) { setIncome(fresh); saveLocal(COLLECTIONS.income, fresh); } }),
-          loadFromFirestore<IncomeArchiveRow>(COLLECTIONS.incomeArchive, userId, (fresh) => { if (!cancelled && dataRevisionRef.current === revision) { const rows = fresh.map(migrateArchiveRow); setIncomeArchive(rows); saveLocal(COLLECTIONS.incomeArchive, rows); } }),
+          loadFromFirestore<AssetRow>(COLLECTIONS.assets, userId, (fresh) => { if (!cancelled) { setAssets(fresh); saveLocal(COLLECTIONS.assets, fresh); } }),
+          loadFromFirestore<LiabilityRow>(COLLECTIONS.liabilities, userId, (fresh) => { if (!cancelled) { setLiabilities(fresh); saveLocal(COLLECTIONS.liabilities, fresh); } }),
+          loadFromFirestore<IncomeRow>(COLLECTIONS.income, userId, (fresh) => { if (!cancelled) { setIncome(fresh); saveLocal(COLLECTIONS.income, fresh); } }),
+          loadFromFirestore<IncomeArchiveRow>(COLLECTIONS.incomeArchive, userId, (fresh) => { if (!cancelled) { const rows = fresh.map(migrateArchiveRow); setIncomeArchive(rows); saveLocal(COLLECTIONS.incomeArchive, rows); } }),
         ]);
       } catch {
         if (!cancelled) toastError('Ошибка синхронизации', 'Показаны сохранённые на устройстве данные.');
@@ -287,31 +285,6 @@ export default function Dashboard() {
         <p className="budget-page-subtitle">
           Сводка по доходам, расходам, активам и пассивам за выбранный период
         </p>
-        <div className="budget-page-actions">
-          <button
-            className="btn-reset"
-            type="button"
-            onClick={async () => {
-              try {
-                const result = await clearAccountData(userId);
-                dataRevisionRef.current += 1;
-                setAssets([]);
-                setLiabilities([]);
-                setIncome([]);
-                setIncomeArchive([]);
-                await resetBudget(false);
-                toastSuccess(
-                  result.synced ? 'Данные очищены' : 'Очистка ожидает синхронизации',
-                  result.synced ? undefined : 'Удаление сохранено на устройстве и отправится при подключении.',
-                );
-              } catch (err) {
-                toastError('Ошибка очистки данных', err instanceof Error ? err.message : 'Не удалось сохранить очистку');
-              }
-            }}
-          >
-            Очистить
-          </button>
-        </div>
       </div>
 
       <div className="budget-card" style={{ margin: '0 4px' }}>
