@@ -1889,6 +1889,31 @@ body { margin: 0; font-family: system-ui, sans-serif; background: var(--theme-bg
   border-bottom: 0;
 }
 
+.dashboard-scale-archive {
+  gap: 8px;
+  padding-bottom: 12px;
+}
+
+.dashboard-scale-archive h2 {
+  font-size: 14px;
+}
+
+.dashboard-scale-archive .dashboard-bar-chart {
+  gap: 8px;
+}
+
+.dashboard-scale-archive .dashboard-bar-chart-row {
+  gap: 4px;
+}
+
+.dashboard-scale-archive .dashboard-bar-chart-heading {
+  font-size: 12px;
+}
+
+.dashboard-scale-archive .dashboard-bar-chart-track {
+  height: 6px;
+}
+
 .dashboard-scale-group h2 {
   margin: 0;
   color: var(--theme-text);
