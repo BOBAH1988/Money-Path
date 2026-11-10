@@ -4,6 +4,7 @@ import { AuthProvider } from './context/AuthContext';
 import Layout from './components/Layout';
 import { ToastProvider } from './ui/Toast';
 import { PageLoader } from './components/PageLoader';
+import { ErrorBoundary } from './components/ErrorBoundary';
 
 const Dashboard = lazy(() => import('./pages/Dashboard'));
 const Budget = lazy(() => import('./pages/Budget'));
@@ -39,10 +40,22 @@ function AppRoutes() {
 
 export default function App() {
   return (
-    <AuthProvider>
-      <ToastProvider>
-        <AppRoutes />
-      </ToastProvider>
-    </AuthProvider>
+    <ErrorBoundary
+      fallback={() => (
+        <div className="app-error-screen" role="alert">
+          <h1>Не удалось загрузить приложение</h1>
+          <p>Проверьте подключение к интернету и попробуйте перезагрузить страницу.</p>
+          <button type="button" onClick={() => window.location.reload()}>
+            Перезагрузить приложение
+          </button>
+        </div>
+      )}
+    >
+      <AuthProvider>
+        <ToastProvider>
+          <AppRoutes />
+        </ToastProvider>
+      </AuthProvider>
+    </ErrorBoundary>
   );
 }

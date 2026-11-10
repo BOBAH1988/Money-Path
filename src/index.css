@@ -2247,6 +2247,42 @@ body { margin: 0; font-family: system-ui, sans-serif; background: var(--theme-bg
   background: var(--theme-bg, #f5f5f7);
   padding: 24px;
 }
+
+.app-error-screen {
+  display: flex;
+  min-height: 100dvh;
+  box-sizing: border-box;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 24px;
+  background: var(--theme-bg, #f5f5f7);
+  color: var(--theme-text, #1d1d1f);
+  text-align: center;
+  font-family: system-ui, sans-serif;
+}
+
+.app-error-screen h1,
+.app-error-screen p {
+  margin: 0;
+}
+
+.app-error-screen p {
+  max-width: 32rem;
+  color: var(--theme-text-muted, #6b7280);
+}
+
+.app-error-screen button {
+  min-height: 44px;
+  padding: 10px 16px;
+  border: 0;
+  border-radius: 10px;
+  background: var(--theme-accent, #007aff);
+  color: var(--theme-inverse-text, #fff);
+  font: inherit;
+  font-weight: 600;
+}
 .page-loader-spinner {
   width: 28px;
   height: 28px;
