@@ -58,7 +58,7 @@ describe('computeBudgetPageTotals', () => {
     expect(t.totalMonthlyPlan).toBe(0);
   });
 
-  it('regularTotal equals total plan minus the plan for additional expenses', () => {
+  it('regularTotal sums monthly plan and excludes additional-expense plan', () => {
     const items: BudgetPlanItem[] = [
       item({ id: '1', group: 'monthly', amount: 0, plan: 30_900 }),
       item({ id: '2', group: 'planned', amount: 0, plan: 4_000 }),

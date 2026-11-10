@@ -90,14 +90,13 @@ export const computeBudgetPageTotals = (items: BudgetPlanItem[]): BudgetPageTota
   const totalPlanned = plannedItems.reduce((sum, it) => sum + (it.amount ?? 0), 0);
   const totalMonthlyPlan = monthlyItems.reduce((sum, it) => sum + (it.plan ?? 0), 0);
   const totalPlannedPlan = plannedItems.reduce((sum, it) => sum + (it.plan ?? 0), 0);
-  const totalPlan = totalMonthlyPlan + totalPlannedPlan;
   return {
     totalMonthly,
     totalPlanned,
     totalAll: totalMonthly + totalPlanned,
     totalMonthlyPlan,
     totalPlannedPlan,
-    regularTotal: totalPlan - totalPlannedPlan,
+    regularTotal: totalMonthlyPlan,
   };
 };
 
