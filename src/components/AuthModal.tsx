@@ -235,18 +235,6 @@ export const AuthModal = ({ onClose }: { onClose: () => void }) => {
                 </div>
               </>
             )}
-            {mode === 'register' && (
-              <div className="auth-field">
-                <label>Подтвердите пароль</label>
-                <input
-                  type="password"
-                  required
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  autoComplete="new-password"
-                />
-              </div>
-            )}
             <button
               type="submit"
               className="auth-btn"
@@ -288,7 +276,12 @@ export const AuthModal = ({ onClose }: { onClose: () => void }) => {
 };
 
 export const AccountMenu = ({ onClose, onAnalytics }: { onClose: () => void; onAnalytics?: () => void }) => {
-  const { user, isAdmin, isAuthenticated, logout } = useAuth();
+  const { user, isAdmin, isAuthenticated, logout, deleteAccount } = useAuth();
+  const [deleteMode, setDeleteMode] = useState(false);
+  const [deletePassword, setDeletePassword] = useState('');
+  const [deleteConfirmation, setDeleteConfirmation] = useState('');
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   if (!isAuthenticated) {
     return null;
@@ -302,6 +295,22 @@ export const AccountMenu = ({ onClose, onAnalytics }: { onClose: () => void; onA
   const handleAnalytics = () => {
     onClose();
     onAnalytics?.();
+  };
+
+  const handleDeleteAccount = async (event: React.FormEvent) => {
+    event.preventDefault();
+    setDeleteError(null);
+    setDeleting(true);
+    try {
+      await deleteAccount(deletePassword);
+      onClose();
+      // Account deletion terminates Firestore to erase its persistent cache.
+      window.location.reload();
+    } catch (err) {
+      setDeleteError(err instanceof Error ? err.message : 'Не удалось удалить аккаунт');
+    } finally {
+      setDeleting(false);
+    }
   };
 
   return (
@@ -328,6 +337,62 @@ export const AccountMenu = ({ onClose, onAnalytics }: { onClose: () => void; onA
             </button>
           )}
         </div>
+        {!deleteMode ? (
+          <button
+            className="account-action-btn account-delete-btn"
+            onClick={() => setDeleteMode(true)}
+          >
+            Удалить аккаунт
+          </button>
+        ) : (
+          <form className="account-delete-form" onSubmit={handleDeleteAccount}>
+            <p>
+              Аккаунт, облачные записи и локальные данные приложения будут удалены безвозвратно.
+              Сначала скачайте архив, если хотите сохранить данные.
+            </p>
+            <label>
+              Пароль аккаунта
+              <input
+                type="password"
+                autoComplete="current-password"
+                value={deletePassword}
+                onChange={(event) => setDeletePassword(event.target.value)}
+                required
+              />
+            </label>
+            <label>
+              Для подтверждения введите УДАЛИТЬ
+              <input
+                type="text"
+                autoComplete="off"
+                value={deleteConfirmation}
+                onChange={(event) => setDeleteConfirmation(event.target.value)}
+                required
+              />
+            </label>
+            {deleteError && <p className="auth-error" role="alert">{deleteError}</p>}
+            <div className="account-actions">
+              <button
+                type="button"
+                className="account-action-btn"
+                onClick={() => {
+                  setDeleteMode(false);
+                  setDeleteError(null);
+                }}
+                disabled={deleting}
+              >
+                Отмена
+              </button>
+              <button
+                type="submit"
+                className="account-action-btn account-delete-btn"
+                disabled={deleting || !deletePassword || deleteConfirmation !== 'УДАЛИТЬ'}
+              >
+                {deleting ? 'Удаление…' : 'Удалить навсегда'}
+              </button>
+            </div>
+          </form>
+        )}
       </div>
     </div>
   );

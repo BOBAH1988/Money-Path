@@ -1,4 +1,4 @@
-import { getFirebaseError, getFirestoreDb } from './firebase';
+import { clearFirestorePersistence, getFirebaseError, getFirestoreDb } from './firebase';
 import {
   collection,
   doc,
@@ -38,7 +38,9 @@ import {
   getResetPendingUserId,
   clearResetPending,
   clearCollectionData,
+  clearUserLocalData,
 } from './dataStore';
+import { PRIVACY_NOTICE_VERSION, TERMS_VERSION } from './legal';
 
 export {
   COLLECTIONS,
@@ -62,6 +64,7 @@ export {
   getResetPendingUserId,
   clearResetPending,
   clearCollectionData,
+  clearUserLocalData,
 };
 export type { FirestoreCollection };
 
@@ -131,6 +134,65 @@ export const trackUser = async (uid: string, email: string): Promise<void> => {
     }
   } catch (err) {
     console.error(`[firestore] trackUser uid=${uid} ошибка:`, err);
+  }
+};
+
+export const recordLegalConsent = async (uid: string): Promise<void> => {
+  const firestoreDb = await getFirestoreDb();
+  await setDoc(doc(firestoreDb, 'users', uid), {
+    acceptedTermsVersion: TERMS_VERSION,
+    acceptedPrivacyVersion: PRIVACY_NOTICE_VERSION,
+    consentUpdatedAt: new Date().toISOString(),
+  }, { merge: true });
+};
+
+export const getLegalConsent = async (
+  uid: string,
+): Promise<{ termsVersion: string; privacyVersion: string }> => {
+  const firestoreDb = await getFirestoreDb();
+  const snapshot = await getDocFromServer(doc(firestoreDb, 'users', uid));
+  const data = snapshot.data() ?? {};
+  return {
+    termsVersion: typeof data.acceptedTermsVersion === 'string' ? data.acceptedTermsVersion : '',
+    privacyVersion: typeof data.acceptedPrivacyVersion === 'string' ? data.acceptedPrivacyVersion : '',
+  };
+};
+
+export const deleteAccountData = async (userId: string): Promise<void> => {
+  if (!userId) throw new Error('Не удалось определить аккаунт для удаления');
+  if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+    throw new Error('Для удаления аккаунта необходимо подключение к интернету');
+  }
+
+  const firestoreDb = await getFirestoreDb();
+  for (const name of ALL_COLLECTIONS) {
+    const collectionRef = collection(firestoreDb, colPath(name, userId));
+    while (true) {
+      const snapshot = await withTimeout(
+        getDocsFromServer(collectionRef),
+        15000,
+        `deleteAccount(${name})`,
+      );
+      if (snapshot.empty) break;
+      for (let offset = 0; offset < snapshot.docs.length; offset += 400) {
+        const batch = writeBatch(firestoreDb);
+        snapshot.docs.slice(offset, offset + 400).forEach((entry) => batch.delete(entry.ref));
+        await withTimeout(batch.commit(), 15000, `deleteAccount(${name})`);
+      }
+    }
+  }
+
+  await deleteDoc(doc(firestoreDb, 'budget_plan', `users/${userId}/budget_plan`));
+  await deleteDoc(doc(firestoreDb, 'users', userId));
+  clearUserLocalData(userId);
+  try {
+    await clearFirestorePersistence();
+  } catch (err) {
+    const reason = err instanceof Error ? ` (${err.message})` : '';
+    throw new Error(
+      `Облачные данные и локальные записи удалены, но кэш Firestore не очищен${reason}. Закройте другие вкладки, перезагрузите страницу и повторите удаление аккаунта.`,
+      { cause: err },
+    );
   }
 };
 

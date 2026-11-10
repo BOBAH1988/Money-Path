@@ -236,3 +236,15 @@ export const clearLocalData = (userId?: string): void => {
     clearCollectionData(collectionName, userId);
   }
 };
+
+export const clearUserLocalData = (userId: string): void => {
+  const prefixes = [`denegnyj_put_${userId}_`, `denegnyj_put_pending_${userId}_`];
+  for (let index = localStorage.length - 1; index >= 0; index--) {
+    const key = localStorage.key(index);
+    if (key && prefixes.some((prefix) => key.startsWith(prefix))) {
+      localStorage.removeItem(key);
+    }
+  }
+  if (getResetPendingUserId() === userId) clearResetPending();
+  localStorage.removeItem('denegnyj_put_auth_uid');
+};

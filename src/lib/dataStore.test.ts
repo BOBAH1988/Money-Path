@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import {
   clearCollectionData,
+  clearUserLocalData,
   enqueueCollectionClear,
   enqueueCollectionDelete,
   enqueueCollectionUpsert,
@@ -61,5 +62,19 @@ describe('offline sync queue', () => {
 
     expect(localStorage.getItem(`denegnyj_put_${userId}_assets`)).toBeNull();
     expect(localStorage.getItem('denegnyj_put_assets')).toBe('[{"id":"guest"}]');
+  });
+
+  it('clears all local caches and queued writes for only the deleted account', () => {
+    localStorage.setItem(`denegnyj_put_${userId}_assets`, '[{"id":"private"}]');
+    localStorage.setItem(`denegnyj_put_pending_${userId}_assets`, '[{"id":"queued"}]');
+    localStorage.setItem('denegnyj_put_other-user_assets', '[{"id":"keep"}]');
+    localStorage.setItem('denegnyj_put_assets', '[{"id":"guest"}]');
+
+    clearUserLocalData(userId);
+
+    expect(localStorage.getItem(`denegnyj_put_${userId}_assets`)).toBeNull();
+    expect(localStorage.getItem(`denegnyj_put_pending_${userId}_assets`)).toBeNull();
+    expect(localStorage.getItem('denegnyj_put_other-user_assets')).not.toBeNull();
+    expect(localStorage.getItem('denegnyj_put_assets')).not.toBeNull();
   });
 });

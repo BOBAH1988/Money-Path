@@ -111,12 +111,23 @@ describe.skipIf(!emulatorAvailable)('Firestore security rules', () => {
     await assertFails(getDocs(collection(db, 'users')));
   });
 
-  it('denies unauthenticated access and profile deletion', async () => {
+  it('denies unauthenticated access and only lets owners delete their own profile', async () => {
     const anonymousDb = testEnv.unauthenticatedContext().firestore();
     const ownerDb = testEnv.authenticatedContext('alice', { email: 'alice@example.com' }).firestore();
 
     await assertFails(getDoc(doc(anonymousDb, 'users/alice')));
     await assertFails(getDoc(doc(anonymousDb, 'users/alice/assets/asset-1')));
-    await assertFails(deleteDoc(doc(ownerDb, 'users/alice')));
+    await assertSucceeds(deleteDoc(doc(ownerDb, 'users/alice')));
+    await assertFails(deleteDoc(doc(ownerDb, 'users/bob')));
+  });
+
+  it('lets an owner delete their own legacy budget plan but denies cross-account access', async () => {
+    const ownerDb = testEnv.authenticatedContext('alice', { email: 'alice@example.com' }).firestore();
+    const legacyOwnPlan = doc(ownerDb, 'budget_plan/users/alice/budget_plan');
+    const legacyOtherPlan = doc(ownerDb, 'budget_plan/users/bob/budget_plan');
+
+    await assertSucceeds(setDoc(legacyOwnPlan, { items: [] }));
+    await assertSucceeds(deleteDoc(legacyOwnPlan));
+    await assertFails(setDoc(legacyOtherPlan, { items: [] }));
   });
 });

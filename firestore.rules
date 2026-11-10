@@ -19,12 +19,17 @@ service cloud.firestore {
       allow get: if isOwner(userId);
       allow list: if isAdmin();
       allow create, update: if isOwner(userId);
-      allow delete: if false;
+      allow delete: if isOwner(userId);
 
       // Данные приложения доступны только владельцу аккаунта.
       match /{collection}/{document=**} {
         allow read, write: if isOwner(userId);
       }
+    }
+
+    // Legacy budget plan document; only the account owner can access its own path.
+    match /budget_plan/users/{userId}/budget_plan {
+      allow read, write: if isOwner(userId);
     }
 
     // Корневые коллекции (гостевой/legacy режим без userId) — по умолчанию запрещены.
