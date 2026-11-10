@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import type { BudgetPlanItem } from '../../types';
 import { ConfirmDialog } from '../../ui/ConfirmDialog';
 import { useToast } from '../../ui/Toast';
@@ -21,22 +21,28 @@ export const BudgetRow = ({ item, onUpdate, onRemove, onToggle, isPlannedCollaps
   const [amount, setAmount] = useState(String(item.amount ?? 0));
   const [plan, setPlan] = useState(String(item.plan ?? 0));
   const { success: toastSuccess } = useToast();
+  const wasEditing = useRef(isEditing);
 
   const isSubtotal = item.type === 'subtotal';
   const isTotal = item.type === 'total';
 
   // Save when exiting edit mode via external trigger (Готово button)
   useEffect(() => {
-    if (!isEditing) {
-      const wasEditing = name !== item.name || amount !== String(item.amount ?? 0) || plan !== String(item.plan ?? 0);
-      if (wasEditing) {
-        onUpdate(item.id, {
-          name: name.trim() || item.name,
-          amount: Number(amount.replace(/[^\d.,-]/g, '').replace(',', '.')) || 0,
-          plan: Number(plan.replace(/[^\d.,-]/g, '').replace(',', '.')) || 0,
-        });
-      }
+    if (isEditing) {
+      wasEditing.current = true;
+      return;
     }
+    if (!wasEditing.current) return;
+
+    wasEditing.current = false;
+    const hasChanges = name !== item.name || amount !== String(item.amount ?? 0) || plan !== String(item.plan ?? 0);
+    if (!hasChanges) return;
+
+    onUpdate(item.id, {
+      name: name.trim() || item.name,
+      amount: Number(amount.replace(/[^\d.,-]/g, '').replace(',', '.')) || 0,
+      plan: Number(plan.replace(/[^\d.,-]/g, '').replace(',', '.')) || 0,
+    });
   }, [isEditing, name, amount, plan, item, onUpdate]);
 
   const handleSave = () => {

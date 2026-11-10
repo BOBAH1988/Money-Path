@@ -66,7 +66,7 @@ export default function Liabilities() {
     <div className="page page-budget">
       <div className="budget-page-header">
         <h1 className="budget-page-header h1">Пассивы</h1>
-        <p className="budget-page-subtitle">Долги и обязательства — что вы должны и ежемесячные платежи</p>
+        <p className="budget-page-subtitle">Долги и обязательства — что вы должны и сколько % отдаете за использование</p>
       </div>
 
       <BudgetTable
