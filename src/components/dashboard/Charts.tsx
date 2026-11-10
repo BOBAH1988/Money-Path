@@ -153,110 +153,37 @@ interface BarChartProps {
 }
 
 export const BarChart = ({ series }: BarChartProps) => {
+  const maxValue = Math.max(...series.flatMap((item) => item.values), 0);
+
   return (
-    <div
-      style={{
-        display: 'flex',
-        flexDirection: 'column',
-        gap: 8,
-        padding: 10,
-        border: '1px solid var(--dp-border, #e2e8f0)',
-        borderRadius: 12,
-        background: 'var(--theme-card, #fff)',
-      }}
-    >
-      {series.map((s, sIndex) => (
-        <div key={sIndex} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--dp-color-text-muted, #64748b)', minWidth: 60, whiteSpace: 'nowrap' }}>
-            {s.labels[0]}
-          </span>
-          <div
-            style={{
-              flex: 1,
-              display: 'flex',
-              flexDirection: 'column',
-              gap: 4,
-              minWidth: 0,
-            }}
-          >
-            {s.values.map((value, vIndex) => {
-              return (
-                <div
-                  key={vIndex}
-                  style={{
-                    display: 'flex',
-                    flexDirection: 'row',
-                    alignItems: 'flex-end',
-                    gap: 4,
-                    paddingBottom: 4,
-                  }}
-                >
-                  <span
-                    style={{
-                      fontSize: 11,
-                      fontWeight: 600,
-                      color: 'var(--dp-color-text-muted, #64748b)',
-                      minWidth: 28,
-                      textAlign: 'right',
-                    }}
-                  >
-                    {s.labels[vIndex]}
-                  </span>
-                  <div
-                    style={{
-                      flex: 1,
-                      display: 'flex',
-                      flexDirection: 'column',
-                      alignItems: 'center',
-                      gap: 2,
-                    }}
-                  >
-                    <div
-                      style={{
-                        width: 20,
-                        height: 20,
-                        borderRadius: 4,
-                        background: ['#059669', '#2563eb', '#d97706'][sIndex % 3],
-                      }}
-                    />
-                    <div
-                      style={{
-                        width: 14,
-                        height: 20,
-                        borderRadius: 2,
-                        background: 'var(--dp-color-success, #059669)',
-                      }}
-                    />
-                    <span
-                      style={{
-                        fontSize: 10,
-                        fontWeight: 700,
-                        color: 'var(--dp-color-text, #0f172a)',
-                        minWidth: 44,
-                        textAlign: 'right',
-                      }}
-                    >
-                      {value.toLocaleString('ru-RU')}
-                    </span>
-                  </div>
-                  <span
-                    style={{
-                      fontSize: 10,
-                      fontWeight: 600,
-                      color: 'var(--dp-color-text-muted, #64748b)',
-                      minWidth: 32,
-                      textAlign: 'right',
-                      paddingLeft: 4,
-                    }}
-                  >
-                    {s.values[vIndex]?.toLocaleString('ru-RU') ?? ''}
-                  </span>
-                </div>
-              );
-            })}
+    <div className="dashboard-bar-chart" role="list">
+      {series.map((item, index) => {
+        const label = item.labels[0] ?? '';
+        const value = item.values[0] ?? 0;
+        const width = maxValue > 0 ? (value / maxValue) * 100 : 0;
+
+        return (
+          <div className="dashboard-bar-chart-row" key={`${label}-${index}`} role="listitem">
+            <div className="dashboard-bar-chart-heading">
+              <span>{label}</span>
+              <strong>{value.toLocaleString('ru-RU')} ₽</strong>
+            </div>
+            <div
+              className="dashboard-bar-chart-track"
+              role="progressbar"
+              aria-label={label}
+              aria-valuenow={value}
+              aria-valuemin={0}
+              aria-valuemax={maxValue || 1}
+            >
+              <div
+                className={`dashboard-bar-chart-fill${index === 0 ? ' dashboard-bar-chart-fill-primary' : ''}`}
+                style={{ width: `${width}%` }}
+              />
+            </div>
           </div>
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 };
