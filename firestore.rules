@@ -12,16 +12,16 @@ service cloud.firestore {
       return signedIn() && request.auth.token.email == '79042044926@ya.ru';
     }
 
-    // Профиль/активность пользователя (trackUser). Пользователь пишет только свой документ; администратор может читать список.
+    // Аналитика администратора читает только список профилей, не пользовательские финансовые данные.
     match /users/{userId} {
-      allow get: if isOwner(userId) || isAdmin();
+      allow get: if isOwner(userId);
       allow list: if isAdmin();
       allow create, update: if isOwner(userId);
-      allow delete: if isAdmin();
+      allow delete: if false;
 
-      // Данные приложения пользователя: только владелец (и администратор при необходимости отладки).
+      // Данные приложения доступны только владельцу аккаунта.
       match /{collection}/{document=**} {
-        allow read, write: if isOwner(userId) || isAdmin();
+        allow read, write: if isOwner(userId);
       }
     }
 
