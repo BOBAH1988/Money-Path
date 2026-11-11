@@ -109,6 +109,7 @@
 .budget-input-sm { width: 150px; }
 
 .budget-table-wrap { overflow-x: hidden; }
+.budget-table-wrap:has(.budget-row-editing) { overflow-x: auto; }
 
 .budget-table { width: 100%; border-collapse: collapse; font-size: 14px; }
 
@@ -160,6 +161,8 @@
 .row-currency { margin-left: 2px; font-size: 12px; color: var(--theme-text-muted); }
 
 .budget-row-editing .budget-cell { background: var(--theme-surface); }
+.budget-row-editing .budget-cell-name { min-width: 160px; }
+.budget-row-editing .budget-cell-name .budget-input { min-width: 150px; }
 
 .budget-input {
   width: 100%;
