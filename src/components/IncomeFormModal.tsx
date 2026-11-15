@@ -21,6 +21,8 @@ interface Props {
   row?: IncomeArchiveRow | null;
   onSave: (data: IncomeArchiveFormData) => void;
   onDelete?: () => void;
+  monthLabel?: string;
+  monthIndex?: number;
 }
 
 export function IncomeFormModal({
@@ -30,6 +32,8 @@ export function IncomeFormModal({
   row,
   onSave,
   onDelete,
+  monthLabel,
+  monthIndex,
 }: Props) {
   const { success: toastSuccess, error: toastError } = useToast();
 const [deleteOpen, setDeleteOpen] = useState(false);
@@ -171,37 +175,58 @@ const [submitting, setSubmitting] = useState(false);
           </div>
 
           <div className="income-form-section">
-            <label className="income-form-label">Суммы по месяцам (₽)</label>
-            <div className="income-months-grid">
-              {MONTHS.map((label, index) => (
-                <div key={index} className="income-month-cell">
-                  <span className="income-month-label">{label}</span>
-                  <Input
-                    label=" "
-                    type="text"
-                    value={form.months[index] === 0 ? '' : String(form.months[index])}
-                    onChange={(e) => handleMonthChange(index, e.target.value)}
-                    error={errors.months}
-                    inputProps={{
-                      inputMode: 'numeric',
-                      pattern: '[0-9]*',
-                      placeholder: '0',
-                    }}
-                  />
-                  {errors.months && <span className="income-form-error">{errors.months}</span>}
+            <label className="income-form-label">
+              {monthLabel ? `Сумма за ${monthLabel} (₽)` : 'Суммы по месяцам (₽)'}
+            </label>
+            {monthIndex !== undefined ? (
+              <div className="income-single-month">
+                <Input
+                  label=" "
+                  type="text"
+                  value={form.months[monthIndex] === 0 ? '' : String(form.months[monthIndex])}
+                  onChange={(e) => handleMonthChange(monthIndex, e.target.value)}
+                  error={errors.months}
+                  inputProps={{
+                    inputMode: 'numeric',
+                    pattern: '[0-9]*',
+                    placeholder: '0',
+                  }}
+                />
+                {errors.months && <span className="income-form-error">{errors.months}</span>}
+              </div>
+            ) : (
+              <>
+                <div className="income-months-grid">
+                  {MONTHS.map((label, index) => (
+                    <div key={index} className="income-month-cell">
+                      <span className="income-month-label">{label}</span>
+                      <Input
+                        label=" "
+                        type="text"
+                        value={form.months[index] === 0 ? '' : String(form.months[index])}
+                        onChange={(e) => handleMonthChange(index, e.target.value)}
+                        error={errors.months}
+                        inputProps={{
+                          inputMode: 'numeric',
+                          pattern: '[0-9]*',
+                          placeholder: '0',
+                        }}
+                      />
+                      {errors.months && <span className="income-form-error">{errors.months}</span>}
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </div>
-            {errors.months && <span className="income-form-error">{errors.months}</span>}
-          </div>
-
-          <div className="income-quick-actions">
-            <Button variant="secondary" size="sm" onClick={handleClearAll} disabled={submitting}>
-              Очистить всё
-            </Button>
-            <Button variant="secondary" size="sm" onClick={handleFillAll} disabled={submitting}>
-              Заполнить все
-            </Button>
+                {errors.months && <span className="income-form-error">{errors.months}</span>}
+                <div className="income-quick-actions">
+                  <Button variant="secondary" size="sm" onClick={handleClearAll} disabled={submitting}>
+                    Очистить всё
+                  </Button>
+                  <Button variant="secondary" size="sm" onClick={handleFillAll} disabled={submitting}>
+                    Заполнить все
+                  </Button>
+                </div>
+              </>
+            )}
           </div>
 
           <div className="income-form-actions">

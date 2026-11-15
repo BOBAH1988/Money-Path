@@ -2104,6 +2104,16 @@ body { margin: 0; font-family: system-ui, sans-serif; background: var(--theme-bg
   border: 1px solid var(--dp-border);
 }
 
+.income-single-month {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px;
+  background: var(--dp-bg-surface);
+  border-radius: var(--dp-border-radius-sm);
+  border: 1px solid var(--dp-border);
+}
+
 .income-form-actions {
   display: flex;
   gap: 10px;
