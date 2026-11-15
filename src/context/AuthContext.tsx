@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
@@ -12,31 +12,13 @@ import {
   type User,
 } from 'firebase/auth';
 import { auth } from '../lib/firebase';
+import { AuthContext } from './AuthContextObject';
 
 import { ADMIN_EMAIL } from './auth-constants';
 
-interface AuthContextValue {
-  user: User | null;
-  uid: string | undefined;
-  isAuthenticated: boolean;
-  isAuthReady: boolean;
-  isAdmin: boolean;
-  legalConsentRevision: number;
-  login: (email: string, password: string) => Promise<void>;
-  register: (email: string, password: string) => Promise<void>;
-  logout: () => Promise<void>;
-  deleteAccount: (password: string) => Promise<void>;
-  sendPasswordReset: (email: string) => Promise<void>;
-  resendVerification: (user: User) => Promise<void>;
-}
+export { useAuth } from '../hooks/useAuth';
 
-const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
-export const useAuth = () => {
-  const ctx = useContext(AuthContext);
-  if (!ctx) throw new Error('useAuth must be used within AuthProvider');
-  return ctx;
-};
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);

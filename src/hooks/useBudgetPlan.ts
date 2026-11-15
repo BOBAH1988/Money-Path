@@ -18,15 +18,17 @@ export interface UseBudgetPlanReturn {
 export function useBudgetPlan(): UseBudgetPlanReturn {
   const { isAuthReady, uid } = useAuth();
   const { error: toastError, success: toastSuccess } = useToast();
-  const [items, setItems] = useState<BudgetPlanItem[]>([]);
+  const [items, setItems] = useState<BudgetPlanItem[]>(() => {
+    const local = loadLocalBudgetPlan(undefined);
+    return (local?.items ?? []) as BudgetPlanItem[];
+  });
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const itemsRef = useRef<BudgetPlanItem[]>([]);
+  const itemsRef = useRef<BudgetPlanItem[]>(items);
   const revisionRef = useRef(0);
 
   useEffect(() => {
     if (!isAuthReady) {
-      setIsLoading(true);
       return;
     }
 

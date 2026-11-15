@@ -203,7 +203,7 @@ async function cmdRestore({ file, user }) {
     }
   }
 
-  if (archive.budgetPlan && archive.budgetPlan) {
+  if (archive.budgetPlan) {
     await db.runTransaction(async (t) => {
       t.set(budgetPlanRef(userId), { ...archive.budgetPlan, userId });
     });

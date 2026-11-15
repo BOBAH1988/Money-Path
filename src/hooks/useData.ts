@@ -32,11 +32,14 @@ export function useData<T extends { id: string }>(options: UseDataOptions): UseD
   const { collectionName, userId } = options;
   const { error: toastError } = useToast();
   const { isAuthReady } = useAuth();
-  const [items, setItems] = useState<T[]>([]);
+  const [items, setItems] = useState<T[]>(() => {
+    const localCollection = collectionName ?? '__local__';
+    return loadLocalCollection<T>(localCollection, userId);
+  });
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const dirtyRef = useRef(false);
-  const itemsRef = useRef<T[]>([]);
+  const itemsRef = useRef<T[]>(items);
   const mutationVersionRef = useRef(0);
   const localOnly = !collectionName;
   const localCollectionName = collectionName ?? '__local__';
@@ -59,7 +62,6 @@ export function useData<T extends { id: string }>(options: UseDataOptions): UseD
 
   useEffect(() => {
     if (!isAuthReady) {
-      setIsLoading(true);
       return;
     }
     let cancelled = false;

@@ -1,34 +1,11 @@
-import { createContext, useContext, useCallback, useState, type ReactNode } from 'react';
-
-type ToastType = 'success' | 'error' | 'warning' | 'info';
-
-interface Toast {
-  id: string;
-  type: ToastType;
-  title: string;
-  message?: string;
-  duration?: number;
-}
-
-interface ToastContextValue {
-  toasts: Toast[];
-  toast: (type: ToastType, title: string, message?: string, duration?: number) => void;
-  success: (title: string, message?: string, duration?: number) => void;
-  error: (title: string, message?: string, duration?: number) => void;
-  warning: (title: string, message?: string, duration?: number) => void;
-  info: (title: string, message?: string, duration?: number) => void;
-  dismiss: (id: string) => void;
-}
+import { useCallback, useState, type ReactNode } from 'react';
+import { ToastContext, type ToastType, type Toast, type ToastContextValue } from '../context/ToastContext';
 
 const DEFAULT_DURATION = 1333;
 
-const ToastContext = createContext<ToastContextValue | undefined>(undefined);
+export { useToast } from '../hooks/useToast';
 
-export const useToast = (): ToastContextValue => {
-  const ctx = useContext(ToastContext);
-  if (!ctx) throw new Error('useToast must be used within ToastProvider');
-  return ctx;
-};
+
 
 interface Props {
   children: ReactNode;

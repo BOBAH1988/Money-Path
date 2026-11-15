@@ -61,7 +61,7 @@ export default function IncomeArchive() {
 
   const yearItems = useMemo(() => items.filter((row) => row.year === selectedYear), [items, selectedYear]);
   const visibleMonths = useMemo(() => getIncomeArchiveMonthWindow(monthStart), [monthStart]);
-  const currentMonthIndex = visibleMonths[1]?.index ?? new Date().getMonth();
+  const currentMonthIndex = visibleMonths[1]?.index ?? ((monthStart % 12) + 12) % 12;
   const currentMonthLabel = MONTHS[currentMonthIndex];
   const visibleRows = useMemo(
     () => yearItems.filter((row) => visibleMonths.some((month) => month.year === row.year)),
