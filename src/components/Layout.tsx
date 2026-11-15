@@ -539,22 +539,7 @@ export default function Layout() {
       ) && (
         <div className="legal-consent-overlay" role="dialog" aria-modal="true" aria-labelledby="legal-consent-title">
           <div className="legal-consent-card">
-            <h2 id="legal-consent-title">Документы обновлены</h2>
-            {consentState === 'loading' && <p>Проверяем актуальность согласия…</p>}
-            {consentState === 'error' && (
-              <>
-                <p role="alert">{consentError}</p>
-                <p>Для проверки и сохранения согласия необходимо подключение к интернету.</p>
-                <div className="legal-consent-actions">
-                  <button className="btn-cancel" onClick={() => void refreshLegalConsent(uid)}>
-                    Повторить
-                  </button>
-                  <button className="btn-cancel" onClick={() => void leaveUntilConsent()}>
-                    Выйти
-                  </button>
-                </div>
-              </>
-            )}
+            <h2 id="legal-consent-title">Обновление документов</h2>
             {consentState === 'needed' && (
               <>
                 <p>
