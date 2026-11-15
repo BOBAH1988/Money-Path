@@ -61,6 +61,8 @@ export default function IncomeArchive() {
 
   const yearItems = useMemo(() => items.filter((row) => row.year === selectedYear), [items, selectedYear]);
   const visibleMonths = useMemo(() => getIncomeArchiveMonthWindow(monthStart), [monthStart]);
+  const currentMonthIndex = visibleMonths[1]?.index ?? new Date().getMonth();
+  const currentMonthLabel = MONTHS[currentMonthIndex];
   const visibleRows = useMemo(
     () => yearItems.filter((row) => visibleMonths.some((month) => month.year === row.year)),
     [yearItems, visibleMonths],
@@ -273,6 +275,8 @@ export default function IncomeArchive() {
         row={editingRow ?? undefined}
         onSave={handleSave}
         onDelete={handleDeleteRow}
+        monthLabel={formMode === 'edit' ? currentMonthLabel : undefined}
+        monthIndex={formMode === 'edit' ? currentMonthIndex : undefined}
       />
 
       <ConfirmDialog
