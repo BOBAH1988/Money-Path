@@ -80,10 +80,6 @@ export default function IncomeArchive() {
   }, [yearItems]);
   const averageIncome = filledMonthsCount > 0 ? Math.round(grandTotal / filledMonthsCount) : 0;
 
-  const handleRemove = (rows: IncomeArchiveRow[]) => {
-    setConfirmDeleteIds(rows.map((row) => row.id));
-  };
-
   const confirmDelete = () => {
     if (!confirmDeleteIds.length) return;
     confirmDeleteIds.forEach(removeItem);
@@ -246,7 +242,6 @@ export default function IncomeArchive() {
                       })}
                       <td className="budget-cell budget-cell-actions">
                         <button className="btn-edit" onClick={() => handleEdit(row)} aria-label="Редактировать">✎</button>
-                        <button className="btn-delete" onClick={() => handleRemove([row])} aria-label="Удалить">🗑️</button>
                       </td>
                     </tr>
                   );
