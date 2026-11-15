@@ -98,6 +98,11 @@ const validateArchive = (archive: unknown): BackupArchive => {
     if (!Array.isArray(items)) {
       throw new Error(`В архиве отсутствует коллекция ${collectionName}`);
     }
+    items.forEach((item, idx) => {
+      if (!item || typeof item !== 'object' || typeof (item as { id?: unknown }).id !== 'string') {
+        throw new Error(`В коллекции ${collectionName} запись ${idx} не имеет поля id`);
+      }
+    });
   }
 
   if (a.budgetPlan !== null && a.budgetPlan !== undefined) {

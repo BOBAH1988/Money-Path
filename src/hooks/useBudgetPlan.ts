@@ -41,20 +41,24 @@ export function useBudgetPlan(): UseBudgetPlanReturn {
 
     if (!uid) return () => { cancelled = true; };
 
-    void loadBudgetPlan(uid, (plan) => {
-      if (cancelled || revisionRef.current !== revision) return;
-      itemsRef.current = plan.items;
-      setItems(plan.items);
-    }).then((plan) => {
+    void loadBudgetPlan(
+      uid,
+      (plan) => {
+        if (cancelled || revisionRef.current !== revision) return;
+        itemsRef.current = plan.items;
+        setItems(plan.items);
+      },
+      (err) => {
+        if (cancelled) return;
+        const message = err.message;
+        setError(message);
+        toastError('Ошибка синхронизации', message);
+      },
+    ).then((plan) => {
       if (cancelled || revisionRef.current !== revision) return;
       const fresh = plan.items;
       itemsRef.current = fresh;
       setItems(fresh);
-    }).catch((err) => {
-      if (cancelled) return;
-      const message = err instanceof Error ? err.message : 'Ошибка загрузки плана';
-      setError(message);
-      toastError('Ошибка синхронизации', message);
     });
 
     return () => { cancelled = true; };
@@ -65,19 +69,23 @@ export function useBudgetPlan(): UseBudgetPlanReturn {
     const refreshWhenOnline = () => {
       if (document.visibilityState === 'hidden') return;
       const revision = revisionRef.current;
-      void loadBudgetPlan(uid, (plan) => {
-        if (revisionRef.current !== revision) return;
-        itemsRef.current = plan.items;
-        setItems(plan.items);
-      }).then((plan) => {
+      void loadBudgetPlan(
+        uid,
+        (plan) => {
+          if (revisionRef.current !== revision) return;
+          itemsRef.current = plan.items;
+          setItems(plan.items);
+        },
+        (err) => {
+          const message = err.message;
+          setError(message);
+          toastError('Ошибка синхронизации', message);
+        },
+      ).then((plan) => {
         if (revisionRef.current !== revision) return;
         itemsRef.current = plan.items;
         setItems(plan.items);
         setError(null);
-      }).catch((err) => {
-        const message = err instanceof Error ? err.message : 'Ошибка синхронизации плана';
-        setError(message);
-        toastError('Ошибка синхронизации', message);
       });
     };
     window.addEventListener('online', refreshWhenOnline);
@@ -126,7 +134,7 @@ export function useBudgetPlan(): UseBudgetPlanReturn {
     revisionRef.current += 1;
     setItems(emptyItems);
     try {
-      const plan = await resetBudgetPlan(false, uid);
+      const plan = await resetBudgetPlan(uid);
       itemsRef.current = plan.items;
       if (notify) toastSuccess('Данные очищены');
     } catch (err) {

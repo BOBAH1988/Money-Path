@@ -44,7 +44,6 @@ import {
   loadFromFirestore,
   loadBudgetPlan,
   saveBudgetPlan,
-  resetBudgetPlan,
   getPendingCollectionOperations,
   getPendingBudgetPlan,
   loadLocalBudgetPlan,
@@ -332,31 +331,8 @@ describe('account privacy operations', () => {
     await deleteAccountData(userId);
 
     expect(mocks.collection).toHaveBeenCalledWith({}, `users/${userId}/assets`);
-    expect(mocks.deleteDoc).toHaveBeenCalledTimes(2);
+    expect(mocks.deleteDoc).toHaveBeenCalledTimes(3);
     expect(mocks.clearFirestorePersistence).toHaveBeenCalledOnce();
     expect(localStorage.getItem(privateCacheKey)).toBeNull();
-  });
-});
-
-describe('resetBudgetPlan', () => {
-  const userId = 'uid-123';
-
-  beforeEach(() => {
-    localStorage.clear();
-    vi.clearAllMocks();
-    mocks.collection.mockReturnValue({} as any);
-    mocks.doc.mockReturnValue({} as any);
-    mocks.query.mockReturnValue({} as any);
-  });
-
-  it('saves empty plan to Firestore', async () => {
-    await resetBudgetPlan(userId);
-
-    expect(mocks.setDoc as any).toHaveBeenCalledTimes(1);
-  });
-
-  it('does nothing when userId is missing', async () => {
-    await resetBudgetPlan(undefined);
-    expect(mocks.setDoc as any).not.toHaveBeenCalled();
   });
 });

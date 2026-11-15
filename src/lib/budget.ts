@@ -27,9 +27,14 @@ const migrateItems = (items: unknown[]): BudgetPlanItem[] =>
     } as BudgetPlanItem;
   });
 
+/**
+ * Доменный слой плана бюджета: единая точка входа для хуков и страниц.
+ * Сетевые детали (пути документов, очередь) остаются в lib/firestore.ts.
+ */
 export const loadBudgetPlan = async (
   userId?: string,
   onFresh?: (plan: BudgetPlan) => void,
+  onServerError?: (error: Error) => void,
 ): Promise<BudgetPlan> => {
   const local = loadLocalBudgetPlan(userId);
   if (!userId) {
@@ -38,11 +43,15 @@ export const loadBudgetPlan = async (
       : emptyBudgetPlan;
   }
   if (getPendingBudgetPlan(userId)) await syncPendingToFirestore(userId);
-  const cloudPlan = await loadCloudBudgetPlan(userId, (fresh) => {
-    const plan = { updatedAt: fresh.updatedAt || now(), items: migrateItems(fresh.items) };
-    saveLocalBudgetPlan(plan.items, userId, plan.updatedAt);
-    onFresh?.(plan);
-  });
+  const cloudPlan = await loadCloudBudgetPlan(
+    userId,
+    (fresh) => {
+      const plan = { updatedAt: fresh.updatedAt || now(), items: migrateItems(fresh.items) };
+      saveLocalBudgetPlan(plan.items, userId, plan.updatedAt);
+      onFresh?.(plan);
+    },
+    onServerError,
+  );
   const result = { updatedAt: cloudPlan.updatedAt || now(), items: migrateItems(cloudPlan.items) };
   saveLocalBudgetPlan(result.items, userId, result.updatedAt);
   return result;
@@ -56,8 +65,8 @@ export const saveBudgetPlan = async (plan: BudgetPlan, userId?: string): Promise
   await syncPendingToFirestore(userId);
 };
 
-export const resetBudgetPlan = async (_empty = false, userId?: string): Promise<BudgetPlan> => {
-  const reset = { updatedAt: now(), items: [] as BudgetPlanItem[] };
+export const resetBudgetPlan = async (userId?: string): Promise<BudgetPlan> => {
+  const reset: BudgetPlan = { updatedAt: now(), items: [] };
   await saveBudgetPlan(reset, userId);
   return reset;
 };
@@ -70,8 +79,6 @@ export interface BudgetPageTotals {
   totalPlannedPlan: number;
   regularTotal: number;
 }
-
-export const safeNegate = (value: number): number => (-value) || 0;
 
 export const computeTotals = (items: BudgetPlanItem[]): Record<BudgetGroup, number> => {
   const totals: Record<BudgetGroup, number> = { monthly: 0, planned: 0 };
@@ -100,24 +107,22 @@ export const computeBudgetPageTotals = (items: BudgetPlanItem[]): BudgetPageTota
   };
 };
 
+/**
+ * Пересчитывает служебные строки (subtotal/total) из фактических записей.
+ * Итог группы включает подытог только когда он ссылается на другую группу,
+ * иначе сумма своих записей уже содержит эти значения и двойной счёт завысил бы итог.
+ */
 export const applyComputedFields = (items: BudgetPlanItem[]): BudgetPlan => {
   const totals = computeTotals(items);
   const updatedItems = items.map((it) => {
     if (it.type === 'subtotal' && it.linkedGroup) {
-      const linkedPlan = items
-        .filter((i) => i.group === it.linkedGroup && i.type === 'item')
-        .reduce((sum, i) => sum + i.plan, 0);
-      return { ...it, amount: totals[it.linkedGroup], plan: linkedPlan };
+      return { ...it, amount: totals[it.linkedGroup], plan: sumBy(items, it.linkedGroup, 'plan') };
     }
     if (it.type === 'total') {
-      const ownAmount = items
-        .filter((i) => i.group === it.group && i.type === 'item')
-        .reduce((sum, i) => sum + i.amount, 0);
-      const ownPlan = items
-        .filter((i) => i.group === it.group && i.type === 'item')
-        .reduce((sum, i) => sum + i.plan, 0);
+      const ownAmount = sumBy(items, it.group, 'amount');
+      const ownPlan = sumBy(items, it.group, 'plan');
       const subtotal = items.find(
-        (i) => i.group === it.group && i.type === 'subtotal'
+        (i) => i.group === it.group && i.type === 'subtotal' && i.linkedGroup !== it.group,
       );
       return {
         ...it,
@@ -129,3 +134,12 @@ export const applyComputedFields = (items: BudgetPlanItem[]): BudgetPlan => {
   });
   return { items: updatedItems, updatedAt: new Date().toISOString() };
 };
+
+const sumBy = (
+  items: BudgetPlanItem[],
+  group: BudgetGroup | undefined,
+  field: 'amount' | 'plan',
+): number =>
+  items
+    .filter((i) => i.group === group && i.type === 'item')
+    .reduce((sum, i) => sum + (i[field] ?? 0), 0);
