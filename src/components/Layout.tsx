@@ -28,7 +28,6 @@ const items = [
   { to: '/assets', label: 'Активы', icon: '📈' },
   { to: '/liabilities', label: 'Пассивы', icon: '🏦' },
   { to: '/income', label: 'Доходы', icon: '💵' },
-  { to: '/income-archive', label: 'Архив', icon: '📂' },
   { to: '/import', label: 'Импорт', icon: '📥' },
 ];
 
@@ -37,8 +36,7 @@ const routePrefetchers: Record<string, () => Promise<unknown>> = {
   '/budget': () => import('../pages/Budget'),
   '/assets': () => import('../pages/Assets'),
   '/liabilities': () => import('../pages/Liabilities'),
-  '/income': () => import('../pages/Income'),
-  '/income-archive': () => import('../pages/IncomeArchive'),
+  '/income': () => import('../pages/IncomeArchive'),
   '/import': () => import('../pages/Import'),
 };
 
