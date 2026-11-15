@@ -450,33 +450,20 @@ export default function Layout() {
                     Установить приложение
                   </button>
                 </li>
-               <li className="menu-theme-item">
-                <div className="menu-theme-row">
-                  <button
-                    className={`menu-item menu-theme-btn ${theme === 'light' ? 'theme-active' : ''}`}
-                    onClick={() => {
-                      themeExplicitRef.current = true;
-                      setTheme('light');
-                      setMenuOpen(false);
-                    }}
-                    aria-label="Светлая тема"
-                  >
-                    Светлая
-                  </button>
-                  <button
-                    className={`menu-item menu-theme-btn ${theme === 'dark' ? 'theme-active' : ''}`}
-                    onClick={() => {
-                      themeExplicitRef.current = true;
-                      setTheme('dark');
-                      setMenuOpen(false);
-                    }}
-                    aria-label="Темная тема"
-                  >
-                    Темная
-                  </button>
-                </div>
-                <p className="menu-theme-label">Выбор темы</p>
-              </li>
+             <li className="menu-theme-item">
+               <button
+                 className={`menu-item menu-theme-btn ${theme === 'dark' ? 'theme-active' : ''}`}
+                 onClick={() => {
+                   themeExplicitRef.current = true;
+                   setTheme(theme === 'light' ? 'dark' : 'light');
+                   setMenuOpen(false);
+                 }}
+                 aria-label={theme === 'light' ? 'Переключить на темную тему' : 'Переключить на светлую тему'}
+               >
+                 {theme === 'light' ? 'Темная тема' : 'Светлая тема'}
+               </button>
+               <p className="menu-theme-label">Выбор темы</p>
+             </li>
             </ul>
           </div>
         </div>
