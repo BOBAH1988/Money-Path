@@ -420,18 +420,20 @@ export default function Layout() {
                    {theme === 'light' ? 'Темная тема' : 'Светлая тема'}
                  </button>
                </li>
-               <li>
-                  <button
-                    className="menu-item menu-reset-btn"
-                   onClick={() => {
-                     setConfirmReset(true);
-                     setMenuOpen(false);
-                   }}
-                 >
-                   <span className="menu-icon">🔄</span>
-                   Сброс на стандартные
-                 </button>
-               </li>
+               {isAuthenticated ? null : (
+                <li>
+                   <button
+                     className="menu-item menu-reset-btn"
+                    onClick={() => {
+                      setConfirmReset(true);
+                      setMenuOpen(false);
+                    }}
+                  >
+                    <span className="menu-icon">🔄</span>
+                    Сброс на стандартные
+                  </button>
+                </li>
+               )}
                <li>
                   <button
                     className="menu-item menu-install-btn"
