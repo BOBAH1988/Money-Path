@@ -1,26 +1,22 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
+import { act } from 'react';
 import { ToastProvider } from '../ui/Toast';
 import { useData } from '../hooks/useData';
 import { useAuth } from '../context/AuthContext';
-import { COLLECTIONS } from '../lib/firestore';
+import { PageTitleProvider } from '../components/PageTitleContext';
 
-const IncomeArchiveMock = () => {
-  const { loading, error, addItem, removeItem } = useData<{ id: string; name: string; months: number[]; year: number }>({
-    collectionName: COLLECTIONS.incomeArchive,
-    userId: 'uid-123',
-  });
-  return (
-    <div>
-      <h2>Доходы архив</h2>
-      <div>0</div>
-      <button onClick={() => addItem({ name: 'Тест', months: [1, 2, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0], year: 2026 })}>Добавить</button>
-      <button onClick={() => removeItem('1')}>Удалить</button>
-      {loading && <span>загрузка</span>}
-      {error && <span>ошибка</span>}
-    </div>
-  );
-};
+vi.mock('../hooks/useData', () => ({
+  useData: vi.fn(),
+}));
+
+vi.mock('../context/AuthContext', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../context/AuthContext')>();
+  return {
+    ...actual,
+    useAuth: vi.fn(),
+  };
+});
 
 const localStorageMock = (() => {
   let store: Record<string, string> = {};
@@ -43,32 +39,20 @@ Object.defineProperty(window, 'localStorage', {
   writable: true,
 });
 
-vi.mock('../hooks/useData', () => ({
-  useData: vi.fn(),
-}));
-
-vi.mock('../context/AuthContext', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('../context/AuthContext')>();
-  return {
-    ...actual,
-    useAuth: vi.fn(),
-  };
-});
-
-const wrap = () => (
+const wrap = (component: React.ReactNode) => (
   <ToastProvider>
-    <IncomeArchiveMock />
+    <PageTitleProvider>{component}</PageTitleProvider>
   </ToastProvider>
 );
 
 describe('IncomeArchive page', () => {
   beforeEach(() => {
     localStorageMock.clear();
-    vi.resetModules();
     vi.clearAllMocks();
   });
 
   it('renders without crashing', async () => {
+    const IncomeArchive = (await import('../pages/IncomeArchive')).default;
     (useData as any).mockReturnValue({
       items: [],
       loading: false,
@@ -79,14 +63,74 @@ describe('IncomeArchive page', () => {
     });
     (useAuth as any).mockReturnValue({ uid: 'uid-123', isAuthReady: true, isAuthenticated: true });
 
-    render(wrap());
+    render(wrap(<IncomeArchive />));
     await new Promise((r) => setTimeout(r, 100));
-    expect(screen.getByText('Доходы архив')).toBeInTheDocument();
+    expect(screen.getByText('Доходы')).toBeInTheDocument();
   });
 
-  it('does not show delete (trash) buttons when no row is in edit mode', async () => {
-    render(wrap());
+  it('shows empty state when no income data', async () => {
+    const IncomeArchive = (await import('../pages/IncomeArchive')).default;
+    (useData as any).mockReturnValue({
+      items: [],
+      loading: false,
+      error: null,
+      addItem: () => {},
+      updateItem: () => {},
+      removeItem: () => {},
+    });
+    (useAuth as any).mockReturnValue({ uid: 'uid-123', isAuthReady: true, isAuthenticated: true });
+
+    render(wrap(<IncomeArchive />));
     await new Promise((r) => setTimeout(r, 100));
-    expect(screen.queryByText('🗑️')).toBeNull();
+    const els = screen.getAllByText('Источников дохода нет');
+    expect(els.length).toBeGreaterThan(0);
+  });
+
+  it('opens add form modal when clicking + button', async () => {
+    const IncomeArchive = (await import('../pages/IncomeArchive')).default;
+    const addItem = vi.fn();
+    (useData as any).mockReturnValue({
+      items: [],
+      loading: false,
+      error: null,
+      addItem,
+      updateItem: () => {},
+      removeItem: () => {},
+    });
+    (useAuth as any).mockReturnValue({ uid: 'uid-123', isAuthReady: true, isAuthenticated: true });
+
+    render(wrap(<IncomeArchive />));
+    await new Promise((r) => setTimeout(r, 100));
+
+    act(() => {
+      fireEvent.click(screen.getAllByLabelText('Добавить источник')[0]);
+    });
+    await screen.findByText('Новый источник дохода');
+  });
+
+  it('opens edit form modal when clicking edit icon', async () => {
+    const IncomeArchive = (await import('../pages/IncomeArchive')).default;
+    const items = [
+      { id: '1', name: 'Зарплата', year: 2026, months: [1000, 2000, 3000, 0, 0, 0, 0, 0, 0, 0, 0, 0] },
+    ];
+    (useData as any).mockReturnValue({
+      items,
+      loading: false,
+      error: null,
+      addItem: () => {},
+      updateItem: () => {},
+      removeItem: () => {},
+    });
+    (useAuth as any).mockReturnValue({ uid: 'uid-123', isAuthReady: true, isAuthenticated: true });
+
+    render(wrap(<IncomeArchive />));
+    await new Promise((r) => setTimeout(r, 100));
+
+    act(() => {
+      fireEvent.click(screen.getByLabelText('Редактировать'));
+    });
+    await screen.findByText('Редактировать источник');
+    const inputs = screen.getAllByRole('textbox');
+    expect(inputs.length).toBeGreaterThan(0);
   });
 });

@@ -39,3 +39,11 @@ export type LoginFormData = z.infer<typeof loginSchema>;
 export type RegisterFormData = z.infer<typeof registerSchema>;
 export type ForgotFormData = z.infer<typeof forgotSchema>;
 export type BudgetItemFormData = z.infer<typeof budgetItemSchema>;
+
+export const incomeArchiveSchema = z.object({
+  name: z.string().min(1, 'Введите название источника').max(100, 'Название слишком длинное'),
+  year: z.number().min(2000, 'Год не может быть раньше 2000').max(2100, 'Год не может быть позже 2100'),
+  months: z.array(z.number().nonnegative('Сумма не может быть отрицательной')).length(12, 'Нужно 12 месяцев'),
+});
+
+export type IncomeArchiveFormData = z.infer<typeof incomeArchiveSchema>;
