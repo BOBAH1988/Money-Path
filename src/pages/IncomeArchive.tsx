@@ -43,7 +43,8 @@ export default function IncomeArchive() {
   const currentYear = CURRENT_YEAR;
   const [monthStart, setMonthStart] = useState(() => {
     const now = new Date();
-    return currentYear * 12 + Math.max(0, now.getMonth() - 2);
+    // Текущий месяц посередине окна: 이전, текущий, следующий
+    return currentYear * 12 + now.getMonth() - 1;
   });
   const selectedYear = Math.floor(monthStart / 12);
 
