@@ -398,14 +398,28 @@ export default function Layout() {
                 </li>
               ))}
                <li>
-                  <button
-                    className="menu-item menu-cache-btn"
-                    onClick={handleClearCache}
-                  >
-                   <span className="menu-icon">🗑️</span>
-                    Проверить обновления
-                  </button>
-                </li>
+                 <button
+                   className="menu-item menu-cache-btn"
+                   onClick={handleClearCache}
+                 >
+                  <span className="menu-icon">🗑️</span>
+                   Проверить обновления
+                 </button>
+               </li>
+               <li>
+                 <button
+                   className={`menu-item menu-cache-btn ${theme === 'dark' ? 'theme-active' : ''}`}
+                   onClick={() => {
+                     themeExplicitRef.current = true;
+                     setTheme(theme === 'light' ? 'dark' : 'light');
+                     setMenuOpen(false);
+                   }}
+                   aria-label={theme === 'light' ? 'Переключить на темную тему' : 'Переключить на светлую тему'}
+                 >
+                   <span className="menu-icon">🌓</span>
+                   {theme === 'light' ? 'Темная тема' : 'Светлая тема'}
+                 </button>
+               </li>
                <li>
                   <button
                     className="menu-item menu-reset-btn"
@@ -450,21 +464,7 @@ export default function Layout() {
                     Установить приложение
                   </button>
                 </li>
-             <li className="menu-theme-item">
-               <button
-                 className={`menu-item menu-theme-btn ${theme === 'dark' ? 'theme-active' : ''}`}
-                 onClick={() => {
-                   themeExplicitRef.current = true;
-                   setTheme(theme === 'light' ? 'dark' : 'light');
-                   setMenuOpen(false);
-                 }}
-                 aria-label={theme === 'light' ? 'Переключить на темную тему' : 'Переключить на светлую тему'}
-               >
-                 {theme === 'light' ? 'Темная тема' : 'Светлая тема'}
-               </button>
-               <p className="menu-theme-label">Выбор темы</p>
-             </li>
-            </ul>
+              </ul>
           </div>
         </div>
       )}
