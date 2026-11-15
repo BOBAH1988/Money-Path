@@ -91,6 +91,13 @@
   background: var(--theme-surface);
 }
 
+.budget-card-body {
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
 .budget-card-title {
   margin: 0;
   font-size: 15px;

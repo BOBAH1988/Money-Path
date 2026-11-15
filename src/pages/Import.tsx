@@ -106,16 +106,16 @@ export default function Import() {
       <div className="budget-card">
         <div className="budget-card-header"><h2 className="budget-card-title">Экспорт</h2></div>
         <div className="budget-card-body">
-          <p style={{ fontSize: 14, color: 'var(--theme-text-muted)', margin: '0 0 12px' }}>Создаёт JSON-файл со всеми вашими данными (активы, пассивы, доходы, архив, план бюджета).</p>
+          <p style={{ fontSize: 14, color: 'var(--theme-text-muted)' }}>Создаёт JSON-файл со всеми вашими данными (активы, пассивы, доходы, архив, план бюджета).</p>
           <button className="btn-add-item" type="button" onClick={handleCreateArchive} disabled={creating || !isAuthenticated}>{creating ? 'Создание…' : 'Скачать архив'}</button>
-          {!isAuthenticated && <p style={{ fontSize: 13, color: 'var(--theme-text-muted)', marginTop: 8 }}>Войдите в аккаунт, чтобы экспортировать данные из облака.</p>}
+          {!isAuthenticated && <p style={{ fontSize: 13, color: 'var(--theme-text-muted)' }}>Войдите в аккаунт, чтобы экспортировать данные из облака.</p>}
         </div>
       </div>
       <div className="budget-card">
         <div className="budget-card-header"><h2 className="budget-card-title">Импорт</h2></div>
         <div className="budget-card-body">
-          <p style={{ fontSize: 14, color: 'var(--theme-text-muted)', margin: '0 0 12px' }}>Восстанавливает данные из ранее сохранённого архива.</p>
-          <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap', marginBottom: 12 }}>
+          <p style={{ fontSize: 14, color: 'var(--theme-text-muted)' }}>Восстанавливает данные из ранее сохранённого архива.</p>
+          <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
             <label style={{ display: 'flex', gap: 8, alignItems: 'center', fontSize: 14 }}><input type="checkbox" checked={clearBeforeRestore} onChange={(e) => setClearBeforeRestore(e.target.checked)} />Очистить локальные данные перед импортом (в гостевом режиме)</label>
           </div>
           <input ref={fileInputRef} type="file" accept="application/json,.json" style={{ display: 'none' }} onChange={handleFileChange} />
