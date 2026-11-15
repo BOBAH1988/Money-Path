@@ -3,6 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import { COLLECTIONS } from '../lib/dataStore';
 import { loadFromFirestore } from '../lib/firestore';
 import { loadBudgetPlan } from '../lib/budget';
+import type { BackupArchive } from '../lib/backup';
 
 export const ImportModal = ({ onClose }: { onClose: () => void }) => {
   const { user, uid } = useAuth();
@@ -43,18 +44,18 @@ export const ImportModal = ({ onClose }: { onClose: () => void }) => {
         loadBudgetPlan(userId),
       ]);
 
-      const payload = {
-        format: 'denegnyj_put_export_v1',
-        exportedAt: new Date().toISOString(),
+      const payload: BackupArchive = {
+        version: 1,
         userId,
-        email: user.email ?? '',
-        data: {
-          assets,
-          liabilities,
-          income,
-          incomeArchive,
-          budgetPlan: budget,
+        createdAt: new Date().toISOString(),
+        source: 'firestore',
+        collections: {
+          [COLLECTIONS.assets]: assets,
+          [COLLECTIONS.liabilities]: liabilities,
+          [COLLECTIONS.income]: income,
+          [COLLECTIONS.incomeArchive]: incomeArchive,
         },
+        budgetPlan: budget,
       };
 
       const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
