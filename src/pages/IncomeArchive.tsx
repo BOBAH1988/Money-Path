@@ -37,7 +37,7 @@ export default function IncomeArchive() {
   });
 
   useEffect(() => {
-    setPageTitle('Доходы архив');
+    setPageTitle('Доходы');
   }, [setPageTitle]);
 
   const currentYear = CURRENT_YEAR;
@@ -200,7 +200,7 @@ export default function IncomeArchive() {
       <div className="budget-card">
         <div className="budget-card-header" style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 12, flexWrap: 'nowrap', overflow: 'hidden', minWidth: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0, flex: 1 }}>
-            <h2 className="budget-card-title" style={{ margin: 0 }}>Доходы архив</h2>
+            <h2 className="budget-card-title" style={{ margin: 0 }}>Доходы</h2>
             <select
               value={selectedYear}
               onChange={(e) => changeWindow(Number(e.target.value) * 12)}
