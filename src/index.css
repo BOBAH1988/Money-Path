@@ -2004,6 +2004,161 @@ body { margin: 0; font-family: system-ui, sans-serif; background: var(--theme-bg
 }
 
 /* ============================================================
+   Income form modal (Доходы: современная форма добавления/редактирования)
+   ============================================================ */
+.income-form-modal .modal-card {
+  max-width: 520px;
+  padding: 24px;
+}
+
+.income-form-card {
+  position: relative;
+}
+
+.income-form-close {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  border: none;
+  background: var(--dp-bg-surface);
+  color: var(--dp-color-text);
+  cursor: pointer;
+  font-size: 24px;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: var(--dp-transition);
+}
+
+.income-form-close:hover {
+  background: var(--dp-border-focus);
+  color: var(--dp-color-text-inverse);
+}
+
+.income-form-title {
+  margin: 0 0 4px 0;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--dp-color-text);
+}
+
+.income-form-subtitle {
+  margin: 0 0 20px 0;
+  font-size: 13px;
+  color: var(--dp-color-text-muted);
+}
+
+.income-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.income-form-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.income-form-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--dp-color-text-muted);
+}
+
+.income-form-error {
+  font-size: 12px;
+  color: var(--dp-color-danger);
+}
+
+.income-months-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+}
+
+.income-month-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.income-month-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--dp-color-text-muted);
+  text-align: center;
+}
+
+.income-quick-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 4px;
+  padding: 12px;
+  background: var(--dp-bg-surface);
+  border-radius: var(--dp-border-radius-sm);
+  border: 1px solid var(--dp-border);
+}
+
+.income-form-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+  margin-top: 8px;
+}
+
+/* Table year column */
+.budget-head-year,
+.budget-cell-year {
+  text-align: center;
+  width: 55px;
+  padding-right: 2px;
+}
+
+.budget-cell-year {
+  font-size: 13px;
+  color: var(--dp-color-text-muted);
+  font-weight: 500;
+}
+
+.row-year {
+  display: block;
+  text-align: center;
+}
+
+/* Mobile adjustments */
+@media (max-width: 600px) {
+  .income-months-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+  }
+
+  .income-form-modal .modal-card {
+    padding: 16px;
+  }
+
+  .income-form-actions {
+    flex-direction: column-reverse;
+  }
+
+  .income-form-actions .btn-ui {
+    width: 100%;
+  }
+
+  .income-quick-actions {
+    flex-direction: column;
+  }
+
+  .income-quick-actions .btn-ui {
+    width: 100%;
+  }
+}
+
+/* ============================================================
    Bottom Navigation (PWA)
    ============================================================ */
 .bottom-nav {
@@ -2247,6 +2402,40 @@ body { margin: 0; font-family: system-ui, sans-serif; background: var(--theme-bg
   background: var(--theme-bg, #f5f5f7);
   padding: 24px;
 }
+.page-loader-icon {
+  width: 72px;
+  height: 72px;
+  border-radius: 20px;
+  background: var(--theme-surface, #f8fafc);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: var(--dp-shadow-sm);
+  animation: pageLoaderIconPulse 2s ease-in-out infinite;
+}
+.page-loader-icon svg {
+  width: 44px;
+  height: 44px;
+}
+.page-loader-spinner {
+  width: 32px;
+  height: 32px;
+  border: 3px solid color-mix(in srgb, var(--dp-color-primary, #007aff) 20%, transparent);
+  border-top-color: var(--dp-color-primary, #007aff);
+  border-radius: 50%;
+  animation: dp-spin 0.8s linear infinite;
+}
+.page-loader-text {
+  font-size: 15px;
+  letter-spacing: 0.01em;
+  font-weight: 500;
+  color: var(--dp-color-text, var(--theme-text, #1d1d1f));
+}
+@keyframes dp-spin { to { transform: rotate(360deg); } }
+@keyframes pageLoaderIconPulse {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.05); opacity: 0.85; }
+}
 
 .app-error-screen {
   display: flex;
@@ -2283,16 +2472,3 @@ body { margin: 0; font-family: system-ui, sans-serif; background: var(--theme-bg
   font: inherit;
   font-weight: 600;
 }
-.page-loader-spinner {
-  width: 28px;
-  height: 28px;
-  border: 2.5px solid color-mix(in srgb, var(--dp-color-primary, #007aff) 20%, transparent);
-  border-top-color: var(--dp-color-primary, #007aff);
-  border-radius: 50%;
-  animation: dp-spin 0.8s linear infinite;
-}
-.page-loader-text {
-  font-size: 14px;
-  letter-spacing: 0.01em;
-}
-@keyframes dp-spin { to { transform: rotate(360deg); } }
