@@ -41,22 +41,21 @@ describe('Layout: тёмная тема', () => {
     );
 
   const openMenu = () => fireEvent.click(screen.getByRole('button', { name: /Меню навигации/ }));
-  const pickDark = () => fireEvent.click(screen.getByRole('button', { name: /Темная/ }));
-  const pickLight = () => fireEvent.click(screen.getByRole('button', { name: /Светлая/ }));
+  const toggleTheme = () => fireEvent.click(screen.getByRole('button', { name: /Переключить/ }));
 
-  it('добавляет класс dark при выборе тёмной темы', () => {
+  it('добавляет класс dark при переключении на тёмную тему', () => {
     renderLayout();
     openMenu();
-    pickDark();
+    toggleTheme();
     expect(document.documentElement).toHaveClass('dark');
   });
 
-  it('убирает класс dark при выборе светлой темы', () => {
+  it('убирает класс dark при повторном переключении на светлую тему', () => {
     renderLayout();
     openMenu();
-    pickDark();
+    toggleTheme();
     openMenu();
-    pickLight();
+    toggleTheme();
     expect(document.documentElement).not.toHaveClass('dark');
   });
 
