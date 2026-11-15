@@ -41,6 +41,22 @@ export function useData<T extends { id: string }>(options: UseDataOptions): UseD
   const localOnly = !collectionName;
   const localCollectionName = collectionName ?? '__local__';
 
+  // Единая точка записи снимка: отказ хранилища (переполнение, блокировка)
+  // не должен выглядеть как успешное сохранение.
+  const persistLocal = useCallback(
+    (next: T[]) => {
+      itemsRef.current = next;
+      if (!saveLocalCollection(localCollectionName, next, userId)) {
+        toastError(
+          'Не удалось сохранить локальную копию',
+          'Хранилище браузера недоступно или переполнено. Изменения могут потеряться после закрытия вкладки.',
+        );
+      }
+      setItems(next);
+    },
+    [localCollectionName, toastError, userId],
+  );
+
   useEffect(() => {
     if (!isAuthReady) {
       setIsLoading(true);
@@ -62,7 +78,9 @@ export function useData<T extends { id: string }>(options: UseDataOptions): UseD
     }
 
     const local = loadLocalCollection<T>(collectionName!, userId);
-    const pending = userId ? getPendingCollectionOperations(collectionName!, userId).length > 0 : false;
+    const pending = userId
+      ? getPendingCollectionOperations(collectionName!, userId).length > 0
+      : false;
     const initialMutationVersion = mutationVersionRef.current;
     dirtyRef.current = pending;
     itemsRef.current = local;
@@ -70,6 +88,12 @@ export function useData<T extends { id: string }>(options: UseDataOptions): UseD
     setIsLoading(false);
 
     if (!userId) return () => { cancelled = true; };
+
+    const applyFresh = (fresh: T[]) => {
+      itemsRef.current = fresh;
+      setItems(fresh);
+      saveLocalCollection(collectionName!, fresh, userId);
+    };
 
     const refreshWhenOnline = () => {
       if (document.visibilityState === 'hidden') return;
@@ -79,10 +103,8 @@ export function useData<T extends { id: string }>(options: UseDataOptions): UseD
         .then((fresh) => {
           if (cancelled || mutationVersionRef.current !== version) return;
           dirtyRef.current = false;
-          itemsRef.current = fresh;
-          setItems(fresh);
+          applyFresh(fresh);
           setError(null);
-          saveLocalCollection(collectionName!, fresh, userId);
         })
         .catch((err) => {
           if (cancelled) return;
@@ -103,15 +125,11 @@ export function useData<T extends { id: string }>(options: UseDataOptions): UseD
         }
         const data = await loadFromFirestore<T>(collectionName!, userId, (fresh) => {
           if (cancelled || dirtyRef.current) return;
-          itemsRef.current = fresh;
-          setItems(fresh);
-          saveLocalCollection(collectionName!, fresh, userId);
+          applyFresh(fresh);
         });
         if (!cancelled && !dirtyRef.current) {
-          itemsRef.current = data;
-          setItems(data);
+          applyFresh(data);
           setError(null);
-          saveLocalCollection(collectionName!, data, userId);
         }
       } catch (err) {
         if (!cancelled) {
@@ -129,19 +147,12 @@ export function useData<T extends { id: string }>(options: UseDataOptions): UseD
     };
   }, [isAuthReady, userId, collectionName, localOnly, toastError]);
 
-  useEffect(() => {
-    if (!isAuthReady) return;
-    if (itemsRef.current !== items) return;
-    itemsRef.current = items;
-    saveLocalCollection(localCollectionName, items, userId);
-  }, [items, isAuthReady, userId, localCollectionName]);
-
   const persistMutation = useCallback((next: T[], kind: 'upsert' | 'delete', item?: T, itemId?: string) => {
-    dirtyRef.current = true;
-    itemsRef.current = next;
     mutationVersionRef.current += 1;
-    saveLocalCollection(localCollectionName, next, userId);
-    setItems(next);
+    persistLocal(next);
+    // Локальное состояние уже сохранено — серверные обновления можно применять,
+    // они не перетрут неотправленные локальные изменения (очередь сохраняется отдельно).
+    dirtyRef.current = false;
     if (!collectionName || !userId) return;
     try {
       if (kind === 'upsert' && item) enqueueCollectionUpsert(collectionName, userId, item);
@@ -150,10 +161,11 @@ export function useData<T extends { id: string }>(options: UseDataOptions): UseD
       toastError('Не удалось сохранить изменения', err instanceof Error ? err.message : 'Ошибка локального хранилища');
       return;
     }
-    void syncPendingToFirestore(userId).catch((err) => {
-      toastError('Синхронизация ожидает подключения', err instanceof Error ? err.message : 'Изменения сохранены на устройстве');
-    });
-  }, [collectionName, localCollectionName, toastError, userId]);
+    void syncPendingToFirestore(userId)
+      .catch((err) => {
+        toastError('Синхронизация ожидает подключения', err instanceof Error ? err.message : 'Изменения сохранены на устройстве');
+      });
+  }, [collectionName, toastError, userId, persistLocal]);
 
   const addItem = useCallback(
     (item: Omit<T, 'id'>) => {

@@ -14,6 +14,5 @@ export const useBudget = () => {
     addItem,
     removeItem,
     reset,
-    groupTotal: () => 0,
   };
 };

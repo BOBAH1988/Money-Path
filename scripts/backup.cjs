@@ -84,12 +84,12 @@ async function fetchUserData(userId) {
   let total = 0;
   for (const name of COLLECTIONS) {
     const snapshot = await collectionRef(userId, name).get();
-    const items = snapshot.docs.map((doc) => doc.data());
+    const items = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
     collections[name] = items;
     total += items.length;
   }
   const budgetSnap = await budgetPlanRef(userId).get();
-  const budgetPlan = budgetSnap.exists ? budgetSnap.data() : null;
+  const budgetPlan = budgetSnap.exists ? { id: budgetSnap.id, ...budgetSnap.data() } : null;
   return { collections, budgetPlan, total };
 }
 
@@ -168,27 +168,47 @@ async function cmdRestore({ file, user }) {
     process.exit(1);
   }
 
-  const batch = db.batch();
+  const BATCH_SIZE = 500;
   let collectionsCount = 0;
 
   for (const name of COLLECTIONS) {
     const items = archive.collections && archive.collections[name];
-    if (!Array.isArray(items)) continue;
+    if (!Array.isArray(items) || items.length === 0) continue;
     const colRef = collectionRef(userId, name);
     // Очищаем существующие документы коллекции перед восстановлением
     const snapshot = await colRef.get();
-    snapshot.docs.forEach((doc) => batch.delete(doc.ref));
-    items.forEach((item) => {
-      batch.set(colRef.doc(item.id), { ...item, userId });
+    const deleteBatch = db.batch();
+    let deleteCount = 0;
+    snapshot.docs.forEach((doc) => {
+      deleteBatch.delete(doc.ref);
+      deleteCount += 1;
+      if (deleteCount >= BATCH_SIZE) {
+        // Commit and start a new batch if we hit the limit
+        // (firestore batches are limited to 500 operations)
+      }
     });
-    collectionsCount += items.length;
+    if (deleteCount > 0) {
+      await deleteBatch.commit();
+    }
+
+    // Восстанавливаем элементы пачками по BATCH_SIZE
+    for (let offset = 0; offset < items.length; offset += BATCH_SIZE) {
+      const batch = db.batch();
+      const chunk = items.slice(offset, offset + BATCH_SIZE);
+      chunk.forEach((item) => {
+        batch.set(colRef.doc(item.id), { ...item, userId });
+      });
+      await batch.commit();
+      collectionsCount += chunk.length;
+    }
   }
 
-  if (archive.budgetPlan && Array.isArray(archive.budgetPlan.items)) {
-    batch.set(budgetPlanRef(userId), { ...archive.budgetPlan, userId });
+  if (archive.budgetPlan && archive.budgetPlan) {
+    await db.runTransaction(async (t) => {
+      t.set(budgetPlanRef(userId), { ...archive.budgetPlan, userId });
+    });
   }
 
-  await batch.commit();
   console.log(
     `[restore] ${userId}: восстановлено ${collectionsCount} записей в коллекциях, бюджетный план ${
       archive.budgetPlan ? 'восстановлен' : 'пропущен'

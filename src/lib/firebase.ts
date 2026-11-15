@@ -51,10 +51,25 @@ export const getFirestoreDb = async (): Promise<Firestore> => {
   return firestorePromise;
 };
 
+/**
+ * Забывает созданный экземпляр Firestore. Обязателен после terminate():
+ * иначе все последующие операции будут падать с «client has already been
+ * terminated», и повторить действие (например, удаление аккаунта) нельзя
+ * без перезагрузки страницы.
+ */
+export const resetFirestoreDb = (): void => {
+  firestorePromise = null;
+};
+
 export const clearFirestorePersistence = async (): Promise<void> => {
   const firestoreDb = await getFirestoreDb();
   const firestore = await import('firebase/firestore');
-  await firestore.terminate(firestoreDb);
+  try {
+    await firestore.terminate(firestoreDb);
+  } finally {
+    // Экземпляр после terminate непригоден — сбрасываем даже при ошибке очистки.
+    resetFirestoreDb();
+  }
   await firestore.clearIndexedDbPersistence(firestoreDb);
 };
 

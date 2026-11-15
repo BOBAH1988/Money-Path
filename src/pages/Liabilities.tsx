@@ -28,12 +28,6 @@ export default function Liabilities() {
     setPageTitle('Пассивы');
   }, [setPageTitle]);
 
-  useEffect(() => {
-    items
-      .filter((item) => !(item.name ?? '').trim() && !item.amount && !item.monthly)
-      .forEach((item) => removeItem(item.id));
-  }, [items, removeItem]);
-
   const budgetItems = useMemo<BudgetPlanItem[]>(
     () =>
       items.map((it) => ({

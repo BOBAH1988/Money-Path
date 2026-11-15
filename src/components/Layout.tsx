@@ -5,7 +5,7 @@ import { AppIcon } from './AppIcon';
 import { AccountButton, AccountMenu, AnalyticsModal, AuthModal } from './AuthModal';
 import { ImportModal } from './ImportModal';
 import { ConfirmDialog } from '../ui/ConfirmDialog';
-import { PageTitleProvider, PageTitleContext } from './PageTitleContext';
+import { PageTitleContext } from './PageTitleContext';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../ui/Toast';
 import { PRIVACY_NOTICE_VERSION, TERMS_VERSION } from '../lib/legal';
@@ -29,6 +29,7 @@ const items = [
   { to: '/liabilities', label: 'Пассивы', icon: '🏦' },
   { to: '/income', label: 'Доходы', icon: '💵' },
   { to: '/income-archive', label: 'Архив', icon: '📂' },
+  { to: '/import', label: 'Импорт', icon: '📥' },
 ];
 
 const routePrefetchers: Record<string, () => Promise<unknown>> = {
@@ -304,8 +305,7 @@ export default function Layout() {
   };
 
   return (
-    <PageTitleProvider>
-      <div className="layout" ref={layoutRef}>
+    <div className="layout" ref={layoutRef}>
         {/* Верхняя панель приложения */}
         <header className="top-bar">
           <div className="top-bar-left">
@@ -625,6 +625,5 @@ export default function Layout() {
         </div>
       )}
     </div>
-    </PageTitleProvider>
   );
 }
