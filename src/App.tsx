@@ -2,6 +2,7 @@ import { Suspense, lazy } from 'react';
 import { HashRouter, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import Layout from './components/Layout';
+import { PageTitleProvider } from './components/PageTitleContext';
 import { ToastProvider } from './ui/Toast';
 import { PageLoader } from './components/PageLoader';
 import { ErrorBoundary } from './components/ErrorBoundary';
@@ -21,7 +22,7 @@ function AppRoutes() {
     <HashRouter>
       <Suspense fallback={<PageLoader fullScreen />}>
         <Routes>
-          <Route element={<Layout />}>
+          <Route element={<PageTitleProvider><Layout /></PageTitleProvider>}>
             <Route path="/" element={<Dashboard />} />
             <Route path="/import" element={<Import />} />
             <Route path="/budget" element={<Budget />} />
@@ -31,6 +32,7 @@ function AppRoutes() {
             <Route path="/income-archive" element={<IncomeArchive />} />
             <Route path="/terms" element={<Terms />} />
             <Route path="/privacy" element={<Privacy />} />
+            <Route path="*" element={<Dashboard />} />
           </Route>
         </Routes>
       </Suspense>

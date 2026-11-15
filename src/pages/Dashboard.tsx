@@ -5,7 +5,7 @@ import { PageTitleContext } from '../components/PageTitleContext';
 import { useBudget } from '../hooks/useBudget';
 import { computeBudgetPageTotals } from '../lib/budget';
 import { useAuth } from '../context/AuthContext';
-import { loadFromFirestore, loadLocalCollection, storageKeyFor, COLLECTIONS } from '../lib/firestore';
+import { loadFromFirestore, loadLocalCollection, storageKeyFor, COLLECTIONS, syncPendingToFirestore } from '../lib/firestore';
 import { EmptyState } from '../ui/EmptyState';
 import { AuthModal } from '../components/AuthModal';
 import { BarChart } from '../components/dashboard/Charts';
@@ -134,6 +134,9 @@ export default function Dashboard() {
 
     (async () => {
       try {
+        // Сначала отправляем накопленные локальные изменения в облако,
+        // чтобы серверный снимок не перезаписал неотправленные правки.
+        await syncPendingToFirestore(userId);
         const saveLocal = <T,>(name: string, rows: T[]) => {
           try { localStorage.setItem(storageKeyFor(name, userId), JSON.stringify(rows)); } catch {}
         };

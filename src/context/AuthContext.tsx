@@ -42,12 +42,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isAuthReady, setIsAuthReady] = useState(false);
-  // uid берём только из Firebase Auth. Не hydrate-им из localStorage до onAuthStateChanged,
-  // иначе эффекты загрузки данных стартуют с чужим/устаревшим uid до появления ID-токена
   const [uid, setUid] = useState<string | undefined>(undefined);
   const [legalConsentRevision, setLegalConsentRevision] = useState(0);
 
-  const isAdmin = isAuthenticated && user ? user.email === ADMIN_EMAIL && user.emailVerified : false;
+  const isAdmin = isAuthenticated && user
+    ? user.email === ADMIN_EMAIL && user.emailVerified
+    : false;
 
   useEffect(() => {
     if (!auth) {
@@ -81,7 +81,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const login = async (email: string, password: string) => {
     if (!auth) throw new Error('Firebase Auth не инициализирован');
     try {
-      await signInWithEmailAndPassword(auth, email, password);
+      const result = await signInWithEmailAndPassword(auth, email, password);
+      if (!result.user.emailVerified) {
+        throw new Error('Перед входом подтвердите адрес электронной почты. Письмо с ссылкой отправлено на вашу почту.');
+      }
     } catch (err) {
       // eslint-disable-next-line no-console
       console.error('[auth] login ошибка:', err instanceof Error ? err.message : err);
@@ -92,30 +95,31 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const register = async (email: string, password: string) => {
     if (!auth) throw new Error('Firebase Auth не инициализирован');
+    let credential: { user: User };
     try {
-      const credential = await createUserWithEmailAndPassword(auth, email, password);
-      try {
-        await sendEmailVerification(credential.user);
-      } catch {
-        // ignore
-      }
-      try {
-        const { recordLegalConsent, trackUser } = await import('../lib/firestore');
-        await recordLegalConsent(credential.user.uid);
-        setLegalConsentRevision((revision) => revision + 1);
-        await trackUser(credential.user.uid, email);
-      } catch (err) {
-        // eslint-disable-next-line no-console
-        console.error(
-          `[firestore] register trackUser uid=${credential.user.uid} ошибка:`,
-          err instanceof Error ? err.message : err
-        );
-        throw err;
-      }
+      credential = await createUserWithEmailAndPassword(auth, email, password);
     } catch (err) {
       // eslint-disable-next-line no-console
       console.error('[auth] register ошибка:', err instanceof Error ? err.message : err);
       throw err;
+    }
+    try {
+      await sendEmailVerification(credential.user);
+    } catch {
+      // ignore — пользователь уже создан
+    }
+    try {
+      const { recordLegalConsent, trackUser } = await import('../lib/firestore');
+      await recordLegalConsent(credential.user.uid);
+      setLegalConsentRevision((revision) => revision + 1);
+      await trackUser(credential.user.uid, email);
+    } catch (err) {
+      // eslint-disable-next-line no-console
+      console.error(
+        `[firestore] register trackUser uid=${credential.user.uid} ошибка:`,
+        err instanceof Error ? err.message : err,
+      );
+      // Не бросаем — аккаунт создан, пользователь может войти
     }
     setIsAuthenticated(true);
   };

@@ -22,11 +22,23 @@ export const BudgetRow = ({ item, onUpdate, onRemove, onToggle, isPlannedCollaps
   const [plan, setPlan] = useState(String(item.plan ?? 0));
   const { success: toastSuccess } = useToast();
   const wasEditing = useRef(isEditing);
+  const itemIdRef = useRef(item.id);
 
   const isSubtotal = item.type === 'subtotal';
   const isTotal = item.type === 'total';
 
-  // Save when exiting edit mode via external trigger (Готово button)
+  // Reset local edit state whenever the underlying item changes (e.g. cloud update),
+  // so stale local values never overwrite fresh server data.
+  useEffect(() => {
+    if (itemIdRef.current !== item.id) {
+      itemIdRef.current = item.id;
+      setName(item.name);
+      setAmount(String(item.amount ?? 0));
+      setPlan(String(item.plan ?? 0));
+    }
+  }, [item.id, item.name, item.amount, item.plan]);
+
+  // Save when exiting edit mode via external trigger (Готово кнопка)
   useEffect(() => {
     if (isEditing) {
       wasEditing.current = true;
@@ -70,12 +82,13 @@ export const BudgetRow = ({ item, onUpdate, onRemove, onToggle, isPlannedCollaps
 
   const startEdit = () => {
     if (isTotal || isSubtotal) return;
+    // Always sync local fields from the current item so cloud updates
+    // are not overwritten by stale local values when editing begins.
+    setName(item.name);
+    setAmount(String(item.amount ?? 0));
+    setPlan(String(item.plan ?? 0));
     if (onStartEdit) {
       onStartEdit(item.id);
-    } else {
-      setName(item.name);
-      setAmount(String(item.amount));
-      setPlan(String(item.plan));
     }
   };
 

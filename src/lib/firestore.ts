@@ -1,4 +1,4 @@
-import { clearFirestorePersistence, getFirebaseError, getFirestoreDb } from './firebase';
+import { clearFirestorePersistence, getFirebaseError, getFirestoreDb, resetFirestoreDb } from './firebase';
 import {
   collection,
   doc,
@@ -34,9 +34,6 @@ import {
   saveLocalBudgetPlan,
   loadLocalBudgetPlan,
   clearLocalData,
-  isResetPending,
-  getResetPendingUserId,
-  clearResetPending,
   clearCollectionData,
   clearUserLocalData,
 } from './dataStore';
@@ -60,9 +57,6 @@ export {
   saveLocalBudgetPlan,
   loadLocalBudgetPlan,
   clearLocalData,
-  isResetPending,
-  getResetPendingUserId,
-  clearResetPending,
   clearCollectionData,
   clearUserLocalData,
 };
@@ -82,43 +76,64 @@ export const withTimeout = async <T>(promise: Promise<T>, ms: number, label: str
   }
 };
 
+export interface SnapshotOptions<T> {
+  /** Вызывается при успешном обновлении с сервера, когда данные уже показаны из кэша. */
+  onFresh?: (items: T[]) => void;
+  /** Вызывается, когда фоновое обновление с сервера не удалось (кэш уже показан). */
+  onServerError?: (error: Error) => void;
+}
+
+const toItems = <T extends { id: string }>(
+  docs: ReadonlyArray<{ id: string; data: () => DocumentData }>,
+): T[] =>
+  docs.map((docSnap) => {
+    const data = docSnap.data() as Omit<T, 'id'> & Record<string, unknown>;
+    return { ...data, id: docSnap.id } as T;
+  });
+
+/**
+ * Читает коллекцию, показывая данные как можно раньше.
+ *
+ * Важно: пустой результат `getDocsFromCache` неотличим от «кэша нет вообще»,
+ * поэтому пустой кэш не считается доказанным снимком — такие запросы всегда
+ * дожидаются сервера, и ошибка сервера пробрасывается вызывающему коду.
+ * Иначе пустой ответ перетирал бы локальные данные пользователя.
+ */
 const getSnapshotFast = async <T extends { id: string }>(
   q: Query<DocumentData> | ReturnType<typeof collection>,
-  onFresh?: (items: T[]) => void,
+  options: SnapshotOptions<T> = {},
 ): Promise<T[]> => {
+  const { onFresh, onServerError } = options;
   let cachedItems: T[] | null = null;
   try {
     const cached = await getDocsFromCache(q);
-    cachedItems = cached.docs.map((docSnap) => {
-      const data = docSnap.data() as Omit<T, 'id'> & Record<string, unknown>;
-      return { ...data, id: docSnap.id } as T;
-    });
+    cachedItems = toItems<T>(cached.docs);
   } catch {
-    // cache miss / unavailable
+    // кэш недоступен
   }
 
   const loadServer = async () => {
     try {
       const snap = await withTimeout(getDocsFromServer(q), 8000, 'getDocsFromServer');
-      const fresh = snap.docs.map((docSnap) => {
-      const data = docSnap.data() as Omit<T, 'id'> & Record<string, unknown>;
-      return { ...data, id: docSnap.id } as T;
-      });
-      onFresh?.(fresh);
-      return fresh;
+      return toItems<T>(snap.docs);
     } catch (err) {
       console.error('[firestore] getDocsFromServer ошибка:', err);
-      if (cachedItems !== null) return cachedItems;
-      throw err;
+      throw err instanceof Error ? err : new Error('Не удалось загрузить данные из облака');
     }
   };
 
-  if (cachedItems) {
-    void loadServer();
+  // Пустой кэш не доказывает, что данных нет — ждём сервер и не скрываем ошибку.
+  if (cachedItems && cachedItems.length > 0) {
+    void loadServer().then(
+      (fresh) => onFresh?.(fresh),
+      (err: unknown) => onServerError?.(err instanceof Error ? err : new Error(String(err))),
+    );
     return cachedItems;
   }
 
-  return loadServer();
+  const fresh = await loadServer();
+  onFresh?.(fresh);
+  return fresh;
 };
 
 export const trackUser = async (uid: string, email: string): Promise<void> => {
@@ -150,12 +165,29 @@ export const getLegalConsent = async (
   uid: string,
 ): Promise<{ termsVersion: string; privacyVersion: string }> => {
   const firestoreDb = await getFirestoreDb();
-  const snapshot = await getDocFromServer(doc(firestoreDb, 'users', uid));
+  const snapshot = await withTimeout(
+    getDocFromServer(doc(firestoreDb, 'users', uid)),
+    10000,
+    'getLegalConsent',
+  );
   const data = snapshot.data() ?? {};
   return {
     termsVersion: typeof data.acceptedTermsVersion === 'string' ? data.acceptedTermsVersion : '',
     privacyVersion: typeof data.acceptedPrivacyVersion === 'string' ? data.acceptedPrivacyVersion : '',
   };
+};
+
+/** Удаляет документы коллекции пачками, чтобы не упёреться в лимит writeBatch. */
+const deleteAllDocs = async (
+  firestoreDb: Firestore,
+  snapshot: Awaited<ReturnType<typeof getDocsFromServer>>,
+  label: string,
+) => {
+  for (let offset = 0; offset < snapshot.docs.length; offset += 400) {
+    const batch = writeBatch(firestoreDb);
+    snapshot.docs.slice(offset, offset + 400).forEach((entry) => batch.delete(entry.ref));
+    await withTimeout(batch.commit(), 15000, label);
+  }
 };
 
 export const deleteAccountData = async (userId: string): Promise<void> => {
@@ -166,6 +198,7 @@ export const deleteAccountData = async (userId: string): Promise<void> => {
 
   const firestoreDb = await getFirestoreDb();
   for (const name of ALL_COLLECTIONS) {
+    if (name === COLLECTIONS.budgetPlan) continue;
     const collectionRef = collection(firestoreDb, colPath(name, userId));
     while (true) {
       const snapshot = await withTimeout(
@@ -174,15 +207,13 @@ export const deleteAccountData = async (userId: string): Promise<void> => {
         `deleteAccount(${name})`,
       );
       if (snapshot.empty) break;
-      for (let offset = 0; offset < snapshot.docs.length; offset += 400) {
-        const batch = writeBatch(firestoreDb);
-        snapshot.docs.slice(offset, offset + 400).forEach((entry) => batch.delete(entry.ref));
-        await withTimeout(batch.commit(), 15000, `deleteAccount(${name})`);
-      }
+      await deleteAllDocs(firestoreDb, snapshot, `deleteAccount(${name})`);
     }
   }
 
-  await deleteDoc(doc(firestoreDb, 'budget_plan', `users/${userId}/budget_plan`));
+  // План бюджета — отдельный документ: удаляем и текущий путь, и legacy.
+  await deleteDoc(budgetPlanDocRef(firestoreDb, userId));
+  await deleteDoc(budgetPlanDocRefLegacy(firestoreDb, userId));
   await deleteDoc(doc(firestoreDb, 'users', userId));
   clearUserLocalData(userId);
   try {
@@ -257,17 +288,6 @@ export const saveToFirestore = async <T extends { id: string }>(
   }
 };
 
-export const deleteFromFirestore = async (collectionName: string, id: string, userId?: string) => {
-  if (!userId) return;
-  try {
-    enqueueCollectionDelete(collectionName as FirestoreCollection, userId, id);
-    await syncPendingToFirestore(userId);
-  } catch (err) {
-    console.error(`[firestore] deleteFromFirestore(${collectionName}, id=${id}) ошибка:`, err);
-    throw err;
-  }
-};
-
 export const clearFirestoreCollection = async (collectionName: FirestoreCollection, userId?: string) => {
   if (!userId) {
     clearCollectionData(collectionName);
@@ -304,12 +324,13 @@ export const loadFromFirestore = async <T extends { id: string }>(
   collectionName: string,
   userId?: string,
   onFresh?: (items: T[]) => void,
+  onServerError?: (error: Error) => void,
 ): Promise<T[]> => {
   if (!userId) return [];
   try {
     const firestoreDb = await getFirestoreDb();
     const colRef = collection(firestoreDb, colPath(collectionName, userId));
-    return await getSnapshotFast<T>(colRef, onFresh);
+    return await getSnapshotFast<T>(colRef, { onFresh, onServerError });
   } catch (err) {
     console.error(`[firestore] loadFromFirestore(${collectionName}) ошибка:`, err);
     throw err instanceof Error ? err : new Error('Не удалось загрузить данные');
@@ -324,36 +345,40 @@ const budgetPlanDocRefLegacy = (firestoreDb: Firestore, userId: string) =>
 export const loadBudgetPlan = async (
   userId?: string,
   onFresh?: (data: { items: unknown[]; updatedAt: string }) => void,
+  onServerError?: (error: Error) => void,
 ): Promise<{ items: unknown[]; updatedAt: string }> => {
   if (!userId) {
     return { items: [], updatedAt: '' };
   }
   const firestoreDb = await getFirestoreDb();
+  const readPlan = (data: DocumentData | undefined) => {
+    const plan = data as { items?: unknown[]; updatedAt?: string } | undefined;
+    return { items: plan?.items ?? [], updatedAt: plan?.updatedAt ?? '' };
+  };
   try {
     const read = async (ref: ReturnType<typeof doc>) => {
       try {
         const cached = await getDocFromCache(ref);
         if (cached.exists()) {
-          const data = cached.data() as { items?: unknown[]; updatedAt?: string };
+          const current = readPlan(cached.data());
           void withTimeout(getDocFromServer(ref), 8000, 'getDocFromServer')
             .then((snap) => {
-              if (!snap.exists()) {
-                onFresh?.({ items: [], updatedAt: '' });
-                return;
-              }
-              const fresh = snap.data() as { items?: unknown[]; updatedAt?: string };
-              onFresh?.({ items: fresh.items ?? [], updatedAt: fresh.updatedAt ?? '' });
+              const fresh = snap.exists() ? readPlan(snap.data()) : { items: [], updatedAt: '' };
+              onFresh?.(fresh);
             })
-            .catch((err) => console.error('[firestore] loadBudgetPlan refresh ошибка:', err));
-          return { items: data.items ?? [], updatedAt: data.updatedAt ?? '' };
+            .catch((err) => {
+              const error = err instanceof Error ? err : new Error(String(err));
+              console.error('[firestore] loadBudgetPlan refresh ошибка:', error);
+              onServerError?.(error);
+            });
+          return current;
         }
       } catch {
         // cache miss
       }
       const snap = await withTimeout(getDocFromServer(ref), 8000, 'getDocFromServer');
       if (snap.exists()) {
-        const data = snap.data() as { items?: unknown[]; updatedAt?: string };
-        const fresh = { items: data.items ?? [], updatedAt: data.updatedAt ?? '' };
+        const fresh = readPlan(snap.data());
         onFresh?.(fresh);
         return fresh;
       }
@@ -382,12 +407,6 @@ export const saveBudgetPlan = async (userId?: string, items: unknown[] = [], upd
   }
 };
 
-export const resetBudgetPlan = async (userId?: string): Promise<{ items: unknown[]; updatedAt: string }> => {
-  const updatedAt = new Date().toISOString();
-  await saveBudgetPlan(userId, [], updatedAt);
-  return { items: [], updatedAt };
-};
-
 const syncLocks = new Map<string, Promise<void>>();
 
 const applyClearOperation = async (name: FirestoreCollection, userId: string) => {
@@ -401,11 +420,9 @@ const applyClearOperation = async (name: FirestoreCollection, userId: string) =>
   }
 };
 
-const runPendingSync = async (userId: string) => {
-  if (typeof navigator !== 'undefined' && navigator.onLine === false) {
-    throw new Error('Нет подключения к интернету. Изменения сохранены на устройстве.');
-  }
-  const firestoreDb = await getFirestoreDb();
+/** Одна полная попытка отправить всю очередь. true — если было отправлено что-то. */
+const drainPendingOnce = async (userId: string, firestoreDb: Firestore): Promise<boolean> => {
+  let sent = false;
 
   for (const name of ALL_COLLECTIONS) {
     if (name === COLLECTIONS.budgetPlan) continue;
@@ -433,6 +450,7 @@ const runPendingSync = async (userId: string) => {
           await applyClearOperation(name, userId);
         }
         removePendingCollectionOperation(name, userId, operation.id);
+        sent = true;
       } catch (err) {
         console.error(`[firestore] syncPendingToFirestore(${name}) ошибка:`, err);
         throw err instanceof Error ? err : new Error(`Не удалось синхронизировать ${name}`);
@@ -454,10 +472,25 @@ const runPendingSync = async (userId: string) => {
         'save(budget_plan)',
       );
       clearPendingBudgetPlan(userId, pendingPlan.id);
+      sent = true;
     } catch (err) {
       console.error('[firestore] syncPendingToFirestore(budget_plan) ошибка:', err);
       throw err instanceof Error ? err : new Error('Не удалось синхронизировать план бюджета');
     }
+  }
+
+  return sent;
+};
+
+const runPendingSync = async (userId: string) => {
+  if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+    throw new Error('Нет подключения к интернету. Изменения сохранены на устройстве.');
+  }
+  const firestoreDb = await getFirestoreDb();
+  // Очередь читаем волнами: операция, добавленная во время отправки, должна
+  // уйти в этом же вызове, иначе вызывающий код решит, что всё синхронизировано.
+  for (let pass = 0; pass < 5; pass += 1) {
+    if (!(await drainPendingOnce(userId, firestoreDb))) break;
   }
 };
 
@@ -470,4 +503,4 @@ export const syncPendingToFirestore = (userId?: string): Promise<void> => {
   return pending;
 };
 
-export { getFirestoreDb, getFirebaseError as firebaseError };
+export { getFirestoreDb, getFirebaseError as firebaseError, resetFirestoreDb };

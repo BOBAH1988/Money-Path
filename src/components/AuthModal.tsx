@@ -9,7 +9,7 @@ import { ConfirmDialog } from '../ui/ConfirmDialog';
 type Mode = 'login' | 'register' | 'forgot' | 'verify';
 
 export const AuthModal = ({ onClose }: { onClose: () => void }) => {
-  const { login, register, sendPasswordReset } = useAuth();
+  const { login, register, sendPasswordReset, resendVerification, user } = useAuth();
   const { success: toastSuccess, error: toastError } = useToast();
   const [mode, setMode] = useState<Mode>('login');
   const [email, setEmail] = useState('');
@@ -20,6 +20,7 @@ export const AuthModal = ({ onClose }: { onClose: () => void }) => {
   const [submitting, setSubmitting] = useState(false);
   const [agreeTerms, setAgreeTerms] = useState(false);
   const [agreePrivacy, setAgreePrivacy] = useState(false);
+  const [validationErrors, setValidationErrors] = useState<string[]>([]);
   const previousAuthActive = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
@@ -39,40 +40,28 @@ export const AuthModal = ({ onClose }: { onClose: () => void }) => {
   const clearMessages = () => {
     setError(null);
     setSuccess(null);
+    setValidationErrors([]);
   };
 
-  const [validationErrors, setValidationErrors] = useState<string[]>([]);
-
-  const validateForm = (data: LoginFormData | RegisterFormData | ForgotFormData): boolean => {
+  // Возвращает список ошибок валидации; пустой массив означает, что данные корректны.
+  // Ошибки возвращаются значением, а не читаются из state — иначе React ещё не
+  // применил бы setValidationErrors и в сообщение попала бы пустая строка.
+  const validateForm = (
+    data: LoginFormData | RegisterFormData | ForgotFormData,
+  ): string[] => {
     if (mode === 'login') {
       const result = loginSchema.safeParse(data as LoginFormData);
-      if (!result.success) {
-        setValidationErrors(result.error.issues.map((e) => e.message));
-        return false;
-      }
-      setValidationErrors([]);
-      return true;
+      return result.success ? [] : result.error.issues.map((issue) => issue.message);
     }
     if (mode === 'forgot') {
       const result = forgotSchema.safeParse(data as ForgotFormData);
-      if (!result.success) {
-        setValidationErrors(result.error.issues.map((e) => e.message));
-        return false;
-      }
-      setValidationErrors([]);
-      return true;
+      return result.success ? [] : result.error.issues.map((issue) => issue.message);
     }
     if (mode === 'register') {
       const result = registerSchema.safeParse(data as RegisterFormData);
-      if (!result.success) {
-        setValidationErrors(result.error.issues.map((e) => e.message));
-        return false;
-      }
-      setValidationErrors([]);
-      return true;
+      return result.success ? [] : result.error.issues.map((issue) => issue.message);
     }
-    setValidationErrors([]);
-    return true;
+    return [];
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -81,8 +70,10 @@ export const AuthModal = ({ onClose }: { onClose: () => void }) => {
     setSubmitting(true);
     try {
       const formData = { email, password, confirmPassword, agreeTerms, agreePrivacy };
-      if (!validateForm(formData)) {
-        setError(validationErrors.join(', '));
+      const issues = validateForm(formData);
+      setValidationErrors(issues);
+      if (issues.length > 0) {
+        setError(issues.join(', '));
         setSubmitting(false);
         return;
       }
@@ -118,10 +109,13 @@ export const AuthModal = ({ onClose }: { onClose: () => void }) => {
     clearMessages();
     setSubmitting(true);
     try {
+      if (user) {
+        await resendVerification(user);
+      }
       setSuccess('Письмо с подтверждением отправлено повторно');
-      setSubmitting(false);
     } catch (err: any) {
       setError(err.message || 'Ошибка отправки');
+    } finally {
       setSubmitting(false);
     }
   };
@@ -338,6 +332,9 @@ export const AccountMenu = ({ onClose, onAnalytics }: { onClose: () => void; onA
       const report = await restoreBackup(pendingArchive, uid);
       toastSuccess('Данные загружены', `Восстановлено записей: ${report.totalRecords}`);
       setPendingArchive(null);
+      // После восстановления перезагружаем страницу, чтобы все открытые
+      // разделы показали актуальные данные из архива.
+      window.location.reload();
     } catch (err) {
       toastError('Ошибка импорта', err instanceof Error ? err.message : 'Не удалось загрузить данные');
     } finally {
@@ -495,9 +492,7 @@ export const AnalyticsModal = ({ onClose }: { onClose: () => void }) => {
       }
     };
     load();
-    return () => {
-      cancelled = true;
-    };
+    return () => { cancelled = true; };
   }, [isAdmin]);
 
   const now = new Date();
