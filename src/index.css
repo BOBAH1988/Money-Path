@@ -1923,6 +1923,171 @@ body { margin: 0; font-family: system-ui, sans-serif; background: var(--theme-bg
   background: var(--dp-color-danger);
 }
 
+/* ============================================================
+   Главная: KPI-карточки, баланс месяца, тренд
+   ============================================================ */
+.dashboard-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  padding: 8px 12px 0;
+}
+
+.dashboard-kpi {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  padding: 14px 16px;
+  border: 1px solid var(--theme-border);
+  border-radius: 16px;
+  background: var(--theme-card);
+  box-shadow: var(--theme-shadow);
+  animation: cardIn 0.45s ease;
+}
+
+.dashboard-kpi-label {
+  color: var(--theme-text-muted);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.dashboard-kpi-value {
+  color: var(--theme-text);
+  font-size: 22px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+}
+
+.dashboard-kpi-note {
+  color: var(--theme-text-muted);
+  font-size: 12px;
+}
+
+.dashboard-kpi-success .dashboard-kpi-value {
+  color: var(--dp-color-success);
+}
+
+.dashboard-kpi-danger .dashboard-kpi-value {
+  color: var(--dp-color-danger);
+}
+
+.dashboard-balance-bar {
+  display: flex;
+  height: 24px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--theme-surface);
+}
+
+.dashboard-balance-segment {
+  height: 100%;
+  min-width: 2px;
+  transition: width 0.25s ease;
+}
+
+.dashboard-balance-segment-expenses {
+  background: var(--dp-color-primary);
+}
+
+.dashboard-balance-segment-savings {
+  background: var(--dp-color-success);
+}
+
+.dashboard-balance-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 20px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  color: var(--theme-text-muted);
+  font-size: 13px;
+}
+
+.dashboard-balance-legend li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.dashboard-balance-legend strong {
+  color: var(--theme-text);
+  font-variant-numeric: tabular-nums;
+}
+
+.dashboard-balance-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+
+.dashboard-balance-dot.dashboard-balance-segment-expenses {
+  background: var(--dp-color-primary);
+}
+
+.dashboard-balance-dot.dashboard-balance-segment-savings {
+  background: var(--dp-color-success);
+}
+
+.dashboard-trend {
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+  height: 150px;
+}
+
+.dashboard-trend-item {
+  display: flex;
+  flex: 1 1 0;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  height: 100%;
+  min-width: 0;
+}
+
+.dashboard-trend-value {
+  color: var(--theme-text-muted);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.dashboard-trend-track {
+  display: flex;
+  flex: 1;
+  align-items: flex-end;
+  width: 100%;
+  border-radius: 8px;
+  background: var(--theme-surface);
+}
+
+.dashboard-trend-fill {
+  width: 100%;
+  border-radius: 8px;
+  background: linear-gradient(180deg, var(--dp-color-success), var(--dp-color-info));
+}
+
+.dashboard-trend-label {
+  color: var(--theme-text-muted);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+@media (max-width: 420px) {
+  .dashboard-kpi-value {
+    font-size: 19px;
+  }
+
+  .dashboard-trend-value {
+    font-size: 10px;
+  }
+}
+
 .dashboard-scales {
   display: flex;
   flex-direction: column;

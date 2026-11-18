@@ -168,10 +168,6 @@ export default function Dashboard() {
     () => income.reduce((sum, it) => sum + (it.amount ?? 0), 0),
     [income]
   );
-  const incomeMonthly = useMemo(
-    () => income.reduce((sum, it) => sum + (it.monthly ?? 0), 0),
-    [income]
-  );
 
   const archiveYears = useMemo(
     () => [...new Set(
@@ -221,6 +217,40 @@ export default function Dashboard() {
   }, [incomeArchive, archiveYear]);
 
   const hasArchivedIncome = archiveYears.length > 0;
+
+  const formatMoney = (value: number) =>
+    `${Math.round(value).toLocaleString('ru-RU')} ₽`;
+
+  const expenseShare = summaryIncome > 0 ? summaryExpenses / summaryIncome : 0;
+  const savingsRate = summaryIncome > 0 ? summaryDiff / summaryIncome : 0;
+  const netWorth = totalAssets + totalLiabilities;
+
+  const balanceSegments = [
+    {
+      key: 'expenses',
+      label: 'Расходы',
+      value: summaryExpenses,
+      className: 'dashboard-balance-segment-expenses',
+    },
+    {
+      key: 'savings',
+      label: 'Свободно',
+      value: Math.max(summaryDiff, 0),
+      className: 'dashboard-balance-segment-savings',
+    },
+  ].filter((segment) => segment.value > 0);
+
+  const balanceTotal = balanceSegments.reduce((sum, segment) => sum + segment.value, 0);
+
+  const recentMonths = useMemo(
+    () =>
+      monthlyArchiveIncome
+        .map((value, index) => ({ label: MONTHS[index], value }))
+        .filter((month) => month.value > 0)
+        .slice(-6),
+    [monthlyArchiveIncome],
+  );
+  const recentMax = Math.max(...recentMonths.map((month) => month.value), 0);
 
   if (isLoading) {
     return (
@@ -276,43 +306,110 @@ export default function Dashboard() {
         </p>
       </div>
 
+      <section className="dashboard-kpi-grid" aria-label="Ключевые показатели">
+        <article className="dashboard-kpi">
+          <span className="dashboard-kpi-label">Доходы</span>
+          <strong className="dashboard-kpi-value">{formatMoney(summaryIncome)}</strong>
+        </article>
+        <article className="dashboard-kpi">
+          <span className="dashboard-kpi-label">Расходы</span>
+          <strong className="dashboard-kpi-value">{formatMoney(summaryExpenses)}</strong>
+          <span className="dashboard-kpi-note">
+            {summaryIncome > 0 ? `${Math.round(expenseShare * 100)}% доходов` : 'нет доходов'}
+          </span>
+        </article>
+        <article className={`dashboard-kpi${summaryDiff < 0 ? ' dashboard-kpi-danger' : ' dashboard-kpi-success'}`}>
+          <span className="dashboard-kpi-label">{summaryDiff < 0 ? 'Перерасход' : 'Остаток'}</span>
+          <strong className="dashboard-kpi-value">{formatMoney(Math.abs(summaryDiff))}</strong>
+          <span className="dashboard-kpi-note">
+            {summaryIncome > 0
+              ? summaryDiff < 0
+                ? `на ${Math.round(Math.abs(savingsRate) * 100)}% больше доходов`
+                : `норма сбережений ${Math.round(savingsRate * 100)}%`
+              : '—'}
+          </span>
+        </article>
+        <article className={`dashboard-kpi${netWorth < 0 ? ' dashboard-kpi-danger' : ''}`}>
+          <span className="dashboard-kpi-label">Чистый капитал</span>
+          <strong className="dashboard-kpi-value">{formatMoney(netWorth)}</strong>
+          <span className="dashboard-kpi-note">
+            активы {formatMoney(totalAssets)} · пассивы {formatMoney(Math.abs(totalLiabilities))}
+          </span>
+        </article>
+      </section>
+
       <div className="dashboard-scales">
         <section className="dashboard-scale-group">
-          <h2>Доходы и расходы</h2>
-          <BarChart
-            series={[
-              { labels: ['Доходы'], values: [summaryIncome] },
-              { labels: ['Расходы'], values: [summaryExpenses] },
-              { labels: ['Остаток'], values: [summaryDiff] },
-            ]}
-          />
+          <h2>Баланс месяца</h2>
+          {summaryIncome > 0 && balanceTotal > 0 ? (
+            <>
+              <div className="dashboard-balance-bar" role="img" aria-label="Распределение доходов на расходы и свободный остаток">
+                {balanceSegments.map((segment) => (
+                  <div
+                    key={segment.key}
+                    className={`dashboard-balance-segment ${segment.className}`}
+                    style={{ width: `${(segment.value / balanceTotal) * 100}%` }}
+                    title={`${segment.label}: ${formatMoney(segment.value)}`}
+                  />
+                ))}
+              </div>
+              <ul className="dashboard-balance-legend">
+                {balanceSegments.map((segment) => (
+                  <li key={segment.key}>
+                    <span className={`dashboard-balance-dot ${segment.className}`} aria-hidden="true" />
+                    {segment.label}
+                    <strong>{formatMoney(segment.value)}</strong>
+                  </li>
+                ))}
+              </ul>
+            </>
+          ) : (
+            <p className="dashboard-scale-note">
+              {summaryExpenses > 0
+                ? `Расходы без доходов: ${formatMoney(summaryExpenses)}`
+                : 'Добавьте записи, чтобы увидеть распределение'}
+            </p>
+          )}
           <p className={`dashboard-scale-note${summaryDiff < 0 ? ' dashboard-scale-note-danger' : ''}`}>
             {summaryEqual
               ? 'Расходы равны доходам'
               : summaryDiff > 0
-                ? `Остаток после расходов: ${summaryDiff.toLocaleString('ru-RU')} ₽`
-                : `Расходы превышают доходы на ${Math.abs(summaryDiff).toLocaleString('ru-RU')} ₽`}
+                ? `Остаток после расходов: ${formatMoney(summaryDiff)}`
+                : `Расходы превышают доходы на ${formatMoney(Math.abs(summaryDiff))}`}
           </p>
         </section>
 
-        <section className="dashboard-scale-group">
-          <h2>Расходы</h2>
-          <BarChart
-            series={[
-              { labels: ['Расходы в текущем месяце'], values: [totals.totalAll] },
-              { labels: ['Регулярные расходы'], values: [totals.regularTotal] },
-            ]}
-          />
-        </section>
+        {recentMonths.length > 1 && (
+          <section className="dashboard-scale-group">
+            <h2>Динамика дохода</h2>
+            <div className="dashboard-trend" role="list" aria-label="Доход по последним месяцам">
+              {recentMonths.map((month) => (
+                <div className="dashboard-trend-item" role="listitem" key={month.label}>
+                  <span className="dashboard-trend-value">{formatMoney(month.value)}</span>
+                  <div className="dashboard-trend-track">
+                    <div
+                      className="dashboard-trend-fill"
+                      style={{ height: `${recentMax > 0 ? Math.max((month.value / recentMax) * 100, 4) : 0}%` }}
+                    />
+                  </div>
+                  <span className="dashboard-trend-label">{month.label}</span>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
 
         <section className="dashboard-scale-group">
-          <h2>Доходы</h2>
+          <h2>Структура расходов</h2>
           <BarChart
             series={[
-              { labels: ['Текущие доходы'], values: [incomeAmount] },
-              { labels: ['Планируемый доход'], values: [incomeMonthly] },
+              { labels: ['Текущий месяц'], values: [totals.totalMonthly] },
+              { labels: ['Запланированные'], values: [totals.totalPlanned] },
             ]}
           />
+          <p className="dashboard-scale-note">
+            Регулярные платежи по плану: {formatMoney(totals.regularTotal)}
+          </p>
         </section>
 
         <section className="dashboard-scale-group">
