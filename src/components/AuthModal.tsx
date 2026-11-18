@@ -10,8 +10,6 @@ import {
 } from '../lib/account-deletion';
 import { loginSchema, registerSchema, forgotSchema, type LoginFormData, type RegisterFormData, type ForgotFormData } from '../lib/validation';
 import { useToast } from '../ui/Toast';
-import type { BackupArchive } from '../lib/backup';
-import { ConfirmDialog } from '../ui/ConfirmDialog';
 
 type Mode = 'login' | 'register' | 'forgot' | 'verify';
 
@@ -398,14 +396,50 @@ export const AccountMenu = ({ onClose, onAnalytics }: { onClose: () => void; onA
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [scheduled, setScheduled] = useState(() => getScheduledDeletion(uid));
-  const [exporting, setExporting] = useState(false);
-  const [pendingArchive, setPendingArchive] = useState<BackupArchive | null>(null);
-  const [restoring, setRestoring] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [avatar, setAvatar] = useState<string | null>(() => {
+    if (!uid) return null;
+    try {
+      return localStorage.getItem(`denegnyj_put_avatar_${uid}`) || null;
+    } catch {
+      return null;
+    }
+  });
+  const [avatarSaving, setAvatarSaving] = useState(false);
+  const avatarInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (!uid) return;
+    let cancelled = false;
+    void import('../lib/firestore').then(({ loadUserAvatar }) =>
+      loadUserAvatar(uid).then((value) => {
+        if (!cancelled) setAvatar(value);
+      }),
+    ).catch(() => {});
+    return () => { cancelled = true; };
+  }, [uid]);
 
   if (!isAuthenticated) {
     return null;
   }
+
+  const handleAvatarChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (!file || !uid) return;
+    setAvatarSaving(true);
+    try {
+      const { prepareAvatar } = await import('../lib/avatar');
+      const dataUrl = await prepareAvatar(file);
+      const { saveUserAvatar } = await import('../lib/firestore');
+      await saveUserAvatar(uid, dataUrl);
+      setAvatar(dataUrl);
+      toastSuccess('Фото обновлено', 'Аватар сохранён в профиле');
+    } catch (err) {
+      toastError('Не удалось сохранить фото', err instanceof Error ? err.message : 'Попробуйте другое изображение');
+    } finally {
+      setAvatarSaving(false);
+    }
+  };
 
   const handleLogout = async () => {
     await logout();
@@ -415,51 +449,6 @@ export const AccountMenu = ({ onClose, onAnalytics }: { onClose: () => void; onA
   const handleAnalytics = () => {
     onClose();
     onAnalytics?.();
-  };
-
-  const handleDownloadData = async () => {
-    if (!uid) return;
-    setExporting(true);
-    try {
-      const { backupFileName, downloadBackup, exportBackup } = await import('../lib/backup');
-      const archive = await exportBackup(uid);
-      downloadBackup(archive, backupFileName(uid));
-      toastSuccess('Данные скачаны', 'Резервная копия сохранена в JSON-файле');
-    } catch (err) {
-      toastError('Ошибка экспорта', err instanceof Error ? err.message : 'Не удалось скачать данные');
-    } finally {
-      setExporting(false);
-    }
-  };
-
-  const handleDataFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    event.target.value = '';
-    if (!file) return;
-    try {
-      const { parseBackupFile } = await import('../lib/backup');
-      setPendingArchive(await parseBackupFile(file));
-    } catch (err) {
-      toastError('Ошибка файла', err instanceof Error ? err.message : 'Не удалось прочитать файл данных');
-    }
-  };
-
-  const handleRestoreData = async () => {
-    if (!pendingArchive || !uid) return;
-    setRestoring(true);
-    try {
-      const { restoreBackup } = await import('../lib/backup');
-      const report = await restoreBackup(pendingArchive, uid);
-      toastSuccess('Данные загружены', `Восстановлено записей: ${report.totalRecords}`);
-      setPendingArchive(null);
-      // После восстановления перезагружаем страницу, чтобы все открытые
-      // разделы показали актуальные данные из архива.
-      window.location.reload();
-    } catch (err) {
-      toastError('Ошибка импорта', err instanceof Error ? err.message : 'Не удалось загрузить данные');
-    } finally {
-      setRestoring(false);
-    }
   };
 
   // Удаление ставится в очередь: пароль проверяется сразу, а данные стираются
@@ -504,10 +493,29 @@ export const AccountMenu = ({ onClose, onAnalytics }: { onClose: () => void; onA
         </button>
         <h2 className="auth-title">Аккаунт</h2>
         <div className="account-info">
-          <span className="account-icon">
-            <UserAvatarIcon />
-          </span>
+          <button
+            type="button"
+            className="account-avatar-btn"
+            onClick={() => avatarInputRef.current?.click()}
+            disabled={avatarSaving}
+            aria-label={avatar ? 'Изменить фото профиля' : 'Добавить фото профиля'}
+            title={avatar ? 'Изменить фото' : 'Добавить фото'}
+          >
+            <AvatarImage src={avatar} />
+            <span className="account-avatar-edit" aria-hidden="true">✎</span>
+          </button>
           <span className="account-email">{user?.email}</span>
+          <span className="account-avatar-hint">
+            {avatarSaving ? 'Сохранение фото…' : avatar ? 'Нажмите на фото, чтобы изменить' : 'Нажмите на аватар, чтобы добавить фото'}
+          </span>
+          <input
+            ref={avatarInputRef}
+            type="file"
+            accept="image/*"
+            aria-label="Выбрать фото профиля"
+            onChange={handleAvatarChange}
+            hidden
+          />
           {isAdmin && (
             <span className="account-badge">Администратор</span>
           )}
@@ -536,26 +544,12 @@ export const AccountMenu = ({ onClose, onAnalytics }: { onClose: () => void; onA
                 Аналитика
               </button>
             )}
-            <button className="account-action-btn" onClick={handleDownloadData} disabled={exporting}>
-              {exporting ? 'Скачивание…' : 'Скачать данные'}
-            </button>
-            <button className="account-action-btn" onClick={() => fileInputRef.current?.click()} disabled={restoring}>
-              Загрузить данные
-            </button>
             <button
               className="account-action-btn account-delete-btn"
               onClick={() => setDeleteMode(true)}
             >
               Удалить аккаунт
             </button>
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="application/json,.json"
-              aria-label="Выбрать файл данных"
-              onChange={handleDataFileChange}
-              hidden
-            />
           </div>
         ) : (
           <form className="account-delete-form" onSubmit={handleDeleteAccount}>
@@ -608,15 +602,6 @@ export const AccountMenu = ({ onClose, onAnalytics }: { onClose: () => void; onA
           </form>
         )}
       </div>
-      <ConfirmDialog
-        open={pendingArchive !== null}
-        onClose={() => setPendingArchive(null)}
-        onConfirm={() => { void handleRestoreData(); }}
-        title="Загрузить данные?"
-        description="Записи из файла будут объединены с данными аккаунта. Записи с совпадающими ID обновятся."
-        confirmLabel={restoring ? 'Загрузка…' : 'Загрузить'}
-        confirmVariant="primary"
-      />
     </div>
   );
 };
@@ -725,6 +710,9 @@ export const AnalyticsModal = ({ onClose }: { onClose: () => void }) => {
     </div>
   );
 };
+
+const AvatarImage = ({ src }: { src: string | null }) =>
+  src ? <img className="account-avatar" src={src} alt="Фото профиля" /> : <UserAvatarIcon />;
 
 const UserAvatarIcon = () => (
   <svg className="account-avatar" viewBox="0 0 24 24" aria-hidden="true">

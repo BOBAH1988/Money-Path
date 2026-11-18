@@ -164,6 +164,41 @@ const deleteAllDocs = async (
   }
 };
 
+/** Сохраняет аватар пользователя в его профиле (data URL, ограниченный по размеру). */
+export const saveUserAvatar = async (userId: string, dataUrl: string | null): Promise<void> => {
+  const firestoreDb = await getFirestoreDb();
+  const userRef = doc(firestoreDb, 'users', userId);
+  await withTimeout(
+    setDoc(userRef, { avatar: dataUrl, avatarUpdatedAt: new Date().toISOString() }, { merge: true }),
+    15000,
+    'saveUserAvatar',
+  );
+  try {
+    localStorage.setItem(`denegnyj_put_avatar_${userId}`, dataUrl ?? '');
+  } catch {
+    // кэш недоступен — аватар останется только в облаке
+  }
+};
+
+/** Читает аватар: сначала локальный кэш, затем профиль в облаке. */
+export const loadUserAvatar = async (userId: string): Promise<string | null> => {
+  try {
+    const cached = localStorage.getItem(`denegnyj_put_avatar_${userId}`);
+    if (cached !== null) return cached || null;
+  } catch {
+    // кэш недоступен
+  }
+  try {
+    const firestoreDb = await getFirestoreDb();
+    const snap = await withTimeout(getDoc(doc(firestoreDb, 'users', userId)), 8000, 'loadUserAvatar');
+    const avatar = (snap.data() as { avatar?: string } | undefined)?.avatar;
+    return typeof avatar === 'string' && avatar ? avatar : null;
+  } catch (err) {
+    console.error('[firestore] loadUserAvatar ошибка:', err);
+    return null;
+  }
+};
+
 export const deleteAccountData = async (userId: string): Promise<void> => {
   if (!userId) throw new Error('Не удалось определить аккаунт для удаления');
   if (typeof navigator !== 'undefined' && navigator.onLine === false) {
