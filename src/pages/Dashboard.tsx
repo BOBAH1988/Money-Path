@@ -184,8 +184,6 @@ export default function Dashboard() {
   const formatMoney = (value: number) =>
     `${Math.round(value).toLocaleString('ru-RU')} ₽`;
 
-  const expenseShare = summaryIncome > 0 ? summaryExpenses / summaryIncome : 0;
-  const savingsRate = summaryIncome > 0 ? summaryDiff / summaryIncome : 0;
   const netWorth = totalAssets + totalLiabilities;
 
   const balanceSegments = [
@@ -274,22 +272,11 @@ export default function Dashboard() {
           <strong className="dashboard-kpi-value">{formatMoney(summaryIncome)}</strong>
           <span className="dashboard-kpi-note">{currentMonthLabel}</span>
         </article>
-        <article className="dashboard-kpi">
-          <span className="dashboard-kpi-label">Расходы</span>
+        <article className="dashboard-kpi dashboard-kpi-success">
+          <span className="dashboard-kpi-label">Остаток расходов</span>
           <strong className="dashboard-kpi-value">{formatMoney(summaryExpenses)}</strong>
           <span className="dashboard-kpi-note">
-            {summaryIncome > 0 ? `${Math.round(expenseShare * 100)}% доходов` : 'нет доходов'}
-          </span>
-        </article>
-        <article className={`dashboard-kpi${summaryDiff < 0 ? ' dashboard-kpi-danger' : ' dashboard-kpi-success'}`}>
-          <span className="dashboard-kpi-label">{summaryDiff < 0 ? 'Перерасход' : 'Остаток'}</span>
-          <strong className="dashboard-kpi-value">{formatMoney(Math.abs(summaryDiff))}</strong>
-          <span className="dashboard-kpi-note">
-            {summaryIncome > 0
-              ? summaryDiff < 0
-                ? `на ${Math.round(Math.abs(savingsRate) * 100)}% больше доходов`
-                : `норма сбережений ${Math.round(savingsRate * 100)}%`
-              : '—'}
+            {summaryIncome > 0 ? `из ${formatMoney(summaryIncome)} доходов` : 'нет доходов'}
           </span>
         </article>
         <article className={`dashboard-kpi${netWorth < 0 ? ' dashboard-kpi-danger' : ''}`}>
