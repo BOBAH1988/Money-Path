@@ -18,7 +18,15 @@ export const ToastProvider = ({ children }: Props) => {
     (type: ToastType, title: string, message?: string, duration = DEFAULT_DURATION) => {
       const id = crypto.randomUUID();
       const toast: Toast = { id, type, title, message, duration };
-      setToasts((prev) => [...prev, toast]);
+      setToasts((prev) => {
+        // Одинаковое уведомление не копится стопкой: несколько подписок на данные
+        // сообщают об одном и том же сбое, и пользователь видел десяток окон.
+        const duplicate = prev.find((t) => t.type === type && t.title === title && t.message === message);
+        if (duplicate) return prev;
+        // Больше трёх сообщений в очереди не держим — старые уходят первыми.
+        const next = [...prev, toast];
+        return next.slice(-3);
+      });
       if (duration > 0) {
         setTimeout(() => {
           setToasts((prev) => prev.filter((t) => t.id !== id));

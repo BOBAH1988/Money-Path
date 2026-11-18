@@ -101,7 +101,7 @@ export const IncomeArchiveChart = ({ rows }: IncomeArchiveChartProps) => {
             <li>
               <span className="income-archive-stat-label">Лучший месяц</span>
               <strong className="income-archive-stat-value">
-                {max > 0 ? `${MONTHS[best]} · ${max.toLocaleString('ru-RU')} ₽` : '—'}
+                {max > 0 ? `${MONTHS[best]} ${max.toLocaleString('ru-RU')} ₽` : '—'}
               </strong>
             </li>
           </ul>

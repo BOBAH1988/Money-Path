@@ -208,7 +208,6 @@ export const BudgetRow = ({ item, onUpdate, onRemove, onToggle, isPlannedCollaps
             readOnly={plain}
             onCommit={(next) => onUpdate(item.id, { amount: next })}
           />
-          {isTotal && <span className="row-currency">₽</span>}
         </td>
         <td className="budget-cell budget-cell-plan">
           <EditableAmountCell
@@ -217,7 +216,6 @@ export const BudgetRow = ({ item, onUpdate, onRemove, onToggle, isPlannedCollaps
             readOnly={plain}
             onCommit={(next) => onUpdate(item.id, { plan: next })}
           />
-          {isTotal && <span className="row-currency">₽</span>}
         </td>
       </tr>
       {isSubtotal && (

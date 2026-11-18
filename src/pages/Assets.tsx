@@ -58,20 +58,15 @@ export default function Assets() {
 
   return (
     <div className="page page-budget">
-      <div className="budget-page-header">
-        <h1 className="budget-page-header h1">Активы</h1>
-        <p className="budget-page-subtitle">Имущество и вложения — то, что приносит вам доход или имеет ценность</p>
-      </div>
-
       {items.length > 0 && (
         <section className="dashboard-kpi-grid income-summary-grid" aria-label="Итоги активов">
         <article className="dashboard-kpi dashboard-kpi-success">
           <span className="dashboard-kpi-label">Итого активы</span>
-          <strong className="dashboard-kpi-value">{totals.totalMonthly} ₽</strong>
+          <strong className="dashboard-kpi-value">{totals.totalMonthly.toLocaleString('ru-RU')} ₽</strong>
         </article>
         <article className="dashboard-kpi">
           <span className="dashboard-kpi-label">Доход в месяц</span>
-          <strong className="dashboard-kpi-value">{totals.totalMonthlyPlan} ₽</strong>
+          <strong className="dashboard-kpi-value">{totals.totalMonthlyPlan.toLocaleString('ru-RU')} ₽</strong>
         </article>
         </section>
       )}

@@ -58,20 +58,15 @@ export default function Liabilities() {
 
   return (
     <div className="page page-budget">
-      <div className="budget-page-header">
-        <h1 className="budget-page-header h1">Пассивы</h1>
-        <p className="budget-page-subtitle">Долги и обязательства — что вы должны и сколько % отдаете за использование</p>
-      </div>
-
       {items.length > 0 && (
         <section className="dashboard-kpi-grid income-summary-grid" aria-label="Итоги пассивов">
         <article className="dashboard-kpi dashboard-kpi-danger">
           <span className="dashboard-kpi-label">Итого долг</span>
-          <strong className="dashboard-kpi-value">{totals.totalMonthly} ₽</strong>
+          <strong className="dashboard-kpi-value">{totals.totalMonthly.toLocaleString('ru-RU')} ₽</strong>
         </article>
         <article className="dashboard-kpi">
           <span className="dashboard-kpi-label">Плата % в месяц</span>
-          <strong className="dashboard-kpi-value">{totals.totalMonthlyPlan} ₽</strong>
+          <strong className="dashboard-kpi-value">{totals.totalMonthlyPlan.toLocaleString('ru-RU')} ₽</strong>
         </article>
         </section>
       )}

@@ -194,12 +194,11 @@ export const BudgetTable = ({
                   <td className="budget-cell budget-cell-name">
                     <span className="footer-label">Итого:</span>
                   </td>
-                  <td className="budget-cell budget-cell-amount" style={{ whiteSpace: 'nowrap' }}>
-                    {format(displayTotal)}<span className="row-currency">₽</span>
+                  <td className="budget-cell budget-cell-amount">
+                    {format(displayTotal)}
                   </td>
-                  <td className="budget-cell budget-cell-plan" style={{ whiteSpace: 'nowrap' }}>
+                  <td className="budget-cell budget-cell-plan">
                     {format(displayTotalPlan)}
-                    <span className="row-currency">₽</span>
                   </td>
                 </tr>
               )}

@@ -269,13 +269,6 @@ export default function Dashboard() {
 
   return (
     <div className="page page-budget page-dashboard">
-      <div className="budget-page-header">
-        <h1 className="budget-page-header h1">Главная</h1>
-        <p className="budget-page-subtitle">
-          Сводка по текущему бюджету и архив доходов по месяцам
-        </p>
-      </div>
-
       <section className="dashboard-kpi-grid" aria-label="Ключевые показатели">
         <article className="dashboard-kpi">
           <span className="dashboard-kpi-label">Доходы за месяц</span>
