@@ -14,7 +14,8 @@ type IconName =
   | 'reset'
   | 'install'
   | 'account'
-  | 'user';
+  | 'user'
+  | 'guide';
 
 const paths: Record<IconName, ReactNode> = {
   dashboard: (
@@ -111,6 +112,12 @@ const paths: Record<IconName, ReactNode> = {
     <>
       <circle cx="12" cy="8.5" r="3.7" />
       <path d="M4.8 20.2a7.4 7.4 0 0 1 14.4 0" />
+    </>
+  ),
+  guide: (
+    <>
+      <path d="M4.5 4.5h6a2 2 0 0 1 2 2v13a1.6 1.6 0 0 0-1.6-1.6H4.5Z" />
+      <path d="M19.5 4.5h-6a2 2 0 0 0-2 2v13a1.6 1.6 0 0 1 1.6-1.6h6.4Z" />
     </>
   ),
 };

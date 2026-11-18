@@ -12,6 +12,7 @@ const Budget = lazy(() => import('./pages/Budget'));
 const Liabilities = lazy(() => import('./pages/Liabilities'));
 const Assets = lazy(() => import('./pages/Assets'));
 const Import = lazy(() => import('./pages/Import'));
+const Guide = lazy(() => import('./pages/Guide'));
 const IncomeArchive = lazy(() => import('./pages/IncomeArchive'));
 const Terms = lazy(() => import('./pages/Terms'));
 const Privacy = lazy(() => import('./pages/Privacy'));
@@ -24,6 +25,7 @@ function AppRoutes() {
           <Route element={<PageTitleProvider><Layout /></PageTitleProvider>}>
             <Route path="/" element={<Dashboard />} />
             <Route path="/import" element={<Import />} />
+            <Route path="/guide" element={<Guide />} />
             <Route path="/budget" element={<Budget />} />
             <Route path="/assets" element={<Assets />} />
             <Route path="/liabilities" element={<Liabilities />} />

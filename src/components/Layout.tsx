@@ -26,6 +26,7 @@ const items = [
   { to: '/liabilities', label: 'Пассивы', icon: 'liabilities' },
   { to: '/income', label: 'Доходы', icon: 'income' },
   { to: '/import', label: 'Импорт', icon: 'import' },
+  { to: '/guide', label: 'Инструкция', icon: 'guide' },
 ] as const satisfies ReadonlyArray<{ to: string; label: string; icon: import('./MenuIcons').IconName }>;
 
 const routePrefetchers: Record<string, () => Promise<unknown>> = {
@@ -35,6 +36,7 @@ const routePrefetchers: Record<string, () => Promise<unknown>> = {
   '/liabilities': () => import('../pages/Liabilities'),
   '/income': () => import('../pages/IncomeArchive'),
   '/import': () => import('../pages/Import'),
+  '/guide': () => import('../pages/Guide'),
 };
 
 const prefetched = new Set<string>();
