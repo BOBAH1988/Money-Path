@@ -2138,14 +2138,26 @@ body { margin: 0; font-family: system-ui, sans-serif; background: var(--theme-bg
   background: var(--dp-color-success);
 }
 
-.dashboard-balance-segment-planned {
+.dashboard-balance-segment-paid {
   background: var(--dp-color-success);
+}
+
+.dashboard-balance-share {
+  padding: 2px 9px;
+  border-radius: 999px;
+  background: var(--dp-color-success);
+  color: var(--theme-card, #fff);
+  font-size: 12px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
 
 .dashboard-balance-legend {
   display: flex;
+  align-items: center;
   flex-wrap: wrap;
-  gap: 8px 20px;
+  gap: 6px 16px;
   margin: 0;
   padding: 0;
   list-style: none;
@@ -2156,7 +2168,16 @@ body { margin: 0; font-family: system-ui, sans-serif; background: var(--theme-bg
 .dashboard-balance-legend li {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
+  white-space: nowrap;
+}
+
+.dashboard-balance-legend-label {
+  flex: 0 1 auto;
+}
+
+.dashboard-balance-legend-share {
+  margin-left: auto;
 }
 
 .dashboard-balance-legend strong {
@@ -2178,7 +2199,7 @@ body { margin: 0; font-family: system-ui, sans-serif; background: var(--theme-bg
   background: var(--dp-color-success);
 }
 
-.dashboard-balance-dot.dashboard-balance-segment-planned {
+.dashboard-balance-dot.dashboard-balance-segment-paid {
   background: var(--dp-color-success);
 }
 
@@ -2729,6 +2750,31 @@ body { margin: 0; font-family: system-ui, sans-serif; background: var(--theme-bg
   color: var(--theme-text);
   font-size: 16px;
   font-weight: 700;
+}
+
+.dashboard-scale-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 2px 12px;
+}
+
+.dashboard-scale-header h2 {
+  flex: 0 0 auto;
+}
+
+.dashboard-scale-header-note {
+  margin: 0;
+  color: var(--dp-color-success);
+  font-size: 13px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.dashboard-scale-header-note-danger {
+  color: var(--dp-color-danger);
 }
 
 .dashboard-scale-note {

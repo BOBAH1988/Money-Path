@@ -201,30 +201,32 @@ export default function Dashboard() {
 
   const netWorth = totalAssets + totalLiabilities;
 
-  // Баланс месяца строится от фактических доходов месяца: из них часть уже
-  // ушла на оплату бюджета, остаток — это ещё не оплаченные строки.
-  // Свободные деньги не рассчитываются: они сразу уходят на счёт.
-  const plannedExpenses = summaryIncome;
-  const paidFromPlan = Math.max(plannedExpenses - summaryExpenses, 0);
+  // План месяца равен доходу: сначала планируется сумма из доходов, потом
+  // она тратится. Столбец «План» бюджета к текущему месяцу не относится —
+  // это заготовка на следующий месяц, поэтому здесь он не используется.
+  const budgetPlan = summaryIncome;
+  const paidExpenses = Math.max(budgetPlan - summaryExpenses, 0);
+  const overPlan = summaryExpenses > budgetPlan;
 
   const balanceSegments = [
     {
-      key: 'planned',
-      label: 'Запланировано',
-      value: plannedExpenses,
-      className: 'dashboard-balance-segment-planned',
+      key: 'paid',
+      label: 'Оплачено',
+      value: paidExpenses,
+      className: 'dashboard-balance-segment-paid',
     },
     {
       key: 'remaining',
-      label: 'Остаток расходов',
+      label: 'Осталось оплатить',
       value: summaryExpenses,
       className: 'dashboard-balance-segment-expenses',
     },
   ].filter((segment) => segment.value > 0);
 
-  // Длина полосы — план бюджета, а «Остаток расходов» рисуется поверх как доля
-  // от него: видно, сколько из запланированной суммы ещё не оплачено.
-  const balanceTotal = plannedExpenses;
+  // Длина полосы — план бюджета, а не доход: тогда доли оплаченного
+  // и оставшегося складываются ровно в 100%.
+  const balanceTotal = budgetPlan;
+  const paidShare = budgetPlan > 0 ? Math.round((paidExpenses / budgetPlan) * 100) : 0;
 
   const recentMonths = useMemo(() => {
     const totalsByMonth = new Array(12).fill(0);
@@ -300,11 +302,13 @@ export default function Dashboard() {
           <strong className="dashboard-kpi-value">{formatMoney(averageIncome)}</strong>
           <span className="dashboard-kpi-note">в месяц</span>
         </article>
-        <article className="dashboard-kpi dashboard-kpi-success">
-          <span className="dashboard-kpi-label">Остаток расходов</span>
+        <article className={`dashboard-kpi${overPlan ? ' dashboard-kpi-danger' : ' dashboard-kpi-success'}`}>
+          <span className="dashboard-kpi-label">Осталось оплатить</span>
           <strong className="dashboard-kpi-value">{formatMoney(summaryExpenses)}</strong>
           <span className="dashboard-kpi-note">
-            из {formatMoney(summaryIncome)} запланировано
+            {overPlan
+              ? `на ${formatMoney(summaryExpenses - budgetPlan)} больше плана`
+              : `из ${formatMoney(budgetPlan)} по плану`}
           </span>
         </article>
         <article className={`dashboard-kpi${netWorth < 0 ? ' dashboard-kpi-danger' : ''}`}>
@@ -318,15 +322,32 @@ export default function Dashboard() {
 
       <div className="dashboard-scales">
         <section className="dashboard-scale-group">
-          <h2>Баланс месяца</h2>
-          {plannedExpenses > 0 && balanceTotal > 0 ? (
+          <div className="dashboard-scale-header">
+            <h2>Баланс месяца</h2>
+            <p className={`dashboard-scale-header-note${overPlan ? ' dashboard-scale-header-note-danger' : ''}`}>
+              {balanceTotal <= 0
+                ? ''
+                : overPlan
+                  ? `Оплачено сверх плана на ${formatMoney(summaryExpenses - budgetPlan)}`
+                  : summaryExpenses === 0
+                    ? `Бюджет на ${formatMoney(budgetPlan)} полностью оплачен`
+                    : `Из ${formatMoney(budgetPlan)} осталось оплатить ${formatMoney(summaryExpenses)}`}
+            </p>
+          </div>
+          {balanceTotal > 0 && balanceSegments.length > 0 ? (
             <>
-              <div className="dashboard-balance-bar" role="img" aria-label="План бюджета месяца и остаток к оплате">
+              <div
+                className="dashboard-balance-bar"
+                role="img"
+                aria-label={`План бюджета ${formatMoney(budgetPlan)}: оплачено ${paidShare}%, осталось оплатить ${100 - paidShare}%`}
+              >
                 {balanceSegments.map((segment) => (
                   <div
                     key={segment.key}
                     className={`dashboard-balance-segment ${segment.className}`}
-                    style={{ width: `${Math.min((segment.value / balanceTotal) * 100, 100)}%` }}
+                    style={{
+                      width: `${Math.min((segment.value / balanceTotal) * 100, 100)}%`,
+                    }}
                     title={`${segment.label}: ${formatMoney(segment.value)}`}
                   />
                 ))}
@@ -335,24 +356,20 @@ export default function Dashboard() {
                 {balanceSegments.map((segment) => (
                   <li key={segment.key}>
                     <span className={`dashboard-balance-dot ${segment.className}`} aria-hidden="true" />
-                    {segment.label}
+                    <span className="dashboard-balance-legend-label">{segment.label}</span>
                     <strong>{formatMoney(segment.value)}</strong>
                   </li>
                 ))}
+                <li className="dashboard-balance-legend-share">
+                  <span className="dashboard-balance-share">{paidShare}%</span>
+                </li>
               </ul>
             </>
           ) : (
             <p className="dashboard-scale-note">
-              {plannedExpenses > 0
-                ? `Доходы за месяц ${formatMoney(plannedExpenses)} — добавьте суммы в бюджет, чтобы увидеть, сколько оплачено`
-                : 'Заполните доходы за месяц, чтобы увидеть распределение'}
+              Заполните столбец «План» в бюджете, чтобы увидеть, сколько уже оплачено
             </p>
           )}
-          <p className="dashboard-scale-note">
-            {plannedExpenses <= 0
-              ? 'План бюджета не заполнен'
-              : `Доходы за месяц ${formatMoney(plannedExpenses)} · оплачено ${formatMoney(paidFromPlan)}`}
-          </p>
         </section>
 
         {recentMonths.length > 1 && (
