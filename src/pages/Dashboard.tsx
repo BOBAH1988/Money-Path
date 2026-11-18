@@ -194,8 +194,6 @@ export default function Dashboard() {
   const currentMonthLabel = MONTHS[activeMonth.index];
   const summaryIncome = currentMonthIncome;
   const summaryExpenses = totals.totalAll;
-  const summaryDiff = summaryIncome - summaryExpenses;
-  const summaryEqual = summaryExpenses === summaryIncome;
 
 
   const formatMoney = (value: number) =>
@@ -203,22 +201,30 @@ export default function Dashboard() {
 
   const netWorth = totalAssets + totalLiabilities;
 
+  // Баланс месяца строится от фактических доходов месяца: из них часть уже
+  // ушла на оплату бюджета, остаток — это ещё не оплаченные строки.
+  // Свободные деньги не рассчитываются: они сразу уходят на счёт.
+  const plannedExpenses = summaryIncome;
+  const paidFromPlan = Math.max(plannedExpenses - summaryExpenses, 0);
+
   const balanceSegments = [
     {
-      key: 'expenses',
-      label: 'Расходы',
+      key: 'planned',
+      label: 'Запланировано',
+      value: plannedExpenses,
+      className: 'dashboard-balance-segment-planned',
+    },
+    {
+      key: 'remaining',
+      label: 'Остаток расходов',
       value: summaryExpenses,
       className: 'dashboard-balance-segment-expenses',
     },
-    {
-      key: 'savings',
-      label: 'Свободно',
-      value: Math.max(summaryDiff, 0),
-      className: 'dashboard-balance-segment-savings',
-    },
   ].filter((segment) => segment.value > 0);
 
-  const balanceTotal = balanceSegments.reduce((sum, segment) => sum + segment.value, 0);
+  // Длина полосы — план бюджета, а «Остаток расходов» рисуется поверх как доля
+  // от него: видно, сколько из запланированной суммы ещё не оплачено.
+  const balanceTotal = plannedExpenses;
 
   const recentMonths = useMemo(() => {
     const totalsByMonth = new Array(12).fill(0);
@@ -298,7 +304,7 @@ export default function Dashboard() {
           <span className="dashboard-kpi-label">Остаток расходов</span>
           <strong className="dashboard-kpi-value">{formatMoney(summaryExpenses)}</strong>
           <span className="dashboard-kpi-note">
-            Регулярные расходы {formatMoney(totals.regularTotal)}
+            из {formatMoney(summaryIncome)} запланировано
           </span>
         </article>
         <article className={`dashboard-kpi${netWorth < 0 ? ' dashboard-kpi-danger' : ''}`}>
@@ -313,14 +319,14 @@ export default function Dashboard() {
       <div className="dashboard-scales">
         <section className="dashboard-scale-group">
           <h2>Баланс месяца</h2>
-          {summaryIncome > 0 && balanceTotal > 0 ? (
+          {plannedExpenses > 0 && balanceTotal > 0 ? (
             <>
-              <div className="dashboard-balance-bar" role="img" aria-label="Распределение доходов на расходы и свободный остаток">
+              <div className="dashboard-balance-bar" role="img" aria-label="План бюджета месяца и остаток к оплате">
                 {balanceSegments.map((segment) => (
                   <div
                     key={segment.key}
                     className={`dashboard-balance-segment ${segment.className}`}
-                    style={{ width: `${(segment.value / balanceTotal) * 100}%` }}
+                    style={{ width: `${Math.min((segment.value / balanceTotal) * 100, 100)}%` }}
                     title={`${segment.label}: ${formatMoney(segment.value)}`}
                   />
                 ))}
@@ -337,17 +343,15 @@ export default function Dashboard() {
             </>
           ) : (
             <p className="dashboard-scale-note">
-              {summaryExpenses > 0
-                ? `Расходы без доходов: ${formatMoney(summaryExpenses)}`
-                : 'Добавьте записи, чтобы увидеть распределение'}
+              {plannedExpenses > 0
+                ? `Доходы за месяц ${formatMoney(plannedExpenses)} — добавьте суммы в бюджет, чтобы увидеть, сколько оплачено`
+                : 'Заполните доходы за месяц, чтобы увидеть распределение'}
             </p>
           )}
-          <p className={`dashboard-scale-note${summaryDiff < 0 ? ' dashboard-scale-note-danger' : ''}`}>
-            {summaryEqual
-              ? 'Расходы равны доходам'
-              : summaryDiff > 0
-                ? `Остаток после расходов: ${formatMoney(summaryDiff)}`
-                : `Расходы превышают доходы на ${formatMoney(Math.abs(summaryDiff))}`}
+          <p className="dashboard-scale-note">
+            {plannedExpenses <= 0
+              ? 'План бюджета не заполнен'
+              : `Доходы за месяц ${formatMoney(plannedExpenses)} · оплачено ${formatMoney(paidFromPlan)}`}
           </p>
         </section>
 

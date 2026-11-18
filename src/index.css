@@ -2138,6 +2138,10 @@ body { margin: 0; font-family: system-ui, sans-serif; background: var(--theme-bg
   background: var(--dp-color-success);
 }
 
+.dashboard-balance-segment-planned {
+  background: var(--dp-color-success);
+}
+
 .dashboard-balance-legend {
   display: flex;
   flex-wrap: wrap;
@@ -2171,6 +2175,10 @@ body { margin: 0; font-family: system-ui, sans-serif; background: var(--theme-bg
 }
 
 .dashboard-balance-dot.dashboard-balance-segment-savings {
+  background: var(--dp-color-success);
+}
+
+.dashboard-balance-dot.dashboard-balance-segment-planned {
   background: var(--dp-color-success);
 }
 
