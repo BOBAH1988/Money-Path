@@ -12,8 +12,7 @@ import {
   restoreBackupLocally,
   parseBackupFile,
   backupFileName,
-  createBackupLink,
-  revokeBackupLink,
+  downloadBackup,
   type BackupArchive,
   type RestoreReport,
 } from '../lib/backup';
@@ -55,8 +54,7 @@ export default function Import() {
   const [clearBeforeRestore, setClearBeforeRestore] = useState(false);
   const [dragActive, setDragActive] = useState(false);
   const [restored, setRestored] = useState(false);
-  const [lastExport, setLastExport] = useState<{ name: string; records: number; url: string; bytes: number } | null>(null);
-  const lastExportUrlRef = useRef<string | null>(null);
+  const [lastExport, setLastExport] = useState<{ name: string; records: number } | null>(null);
 
   const localCounts = useMemo(() => {
     const counts: Record<string, number> = {};
@@ -67,14 +65,6 @@ export default function Import() {
   }, [uid, restored]);
 
   const localTotal = Object.values(localCounts).reduce((sum, value) => sum + value, 0);
-
-  useEffect(
-    () => () => {
-      revokeBackupLink(lastExportUrlRef.current ?? '');
-      lastExportUrlRef.current = null;
-    },
-    [],
-  );
 
   useEffect(() => {
     if (!restored) return;
@@ -95,18 +85,14 @@ export default function Import() {
       return;
     }
     setCreating(true);
-    revokeBackupLink(lastExportUrlRef.current ?? '');
-    lastExportUrlRef.current = null;
     setLastExport(null);
     try {
       const archive = await exportBackup(uid);
       const fileName = backupFileName(archive.userId);
-      const { url, bytes } = createBackupLink(archive, fileName);
-      revokeBackupLink(lastExportUrlRef.current ?? '');
-      lastExportUrlRef.current = url;
+      downloadBackup(archive, fileName);
       const records = countCollections(archive.collections);
-      setLastExport({ name: fileName, records, url, bytes });
-      toastSuccess('Архив готов', `Записей: ${records}. Нажмите «Сохранить файл».`);
+      setLastExport({ name: fileName, records });
+      toastSuccess('Архив скачан', `Записей: ${records}`);
     } catch (err) {
       toastError('Ошибка архива', err instanceof Error ? err.message : 'Не удалось создать архив');
     } finally {
@@ -233,21 +219,9 @@ export default function Import() {
           </div>
 
           {lastExport && (
-            <div className="import-success" role="status">
-              <p className="import-success-title">Архив готов · записей: {lastExport.records} · {formatBytes(lastExport.bytes)}</p>
-              <p className="import-success-file">{lastExport.name}</p>
-              <a
-                className="import-primary-btn import-success-btn"
-                href={lastExport.url}
-                download={lastExport.name}
-              >
-                Сохранить файл
-              </a>
-              <p className="import-hint">
-                Если файл не появился в «Загрузках», откройте эту ссылку в обычном браузере —
-                во встроенной панели загрузки могут уходить в её собственный список.
-              </p>
-            </div>
+            <p className="import-success" role="status">
+              Файл <strong>{lastExport.name}</strong> · записей: {lastExport.records}
+            </p>
           )}
         </section>
 

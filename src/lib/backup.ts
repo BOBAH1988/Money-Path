@@ -204,65 +204,25 @@ export const backupFileName = (userId: string): string => {
 };
 
 /**
- * Формирует файл архива в памяти вкладки и возвращает ссылку на него.
+ * Скачивает архив как файл в браузере.
  *
- * Ничего не скачивает само по себе: Chrome и Safari игнорируют программный клик
- * по ссылке, поэтому сохранить файл нужно реакцией на реальное нажатие
- * пользователя (`<a download>` в интерфейсе).
+ * Ссылка добавляется в документ перед кликом, иначе Safari и Firefox
+ * игнорируют программное нажатие и файл не сохраняется. Blob-ссылку
+ * освобождаем с задержкой: если отозвать её сразу, часть браузеров
+ * не успевает забрать данные и загрузка обрывается.
  */
-export const createBackupLink = (
-  archive: BackupArchive,
-  fileName?: string,
-): { url: string; fileName: string; bytes: number } => {
-  const text = JSON.stringify(archive, null, 2);
-  const blob = new Blob([text], { type: 'application/json' });
-  return {
-    url: URL.createObjectURL(blob),
-    fileName: fileName ?? backupFileName(archive.userId),
-    bytes: blob.size,
-  };
-};
-
-export const revokeBackupLink = (url: string): void => {
-  try {
-    URL.revokeObjectURL(url);
-  } catch {
-    // ссылка уже освобождена
-  }
-};
-
-/**
- * Пытается скачать архив программным кликом.
- * Возвращает false, если браузер не запустил загрузку (обработка download
- * отменилась или выбросила ошибку) — тогда интерфейс должен показать
- * пользователю прямую ссылку на файл.
- */
-export const downloadBackup = (archive: BackupArchive, fileName?: string): boolean => {
-  const { url, fileName: name } = createBackupLink(archive, fileName);
+export const downloadBackup = (archive: BackupArchive, fileName?: string): void => {
+  const blob = new Blob([JSON.stringify(archive, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
   const link = document.createElement('a');
   link.href = url;
-  link.download = name;
+  link.download = fileName ?? backupFileName(archive.userId);
   link.rel = 'noopener';
   link.style.display = 'none';
   document.body.appendChild(link);
-
-  let handled = false;
-  const onHandled = () => { handled = true; };
-  window.addEventListener('download', onHandled, { once: true });
-
-  let started = false;
-  try {
-    link.click();
-    started = true;
-  } catch (err) {
-    console.error('[backup] программное скачивание не удалось:', err);
-  }
-
+  link.click();
   document.body.removeChild(link);
-  window.removeEventListener('download', onHandled);
-  // Освобождаем ресурс после того, как браузер заберёт данные по ссылке.
-  window.setTimeout(() => revokeBackupLink(url), 60000);
-  return started || handled;
+  window.setTimeout(() => URL.revokeObjectURL(url), 60000);
 };
 
 import { loadBudgetPlan, saveBudgetPlan } from './budget';

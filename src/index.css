@@ -2300,28 +2300,6 @@ body { margin: 0; font-family: system-ui, sans-serif; background: var(--theme-bg
   background: rgba(5, 150, 105, 0.12);
 }
 
-.import-success-title {
-  margin: 0;
-  color: var(--dp-color-success);
-  font-size: 13px;
-  font-weight: 700;
-}
-
-.import-success-file {
-  margin: 0;
-  color: var(--theme-text-muted);
-  font-size: 12px;
-  word-break: break-all;
-}
-
-.import-success-btn {
-  align-self: flex-start;
-  min-height: 38px;
-  padding: 8px 16px;
-  font-size: 14px;
-  text-decoration: none;
-}
-
 .import-dropzone {
   display: flex;
   flex-direction: column;
