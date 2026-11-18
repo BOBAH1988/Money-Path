@@ -31,6 +31,7 @@
 | Обязательства | `/liabilities` |
 | Доходы | `/income` |
 | Импорт и экспорт | `/import` |
+| Инструкция | `/guide` |
 | Условия использования | `/terms` |
 | Уведомление о конфиденциальности | `/privacy` |
 
@@ -140,7 +141,7 @@ npx --yes firebase-tools@14.22.0 emulators:exec \
 
 ## Firebase и безопасность
 
-Для разработки и развёртывания Firebase Auth и Firestore должны быть настроены в проекте Firebase. Клиентские параметры конфигурации можно передать через `VITE_FIREBASE_*`; у веб-приложения также есть публичный Firebase API key для fallback, который попадёт в браузерную сборку. Ограничьте его по HTTP referrer и используемым API в Google Cloud Console — без этого ключ можно использовать из чужого проекта. Проверка обязательна после смены домена, например при переезде с GitHub Pages на собственный сервер. Не добавляйте приватные ключи, пароли или service-account credentials в клиентский код.
+Для разработки и развёртывания Firebase Auth и Firestore должны быть настроены в проекте Firebase. Клиентские параметры конфигурации передаются через `VITE_FIREBASE_*`: скопируйте `.env.example` в `.env` и заполните значения. В исходном коде ключа нет — без `VITE_FIREBASE_API_KEY` приложение сообщает, что Firebase не настроен. Ключ веб-приложения публичен и всё равно попадает в браузерную сборку, поэтому ограничьте его по HTTP referrer и используемым API в Google Cloud Console — без этого ключ можно использовать из чужого проекта. Домен и путь должны быть в списке сайтов ключа; для GitHub Pages нужны и `https://<user>.github.io/*`, и `https://<user>.github.io/<repo>/*`, иначе вход отклоняется с `auth/requests-from-referer-…-are-blocked`. Проверка обязательна после смены домена, например при переезде на собственный сервер. Не добавляйте приватные ключи, пароли или service-account credentials в клиентский код: ключ, попавший в коммит, остаётся в истории git даже после удаления из файла и требует перевыпуска.
 
 Правила [`firestore.rules`](firestore.rules) ограничивают доступ к данным владельцем аккаунта; администратор имеет отдельный ограниченный доступ к списку профилей. Перед изменением правил запускайте emulator-тесты. Для production проект и актуальная схема размещения данных описаны в [уведомлении о конфиденциальности](https://BOBAH1988.github.io/Money-Path/#/privacy) и `docs/operations.md`.
 
@@ -148,7 +149,7 @@ npx --yes firebase-tools@14.22.0 emulators:exec \
 
 ## Тестирование и публикация
 
-GitHub Actions выполняет проверки, тесты, production-сборку и тесты Firestore Rules, затем публикует приложение в GitHub Pages. Workflow запускается после push в `main`. Результат и логи доступны на странице [GitHub Actions](https://github.com/BOBAH1988/Money-Path/actions).
+GitHub Actions выполняет проверки, тесты, production-сборку и тесты Firestore Rules, затем публикует приложение в GitHub Pages. Workflow запускается после push в `main` или вручную через **Run workflow** на вкладке Actions. Ключ передаётся секретом `VITE_FIREBASE_API_KEY`; остальные параметры Firebase имеют значения по умолчанию в коде. Результат и логи доступны на странице [GitHub Actions](https://github.com/BOBAH1988/Money-Path/actions).
 
 Для ручной публикации требуется включённый GitHub Pages с источником **GitHub Actions**. Vite настроен на base path `/Money-Path/`. Не заменяйте его на `/`, пока приложение размещается в подпути GitHub Pages.
 

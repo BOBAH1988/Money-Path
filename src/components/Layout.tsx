@@ -26,7 +26,6 @@ const items = [
   { to: '/liabilities', label: 'Пассивы', icon: 'liabilities' },
   { to: '/income', label: 'Доходы', icon: 'income' },
   { to: '/import', label: 'Импорт', icon: 'import' },
-  { to: '/guide', label: 'Инструкция', icon: 'guide' },
 ] as const satisfies ReadonlyArray<{ to: string; label: string; icon: import('./MenuIcons').IconName }>;
 
 const routePrefetchers: Record<string, () => Promise<unknown>> = {
