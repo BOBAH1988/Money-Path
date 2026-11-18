@@ -1,10 +1,12 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { render, screen, fireEvent, cleanup } from '@testing-library/react';
 import { act } from 'react';
 import { ToastProvider } from '../ui/Toast';
 import { useData } from '../hooks/useData';
 import { useAuth } from '../context/AuthContext';
 import { PageTitleProvider } from '../components/PageTitleContext';
+
+afterEach(() => cleanup());
 
 vi.mock('../hooks/useData', () => ({
   useData: vi.fn(),
@@ -86,7 +88,7 @@ describe('IncomeArchive page', () => {
     expect(els.length).toBeGreaterThan(0);
   });
 
-  it('opens add form modal when clicking + button', async () => {
+  it('«+» сразу добавляет источник «Новый источник» с нулями по месяцам', async () => {
     const IncomeArchive = (await import('../pages/IncomeArchive')).default;
     const addItem = vi.fn();
     (useData as any).mockReturnValue({
@@ -103,12 +105,51 @@ describe('IncomeArchive page', () => {
     await new Promise((r) => setTimeout(r, 100));
 
     act(() => {
-      fireEvent.click(screen.getAllByLabelText('Добавить источник')[0]);
+      fireEvent.click(screen.getByRole('button', { name: 'Добавить источник' }));
     });
-    await screen.findByText('Новый источник дохода');
+
+    // Строка появляется сразу, без модалки: название по умолчанию и 12 нулей.
+    // (кнопка «+» остаётся на месте; «−» рядом открывает выбор строки)
+    expect(addItem).toHaveBeenCalledTimes(1);
+    const created = addItem.mock.calls[0][0];
+    expect(created.name).toBe('Новый источник');
+    expect(created.months).toEqual(new Array(12).fill(0));
+    expect(screen.queryByText('Новый источник дохода')).not.toBeInTheDocument();
   });
 
-  it('opens edit form modal when clicking edit icon', async () => {
+  it('название правится прямо в ячейке, без модалки', async () => {
+    const IncomeArchive = (await import('../pages/IncomeArchive')).default;
+    const updateItem = vi.fn();
+    const items = [
+      { id: '1', name: 'Зарплата', year: 2026, months: [1000, 2000, 3000, 0, 0, 0, 0, 0, 0, 0, 0, 0] },
+    ];
+    (useData as any).mockReturnValue({
+      items,
+      loading: false,
+      error: null,
+      addItem: () => {},
+      updateItem,
+      removeItem: () => {},
+    });
+    (useAuth as any).mockReturnValue({ uid: 'uid-123', isAuthReady: true, isAuthenticated: true });
+
+    render(wrap(<IncomeArchive />));
+    await new Promise((r) => setTimeout(r, 100));
+
+    act(() => {
+      fireEvent.click(screen.getByRole('button', { name: /Изменить: Зарплата/ }));
+    });
+
+    // Модалки нет: на месте названия появляется поле ввода.
+    const input = screen.getByLabelText('Название источника');
+    fireEvent.change(input, { target: { value: 'Аванс' } });
+    fireEvent.keyDown(input, { key: 'Enter' });
+
+    expect(updateItem).toHaveBeenCalledWith('1', { name: 'Аванс' });
+    expect(screen.queryByText('Редактировать источник')).not.toBeInTheDocument();
+  });
+
+  it('кнопка «−» открывает выбор источника для удаления', async () => {
     const IncomeArchive = (await import('../pages/IncomeArchive')).default;
     const items = [
       { id: '1', name: 'Зарплата', year: 2026, months: [1000, 2000, 3000, 0, 0, 0, 0, 0, 0, 0, 0, 0] },
@@ -127,10 +168,14 @@ describe('IncomeArchive page', () => {
     await new Promise((r) => setTimeout(r, 100));
 
     act(() => {
-      fireEvent.click(screen.getByLabelText('Редактировать'));
+      fireEvent.click(screen.getByRole('button', { name: 'Удалить источник' }));
     });
-    await screen.findByText('Редактировать источник');
-    const inputs = screen.getAllByRole('textbox');
-    expect(inputs.length).toBeGreaterThan(0);
+
+    // Появляется список источников, выбор строки ведёт к подтверждению удаления.
+    expect(screen.getByRole('heading', { name: 'Удалить источник' })).toBeInTheDocument();
+    act(() => {
+      fireEvent.click(screen.getByRole('button', { name: 'Зарплата' }));
+    });
+    await screen.findByText('Удалить источник?');
   });
 });

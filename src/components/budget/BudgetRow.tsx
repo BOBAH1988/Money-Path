@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import type { BudgetPlanItem } from '../../types';
 import { ConfirmDialog } from '../../ui/ConfirmDialog';
 import { useToast } from '../../ui/Toast';
-import { format } from './format';
+import { EditableAmountCell } from './EditableAmountCell';
 
 interface Props {
   item: BudgetPlanItem;
@@ -92,6 +92,28 @@ export const BudgetRow = ({ item, onUpdate, onRemove, onToggle, isPlannedCollaps
     }
   };
 
+  // Долгое нажатие на название — единственный путь к удалению строки:
+  // случайный тап по кнопке больше не может стереть данные.
+  const longPressTimer = useRef<number | null>(null);
+  const longPressFired = useRef(false);
+
+  const cancelLongPress = () => {
+    if (longPressTimer.current !== null) {
+      window.clearTimeout(longPressTimer.current);
+      longPressTimer.current = null;
+    }
+  };
+
+  const startLongPress = () => {
+    if (plain) return;
+    longPressFired.current = false;
+    cancelLongPress();
+    longPressTimer.current = window.setTimeout(() => {
+      longPressFired.current = true;
+      setConfirmDelete(true);
+    }, 600);
+  };
+
   const togglePlanned = () => {
     if (!isSubtotal || !onToggle) return;
     onToggle('planned');
@@ -104,7 +126,7 @@ export const BudgetRow = ({ item, onUpdate, onRemove, onToggle, isPlannedCollaps
         onClose={() => setConfirmDelete(false)}
         onConfirm={() => { onRemove(item.id); setConfirmDelete(false); toastSuccess('Удалено', 'Строка удалена'); }}
         title="Удалить строку?"
-        description={`Удаление "${item.name}" необратимо`}
+        description={`Строка «${item.name}» будет удалена безвозвратно.`}
         confirmLabel="Удалить"
         cancelLabel="Отмена"
         confirmVariant="danger"
@@ -126,72 +148,91 @@ export const BudgetRow = ({ item, onUpdate, onRemove, onToggle, isPlannedCollaps
           />
         </td>
         <td className="budget-cell budget-cell-amount">
-          <div className="input-group">
-            <input
-              className="budget-input budget-input-amount"
-              value={amount}
-              onChange={(e) => setAmount(e.target.value)}
-              onKeyDown={handleKeyDown}
-              placeholder="0"
-            />
-          </div>
+          <input
+            className="budget-input budget-input-amount"
+            type="text"
+            inputMode="decimal"
+            value={amount}
+            onChange={(e) => setAmount(e.target.value)}
+            onKeyDown={handleKeyDown}
+            placeholder="0"
+            aria-label="Сумма"
+          />
         </td>
         <td className="budget-cell budget-cell-plan">
-          <div className="input-group">
-            <input
-              className="budget-input budget-input-amount"
-              value={plan}
-              onChange={(e) => setPlan(e.target.value)}
-              onKeyDown={handleKeyDown}
-              placeholder="0"
-            />
-          </div>
-        </td>
-        <td className="budget-cell budget-cell-actions">
-          <button className="btn-delete" onClick={() => setConfirmDelete(true)} aria-label="Удалить строку">
-            🗑️
-          </button>
+          <input
+            className="budget-input budget-input-amount"
+            type="text"
+            inputMode="decimal"
+            value={plan}
+            onChange={(e) => setPlan(e.target.value)}
+            onKeyDown={handleKeyDown}
+            placeholder="0"
+            aria-label="План"
+          />
         </td>
       </tr>
     );
   }
 
+  const plain = isSubtotal || isTotal;
+
   return (
-    <tr className={`budget-row ${item.type}`} onClick={isSubtotal ? togglePlanned : undefined}>
-      <td className="budget-cell budget-cell-name">
-        <span className="row-name">{item.name}</span>
-        {isSubtotal && <span className="row-hint">сумма дополнительных расходов</span>}
-      </td>
-        <td className="budget-cell budget-cell-amount">
-        <span className="row-amount">{format(item.amount ?? 0)}</span>
-        {isTotal && <span className="row-currency">₽</span>}
-      </td>
-      <td className="budget-cell budget-cell-plan">
-        <span className="row-amount">{format(item.plan ?? 0)}</span>
-        {isTotal && <span className="row-currency">₽</span>}
-      </td>
-      <td className="budget-cell budget-cell-actions">
-      {isSubtotal && (
-        <button
-          className="btn-edit"
-          onClick={(e) => { e.stopPropagation(); togglePlanned(); }}
-          aria-label={isPlannedCollapsed ? "Развернуть дополнительные расходы" : "Свернуть дополнительные расходы"}
-        >
-          {isPlannedCollapsed ? "▶" : "▼"}
-        </button>
-      )}
-        {!isSubtotal && !isTotal && (
-          <>
+    <>
+      <tr className={`budget-row ${item.type}${plain ? '' : ' budget-row-tappable'}`}>
+        <td className="budget-cell budget-cell-name">
+          {plain ? (
+            <span className="row-name">{item.name}</span>
+          ) : (
             <button
-              className="btn-edit"
-              onClick={(e) => { e.stopPropagation(); startEdit(); }}
-              aria-label="Редактировать строку"
+              type="button"
+              className="row-name-btn"
+              onClick={startEdit}
+              onContextMenu={(e) => { e.preventDefault(); setConfirmDelete(true); }}
+              onPointerDown={startLongPress}
+              onPointerUp={cancelLongPress}
+              onPointerLeave={cancelLongPress}
+              onPointerCancel={cancelLongPress}
+              aria-label={`Изменить название: ${item.name}. Долгое нажатие — удалить строку`}
+              title="Долгое нажатие — удалить"
             >
-              ✎
+              {item.name}
             </button>
-          </>
-        )}
-      </td>
-    </tr>
+          )}
+          {isSubtotal && <span className="row-hint">сумма дополнительных расходов</span>}
+        </td>
+        <td className="budget-cell budget-cell-amount">
+          <EditableAmountCell
+            value={item.amount ?? 0}
+            label={item.name}
+            readOnly={plain}
+            onCommit={(next) => onUpdate(item.id, { amount: next })}
+          />
+          {isTotal && <span className="row-currency">₽</span>}
+        </td>
+        <td className="budget-cell budget-cell-plan">
+          <EditableAmountCell
+            value={item.plan ?? 0}
+            label={`${item.name} — план`}
+            readOnly={plain}
+            onCommit={(next) => onUpdate(item.id, { plan: next })}
+          />
+          {isTotal && <span className="row-currency">₽</span>}
+        </td>
+      </tr>
+      {isSubtotal && (
+        <tr className="budget-row-subaction">
+          <td colSpan={3}>
+            <button
+              type="button"
+              className="row-toggle-btn"
+              onClick={togglePlanned}
+            >
+              {isPlannedCollapsed ? '▶ Показать дополнительные расходы' : '▼ Свернуть дополнительные расходы'}
+            </button>
+          </td>
+        </tr>
+      )}
+    </>
   );
 };

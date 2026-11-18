@@ -1,8 +1,9 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../ui/Toast';
 import { MenuIcon } from '../components/MenuIcons';
+import { PageTitleContext } from '../components/PageTitleContext';
 import { ConfirmDialog } from '../ui/ConfirmDialog';
 import { loadLocalCollection } from '../lib/dataStore';
 import {
@@ -42,6 +43,7 @@ function formatBytes(bytes: number): string {
 }
 
 export default function Import() {
+  const { setPageTitle } = useContext(PageTitleContext)!;
   const { isAuthenticated, isAuthReady, uid } = useAuth();
   const navigate = useNavigate();
   const { success: toastSuccess, error: toastError } = useToast();
@@ -65,6 +67,12 @@ export default function Import() {
   }, [uid, restored]);
 
   const localTotal = Object.values(localCounts).reduce((sum, value) => sum + value, 0);
+
+  // Заголовок шапки живёт в общем контексте: без явной установки на странице
+  // импорта остаётся подпись предыдущего раздела, например «Доходы».
+  useEffect(() => {
+    setPageTitle('Импорт и экспорт');
+  }, [setPageTitle]);
 
   useEffect(() => {
     if (!restored) return;
@@ -232,9 +240,6 @@ export default function Import() {
             </span>
             <div>
               <h2 className="import-card-title">Импорт</h2>
-              <p className="import-card-text">
-                Перетащите файл архива сюда или выберите его вручную.
-              </p>
             </div>
           </header>
 

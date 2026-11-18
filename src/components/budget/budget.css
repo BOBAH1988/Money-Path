@@ -136,8 +136,8 @@
 }
 
 .budget-head-name { text-align: left; padding-left: 8px; }
-.budget-head-amount { text-align: right; width: 95px; padding-right: 4px; }
-.budget-head-plan { text-align: right; width: 95px; padding-right: 4px; }
+.budget-head-amount { text-align: right; width: 94px; padding: 8px 4px; white-space: nowrap; }
+.budget-head-plan { text-align: right; width: 94px; padding: 8px 4px; white-space: nowrap; }
 .budget-head-actions { text-align: center; width: auto; min-width: 44px; padding: 8px 2px; }
 
 .budget-row { display: table-row; border-bottom: 1px solid var(--theme-border); transition: background 0.15s; }
@@ -146,19 +146,18 @@
 
 .budget-cell { display: table-cell; padding: 4px 4px; vertical-align: middle; }
 .budget-cell-actions { padding: 4px 2px; text-align: center; }
-.budget-cell-name { font-size: 14px; color: var(--theme-text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.budget-cell-amount { text-align: right; font-variant-numeric: tabular-nums; width: 90px; padding-right: 2px; }
-.budget-cell-plan { text-align: right; font-variant-numeric: tabular-nums; width: 90px; padding-right: 2px; }
+.budget-cell-name { font-size: 14px; color: var(--theme-text); white-space: nowrap; }
+.budget-cell-amount { text-align: right; font-variant-numeric: tabular-nums; width: 94px; padding: 4px 4px; }
+.budget-cell-plan { text-align: right; font-variant-numeric: tabular-nums; width: 94px; padding: 4px 4px; }
 .budget-cell-actions { text-align: center; width: 28px; }
 
 @media (max-width: 600px) {
   .budget-table { table-layout: fixed; }
   .budget-head-amount,
-  .budget-head-plan { width: 76px; padding-right: 2px; padding-left: 2px; }
-  .budget-head-actions,
-  .budget-cell-actions { width: 36px; min-width: 36px; padding-right: 0; padding-left: 0; }
+  .budget-head-plan { width: 80px; min-width: 0; padding: 8px 2px; white-space: normal; }
   .budget-cell-amount,
-  .budget-cell-plan { width: 76px; padding-right: 2px; padding-left: 2px; font-size: 13px; }
+  .budget-cell-plan { width: 80px; min-width: 0; padding: 4px 2px; font-size: 12px; }
+  .budget-cell-name { white-space: normal; word-break: break-word; }
   .budget-input-amount { width: 100%; min-width: 0; }
 }
 
@@ -226,6 +225,35 @@
   cursor: pointer;
   transition: background 0.15s, transform 0.1s;
 }
+
+.btn-remove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border: 1px solid var(--theme-border);
+  border-radius: 10px;
+  background: var(--theme-surface);
+  color: var(--theme-text-muted);
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s, transform 0.1s;
+}
+
+.btn-remove:hover,
+.btn-remove:focus-visible {
+  color: var(--dp-color-danger);
+  border-color: var(--dp-color-danger);
+  background: rgba(220, 38, 38, 0.08);
+  outline: none;
+}
+
+.btn-remove:active { transform: scale(0.92); }
+.btn-remove:disabled { opacity: 0.4; cursor: default; transform: none; }
 
 .btn-add { background: var(--theme-accent); color: var(--theme-inverse-text); }
 .btn-add:hover { background: var(--theme-accent-hover); }
@@ -377,6 +405,22 @@
 
 .summary-item-total .summary-value { color: var(--theme-accent); }
 
+/* Итоги на странице «Доходы»: карточки в стиле KPI главной страницы */
+.income-summary-grid {
+  padding: 0 4px 16px;
+  margin-bottom: 12px;
+}
+
+.income-summary-grid .dashboard-kpi {
+  padding: 14px 16px;
+}
+
+/* Обе карточки без подписи внизу — выравниваем по высоте и убираем
+   лишнее место, которое оставляла удалённая строка примечания. */
+.income-summary-grid .dashboard-kpi-label {
+  min-height: 0;
+}
+
 @keyframes fadeIn {
   from { opacity: 0; transform: translateY(6px); }
   to { opacity: 1; transform: translateY(0); }
@@ -385,4 +429,171 @@
 @keyframes cardIn {
   from { opacity: 0; transform: translateY(10px); }
   to { opacity: 1; transform: translateY(0); }
+}
+
+/* ---------- Ячейка с правкой по тапу и быстрым сбросом ---------- */
+.cell-amount {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 4px;
+  width: 100%;
+  min-width: 0;
+}
+
+.cell-amount-value {
+  flex: 1 1 auto;
+  min-width: 0;
+  max-width: 100%;
+  padding: 6px 2px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--theme-text);
+  font: inherit;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+  white-space: nowrap;
+  overflow: visible;
+}
+
+.cell-amount-value:hover,
+.cell-amount-value:focus-visible {
+  background: var(--theme-surface);
+  border-color: var(--theme-border);
+  outline: none;
+}
+
+.cell-amount-value:active {
+  background: var(--theme-input-bg);
+}
+
+.cell-amount-value:disabled {
+  cursor: default;
+  background: transparent;
+  border-color: transparent;
+  color: var(--theme-text);
+}
+
+.cell-amount-input {
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  padding: 7px 6px;
+  border: 1px solid var(--theme-accent);
+  border-radius: 8px;
+  background: var(--theme-input-bg);
+  color: var(--theme-text);
+  font: inherit;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.15);
+}
+
+/* ---------- Название строки: правка по тапу, удаление долгим нажатием ---------- */
+.row-name-btn {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  padding: 6px 8px;
+  margin-left: -8px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--theme-text);
+  font: inherit;
+  font-weight: 500;
+  text-align: left;
+  cursor: pointer;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  touch-action: manipulation;
+  -webkit-touch-callout: none;
+  user-select: none;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.row-name-btn:hover,
+.row-name-btn:focus-visible {
+  background: var(--theme-surface);
+  border-color: var(--theme-border);
+  outline: none;
+}
+
+.row-name-btn:active {
+  background: var(--theme-input-bg);
+}
+
+/* ---------- Служебные строки под таблицей ---------- */
+.budget-row-subaction td {
+  padding: 2px 8px 6px;
+  border-bottom: 1px solid var(--theme-border);
+}
+
+.row-subaction-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.row-toggle-btn {
+  padding: 6px 10px;
+  border: 1px solid var(--theme-border);
+  border-radius: 8px;
+  background: var(--theme-surface);
+  color: var(--theme-text-muted);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s, background 0.15s;
+}
+
+.row-toggle-btn:hover,
+.row-toggle-btn:focus-visible {
+  color: var(--theme-accent);
+  border-color: var(--theme-accent);
+  outline: none;
+}
+
+.row-toggle-btn-primary {
+  color: var(--theme-inverse-text, #fff);
+  background: var(--theme-accent);
+  border-color: var(--theme-accent);
+}
+
+.row-toggle-btn-primary:hover {
+  color: var(--theme-inverse-text, #fff);
+  background: var(--theme-accent-hover);
+  border-color: var(--theme-accent-hover);
+}
+
+/* ---------- Телефон: ввод не наплывает и не уходит за экран ---------- */
+@media (max-width: 600px) {
+  .budget-card-body { padding: 10px 8px; }
+  .budget-cell-name { padding-left: 2px; padding-right: 2px; }
+  .budget-head-name { padding-left: 2px; }
+  .budget-input { padding: 8px 6px; font-size: 14px; }
+  .row-name-btn { padding: 8px 6px; margin-left: -6px; font-size: 13px; }
+  .cell-amount-value { padding: 8px 2px; font-size: 13px; }
+  .cell-amount-input { padding: 8px 4px; font-size: 14px; }
+  .budget-row-editing .budget-cell-name { min-width: 0; }
+  .budget-row-editing .budget-cell-name .budget-input { min-width: 0; }
+  .budget-input-amount { width: 100%; min-width: 0; }
+}
+
+/* Шапка месяца на странице «Доходы»: название и год стоят левым краем
+   друг под другом, поэтому первая буква месяца и первая цифра года совпадают. */
+.budget-head.income-month-head {
+  text-align: left;
+  white-space: normal;
+}
+
+.income-month-head .income-month-name {
+  display: block;
+  text-align: left;
 }

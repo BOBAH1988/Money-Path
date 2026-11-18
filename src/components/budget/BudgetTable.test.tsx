@@ -43,20 +43,19 @@ const getSubtotalRow = (container: HTMLElement) =>
   container.querySelector('tr.budget-row.subtotal');
 
 describe('BudgetTable totals', () => {
-  it('starts without an empty item row and only adds after entering a name', () => {
+  it('«+» сразу добавляет пустую строку, без формы ввода', () => {
     const onAdd = vi.fn();
-    const { container, getByLabelText, getByPlaceholderText } = renderTable({ onAdd });
+    const { container, getByLabelText } = renderTable({ onAdd });
 
     expect(container.querySelectorAll('tr.budget-row:not(.total)')).toHaveLength(0);
+
+    // Нажатие «+» — одно действие: строка создаётся сразу, без промежуточной формы.
     fireEvent.click(getByLabelText('Добавить строку'));
 
-    expect(container.querySelectorAll('tr.budget-row-editing')).toHaveLength(1);
-    fireEvent.keyDown(getByPlaceholderText('Новая строка'), { key: 'Enter' });
-    expect(onAdd).not.toHaveBeenCalled();
-
-    fireEvent.change(getByPlaceholderText('Новая строка'), { target: { value: 'Кредит' } });
-    fireEvent.keyDown(getByPlaceholderText('Новая строка'), { key: 'Enter' });
-    expect(onAdd).toHaveBeenCalledWith('monthly', 'Кредит', 0, 0);
+    expect(onAdd).toHaveBeenCalledTimes(1);
+    expect(onAdd).toHaveBeenCalledWith('monthly', '', 0, 0);
+    expect(container.querySelectorAll('tr.budget-row-editing')).toHaveLength(0);
+    expect(container.querySelector('input[placeholder="Новая строка"]')).toBeNull();
   });
 
   it('footer row shows combined amount/plan totals (monthly + planned) when plannedItems are provided', () => {

@@ -43,14 +43,15 @@ describe('BudgetRow', () => {
       group: 'monthly',
       type: 'item',
     });
-    expect(container.querySelector('.row-name')?.textContent).toBe('Ипотека');
-    const amounts = container.querySelectorAll('.row-amount');
-    expect(amounts[0]?.textContent).toBe('12 500');
-    expect(amounts[1]?.textContent).toBe('12 500');
+    expect(container.querySelector('.row-name-btn')?.textContent).toBe('Ипотека');
+    const amounts = container.querySelectorAll('.cell-amount-value');
+    // Intl вставляет неразрывный пробел — сравниваем нормализованный текст.
+    expect(amounts[0]?.textContent?.replace(/\u00a0/g, ' ')).toBe('12 500');
+    expect(amounts[1]?.textContent?.replace(/\u00a0/g, ' ')).toBe('12 500');
     expect(screen.queryAllByRole('textbox')).toHaveLength(0);
   });
 
-  it('renders edit button in actions cell by default', () => {
+  it('column «Действия» больше не используется: правка по тапу на название', () => {
     const { container } = renderRow({
       id: '1',
       name: 'Ипотека',
@@ -59,10 +60,11 @@ describe('BudgetRow', () => {
       group: 'monthly',
       type: 'item',
     });
-    expect(container.querySelector('.btn-edit')).toBeInTheDocument();
+    expect(container.querySelector('.budget-cell-actions')).toBeNull();
+    expect(container.querySelector('.row-name-btn')).toBeInTheDocument();
   });
 
-  it('shows delete button in edit mode', () => {
+  it('в режиме правки нет кнопки удаления', () => {
     const { container } = renderRow(
       {
         id: '1',
@@ -76,11 +78,11 @@ describe('BudgetRow', () => {
       vi.fn(),
       true
     );
-    expect(container.querySelector('.btn-delete')).toBeInTheDocument();
-    expect(container.querySelector('.btn-cancel')).toBeNull();
+    expect(container.querySelector('.btn-delete')).toBeNull();
+    expect(container.querySelector('.budget-cell-actions')).toBeNull();
   });
 
-  it('calls onRemove when confirm delete button clicked in edit mode', () => {
+  it('долгое нажатие на название открывает подтверждение удаления', async () => {
     const onRemove = vi.fn();
     const { container } = renderRow(
       {
@@ -92,53 +94,19 @@ describe('BudgetRow', () => {
         type: 'item',
       },
       vi.fn(),
-      onRemove,
-      true
+      onRemove
     );
-    fireEvent.click(container.querySelector('.btn-delete')!);
-    fireEvent.click(screen.getByRole('button', { name: /Удалить/ }));
-    expect(onRemove).toHaveBeenCalledWith('1');
-  });
+    const nameBtn = container.querySelector('.row-name-btn')!;
+    fireEvent.pointerDown(nameBtn);
+    await new Promise((resolve) => setTimeout(resolve, 700));
+    fireEvent.pointerUp(nameBtn);
 
-  it('shows confirmation dialog after clicking delete in edit mode', () => {
-    const { container } = renderRow(
-      {
-        id: '1',
-        name: 'Ипотека',
-        amount: 12500,
-        plan: 12500,
-        group: 'monthly',
-        type: 'item',
-      },
-      vi.fn(),
-      vi.fn(),
-      true
-    );
-    fireEvent.click(container.querySelector('.btn-delete')!);
     expect(document.querySelector('.confirm-title')?.textContent).toContain('Удалить строку');
-  });
-
-  it('calls onRemove when confirm delete button clicked', () => {
-    const onRemove = vi.fn();
-    const { container } = renderRow(
-      {
-        id: '1',
-        name: 'Ипотека',
-        amount: 12500,
-        plan: 12500,
-        group: 'monthly',
-        type: 'item',
-      },
-      vi.fn(),
-      onRemove,
-      true
-    );
-    fireEvent.click(container.querySelector('.btn-delete')!);
     fireEvent.click(screen.getByRole('button', { name: /Удалить/ }));
     expect(onRemove).toHaveBeenCalledWith('1');
   });
 
-  it('does not call onRemove when cancel delete clicked', () => {
+  it('отмена в подтверждении не удаляет строку', async () => {
     const onRemove = vi.fn();
     const { container } = renderRow(
       {
@@ -150,10 +118,11 @@ describe('BudgetRow', () => {
         type: 'item',
       },
       vi.fn(),
-      onRemove,
-      true
+      onRemove
     );
-    fireEvent.click(container.querySelector('.btn-delete')!);
+    const nameBtn = container.querySelector('.row-name-btn')!;
+    fireEvent.pointerDown(nameBtn);
+    await new Promise((resolve) => setTimeout(resolve, 700));
     fireEvent.click(screen.getByRole('button', { name: /Отмена/ }));
     expect(onRemove).not.toHaveBeenCalled();
   });
@@ -243,25 +212,22 @@ describe('BudgetRow', () => {
       false,
       onStartEdit
     );
-    fireEvent.click(container.querySelector('.btn-edit')!);
+    fireEvent.click(container.querySelector('.row-name-btn')!);
     expect(onStartEdit).toHaveBeenCalledWith('1');
   });
 
-  it('shows delete button only in edit mode', () => {
-    const { container } = renderRow(
-      {
-        id: '1',
-        name: 'Ипотека',
-        amount: 12500,
-        plan: 12500,
-        group: 'monthly',
-        type: 'item',
-      },
-      vi.fn(),
-      vi.fn(),
-      true
-    );
-    expect(container.querySelector('.btn-delete')).toBeInTheDocument();
+  it('тап по сумме открывает правку значения в ячейке', () => {
+    const { container } = renderRow({
+      id: '1',
+      name: 'Ипотека',
+      amount: 12500,
+      plan: 12500,
+      group: 'monthly',
+      type: 'item',
+    });
+    fireEvent.click(container.querySelector('.cell-amount-value')!);
+    const input = container.querySelector('.cell-amount-input');
+    expect(input).toHaveValue('12500');
   });
 
   it('does not enter edit mode when clicking the row', () => {

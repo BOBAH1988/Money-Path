@@ -39,26 +39,12 @@ export const BudgetTable = ({
   headers,
 }: Props) => {
   const groupItems = items.filter((it) => it.group === group);
-  const [showAddRow, setShowAddRow] = useState(false);
-  const [inputName, setInputName] = useState('');
-  const [inputAmount, setInputAmount] = useState('');
-  const [inputPlan, setInputPlan] = useState('');
   const [editingId, setEditingId] = useState<string | null>(null);
 
+  // «+» сразу добавляет пустую строку в конец списка: отдельной формы ввода нет,
+  // название и суммы правятся уже в самой строке тапом по ним.
   const handleAdd = () => {
-    const amountNum = Number(
-      inputAmount.replace(/[^\d.,-]/g, '').replace(',', '.')
-    ) || 0;
-    const planNum = Number(
-      inputPlan.replace(/[^\d.,-]/g, '').replace(',', '.')
-    ) || 0;
-    const trimmed = inputName.trim();
-    if (!trimmed) return;
-    onAdd(group, trimmed, amountNum, planNum);
-    setInputName('');
-    setInputAmount('');
-    setInputPlan('');
-    setShowAddRow(false);
+    onAdd(group, '', 0, 0);
   };
 
   const finishEdit = () => {
@@ -94,6 +80,30 @@ export const BudgetTable = ({
     <section className="budget-card" id={id}>
       <div className="budget-card-header">
         <h2 className="budget-card-title">{title}</h2>
+        <div className="budget-card-actions">
+          {editingId && (
+            <button
+              type="button"
+              className="btn-done btn-done-header"
+              onClick={finishEdit}
+              aria-label="Завершить редактирование"
+            >
+              ✓
+            </button>
+          )}
+          <button
+            type="button"
+            className="btn-add btn-add-header"
+            onClick={() => {
+              if (editingId) finishEdit();
+              handleAdd();
+            }}
+            aria-label="Добавить строку"
+            title="Добавить строку"
+          >
+            +
+          </button>
+        </div>
       </div>
 
       <div className="budget-card-body">
@@ -104,25 +114,6 @@ export const BudgetTable = ({
                 <th className="budget-head budget-head-name">{headers?.name ?? 'Наименование'}</th>
                 <th className="budget-head budget-head-amount">{headers?.amount ?? 'Сумма'}</th>
                 <th className="budget-head budget-head-plan">{headers?.plan ?? 'План'}</th>
-<th className="budget-head budget-head-actions">
-                  {editingId || showAddRow ? (
-                    <button
-                      className="btn-done btn-done-header"
-                      onClick={() => { if (editingId) finishEdit(); if (showAddRow) setShowAddRow(false); }}
-                      aria-label="ОК"
-                    >
-                      ✓
-                    </button>
-                  ) : (
-                    <button
-                      className="btn-add btn-add-header"
-                      onClick={() => setShowAddRow(true)}
-                      aria-label="Добавить строку"
-                    >
-                      +
-                    </button>
-                  )}
-                </th>
               </tr>
             </thead>
             <tbody>
@@ -140,52 +131,6 @@ export const BudgetTable = ({
                 />
               ))}
 
-              {showAddRow && (
-                <tr className="budget-row budget-row-editing">
-                  <td className="budget-cell budget-cell-name">
-                    <input
-                      className="budget-input"
-                      value={inputName}
-                      onChange={(e) => setInputName(e.target.value)}
-                      onKeyDown={(e) => e.key === 'Enter' && handleAdd()}
-                      placeholder="Новая строка"
-                      autoFocus
-                    />
-                  </td>
-                  <td className="budget-cell budget-cell-amount">
-                    <div className="input-group">
-                      <input
-                        className="budget-input budget-input-amount"
-                        value={inputAmount}
-                        onChange={(e) => setInputAmount(e.target.value)}
-                        onKeyDown={(e) => e.key === 'Enter' && handleAdd()}
-                        placeholder="0"
-                      />
-                    </div>
-                  </td>
-                  <td className="budget-cell budget-cell-plan">
-                    <div className="input-group">
-                      <input
-                        className="budget-input budget-input-amount"
-                        value={inputPlan}
-                        onChange={(e) => setInputPlan(e.target.value)}
-                        onKeyDown={(e) => e.key === 'Enter' && handleAdd()}
-                        placeholder="0"
-                      />
-                    </div>
-                  </td>
-                  <td className="budget-cell budget-cell-actions">
-                    <button
-                      className="btn-delete"
-                      onClick={() => setShowAddRow(false)}
-                      aria-label="Отмена"
-                    >
-                      ×
-                    </button>
-                  </td>
-                </tr>
-              )}
-
               {subtotalItem && group === 'monthly' && plannedItems !== undefined && (
                 <BudgetRow
                   key={subtotalItem.id}
@@ -200,13 +145,16 @@ export const BudgetTable = ({
               )}
 
               {group === 'monthly' && plannedItems !== undefined && !subtotalItem && (
-                <tr
-                  className="budget-row subtotal"
-                  onClick={() => onToggle && onToggle('planned')}
-                  style={{ cursor: 'pointer' }}
-                >
+                <tr className="budget-row subtotal">
                   <td className="budget-cell budget-cell-name">
-                    <span className="row-name">Дополнительные расходы</span>
+                    <button
+                      type="button"
+                      className="row-name-btn"
+                      onClick={() => onToggle?.('planned')}
+                      aria-label={collapsed ? 'Развернуть дополнительные расходы' : 'Свернуть дополнительные расходы'}
+                    >
+                      {collapsed ? '▶' : '▼'} Дополнительные расходы
+                    </button>
                     <span className="row-hint">сумма дополнительных расходов</span>
                   </td>
                   <td className="budget-cell budget-cell-amount">
@@ -214,15 +162,6 @@ export const BudgetTable = ({
                   </td>
                   <td className="budget-cell budget-cell-plan">
                     <span className="row-amount">{format(plannedTotalPlan)}</span>
-                  </td>
-                  <td className="budget-cell budget-cell-actions">
-                    <button
-                      className="btn-edit"
-                      onClick={(e) => { e.stopPropagation(); onToggle?.('planned'); }}
-                      aria-label={collapsed ? "Развернуть дополнительные расходы" : "Свернуть дополнительные расходы"}
-                    >
-                      {collapsed ? "▶" : "▼"}
-                    </button>
                   </td>
                 </tr>
               )}
@@ -245,12 +184,9 @@ export const BudgetTable = ({
                     {format(displayTotal)}<span className="row-currency">₽</span>
                   </td>
                   <td className="budget-cell budget-cell-plan" style={{ whiteSpace: 'nowrap' }}>
-                    <>
-                      {format(displayTotalPlan)}
-                      <span className="row-currency">₽</span>
-                    </>
+                    {format(displayTotalPlan)}
+                    <span className="row-currency">₽</span>
                   </td>
-                  <td className="budget-cell budget-cell-actions" />
                 </tr>
               )}
             </tbody>
