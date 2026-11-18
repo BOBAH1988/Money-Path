@@ -45,8 +45,13 @@ vi.mock('../context/AuthContext', async () => {
   };
 });
 
+const { toastSuccess, toastError } = vi.hoisted(() => ({
+  toastSuccess: vi.fn(),
+  toastError: vi.fn(),
+}));
+
 vi.mock('../hooks/useToast', () => ({
-  useToast: () => ({ success: vi.fn(), error: vi.fn() }),
+  useToast: () => ({ success: toastSuccess, error: toastError }),
 }));
 
 import { AuthModal } from './AuthModal';
@@ -69,6 +74,15 @@ describe('AuthModal: подтверждение почты', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     currentUser = null;
+    // Лимит повторной отправки живёт в localStorage: без сброса следующий
+    // тест видел бы паузу от предыдущего случая.
+    localStorage.clear();
+    // Контекст возвращает результат отправки; после clearAllMocks мок отдавал
+    // undefined, и окно падало на чтении message.
+    resendVerification.mockResolvedValue({
+      sent: true,
+      message: 'Письмо отправлено на user@ya.ru. Проверьте «Входящие» и «Спам».',
+    });
     cleanup();
   });
 
@@ -109,12 +123,13 @@ describe('AuthModal: подтверждение почты', () => {
       fireEvent.click(screen.getByRole('button', { name: 'Отправить повторно' }));
     });
 
-    // Без сессии Firebase отправляет письмо только при входе с паролем,
-    // поэтому повторная отправка обязана пройти через login с введёнными данными.
-    await waitFor(() => expect(login).toHaveBeenCalledTimes(2));
-    expect(login).toHaveBeenLastCalledWith('user@ya.ru', 'Secret123');
-    expect(resendVerification).not.toHaveBeenCalled();
-    expect(screen.getByText('Письмо отправлено повторно')).toBeInTheDocument();
+    // Без сессии письмо отправляет сам контекст: он входит паролем внутри
+    // resendVerification, поэтому окно передаёт адрес и пароль, а не логинится.
+    await waitFor(() => expect(resendVerification).toHaveBeenCalledTimes(1));
+    expect(resendVerification).toHaveBeenCalledWith('user@ya.ru', 'Secret123');
+    expect(login).toHaveBeenCalledTimes(1);
+    expect(toastError).not.toHaveBeenCalled();
+    expect(screen.getByText(/Письмо отправлено на user@ya\.ru/)).toBeInTheDocument();
   });
 
   it('повторная отправка с паролем входит и показывает успех, даже если почта ещё не подтверждена', async () => {
@@ -133,24 +148,39 @@ describe('AuthModal: подтверждение почты', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Отправить повторно' }));
     await act(async () => {});
 
-    await waitFor(() => expect(login).toHaveBeenCalledTimes(2));
-    expect(login).toHaveBeenLastCalledWith('user@ya.ru', 'Secret123');
+    await waitFor(() =>
+      expect(resendVerification).toHaveBeenCalledWith('user@ya.ru', 'Secret123'),
+    );
+    // Ожидаемая ветка «почта ещё не подтверждена» не поднимает красное уведомление.
+    expect(toastError).not.toHaveBeenCalled();
+    expect(screen.getByText(/Письмо отправлено на user@ya\.ru/)).toBeInTheDocument();
   });
 
-  it('с активной сессией отправляет письмо через resendVerification', async () => {
-    currentUser = { email: 'user@ya.ru' };
-    login.mockRejectedValue(new AuthError(EMAIL_NOT_VERIFIED_CODE, 'verify'));
-    resendVerification.mockResolvedValue(undefined);
+  it('повторная отправка отдаёт адрес и пароль контексту, который ставит лимит', async () => {
+    register.mockResolvedValue(undefined);
     renderModal();
 
-    fillLogin('user@ya.ru', 'Secret123');
-    fireEvent.click(screen.getByRole('button', { name: 'Войти' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Создать' }));
+    fireEvent.change(screen.getByLabelText('Email'), { target: { value: 'user@ya.ru' } });
+    fireEvent.change(screen.getByLabelText('Пароль'), { target: { value: 'Secret123' } });
+    fireEvent.change(screen.getByLabelText('Подтвердите пароль'), { target: { value: 'Secret123' } });
+    document.querySelectorAll<HTMLInputElement>('input[type="checkbox"]').forEach((box) => fireEvent.click(box));
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Зарегистрироваться' }));
+    });
     await waitFor(() => expect(screen.getByText('Отправить повторно')).toBeInTheDocument());
 
-    fireEvent.click(screen.getByRole('button', { name: 'Отправить повторно' }));
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Отправить повторно' }));
+    });
 
-    await waitFor(() => expect(resendVerification).toHaveBeenCalledTimes(1));
-    expect(screen.getByText('Письмо отправлено повторно')).toBeInTheDocument();
+    // Письмо шлёт контекст: он же и ставит лимит на повторную отправку,
+    // поэтому окно обязано передать адрес и пароль.
+    await waitFor(() =>
+      expect(resendVerification).toHaveBeenCalledWith('user@ya.ru', 'Secret123'),
+    );
+    expect(toastError).not.toHaveBeenCalled();
   });
 
   it('нажатие внутри карточки не закрывает окно, закрывает только клик по фону', async () => {

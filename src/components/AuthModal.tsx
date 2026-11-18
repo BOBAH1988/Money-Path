@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth, EMAIL_NOT_VERIFIED_CODE } from '../context/AuthContext';
+import { EMAIL_NOT_SENT_CODE, getVerificationCooldownLeft } from '../lib/auth-errors';
 import { loginSchema, registerSchema, forgotSchema, type LoginFormData, type RegisterFormData, type ForgotFormData } from '../lib/validation';
 import { useToast } from '../ui/Toast';
 import type { BackupArchive } from '../lib/backup';
@@ -22,6 +23,10 @@ export const AuthModal = ({ onClose }: { onClose: () => void }) => {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  // Метка обновления таймера лимита: сама метка не нужна, но её изменение
+  // перерисовывает окно, чтобы счётчик обратного отсчёта шёл.
+  const [, setCooldownTick] = useState(0);
+  const [cooldownLeft, setCooldownLeft] = useState(0);
   const [agreeTerms, setAgreeTerms] = useState(false);
   const [agreePrivacy, setAgreePrivacy] = useState(false);
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
@@ -40,6 +45,26 @@ export const AuthModal = ({ onClose }: { onClose: () => void }) => {
       if (previousAuthActive.current) previousAuthActive.current.focus();
     };
   }, [onClose]);
+
+  // Счётчик обратного отсчёта для повторной отправки письма подтверждения.
+  // Зависит от submitting: после завершения отправки метка в localStorage уже
+  // обновлена, и счётчик подхватывает новое значение.
+  useEffect(() => {
+    if (mode !== 'verify') return;
+    const target = verifyEmail ?? user?.email;
+    if (!target) return;
+    const tick = () => setCooldownLeft(getVerificationCooldownLeft(target));
+    tick();
+    const timer = window.setInterval(tick, 1000);
+    return () => window.clearInterval(timer);
+  }, [mode, verifyEmail, user?.email, submitting]);
+
+  const formatCooldown = (ms: number) => {
+    const total = Math.ceil(ms / 1000);
+    const minutes = Math.floor(total / 60);
+    const seconds = total % 60;
+    return minutes > 0 ? `${minutes} мин ${String(seconds).padStart(2, '0')} с` : `${seconds} с`;
+  };
 
   const clearMessages = () => {
     setError(null);
@@ -143,44 +168,39 @@ export const AuthModal = ({ onClose }: { onClose: () => void }) => {
     }
   };
 
+  // Экран подтверждения не поднимает красную плашку тоста: и успех, и ошибка
+  // остаются в самом окне, чтобы не мигало уведомление поверх модалки.
   const handleResend = async () => {
-    clearMessages();
+    // Убираем прошлый результат, но не сам адрес: setSuccess заменяет сообщение.
+    setError(null);
+    setValidationErrors([]);
+    const target = verifyEmail ?? user?.email ?? email;
+    if (!target) {
+      setMode('login');
+      setError('Введите email и пароль, чтобы отправить письмо ещё раз');
+      return;
+    }
+    const left = cooldownLeft;
+    if (left > 0) {
+      setError(`Письмо уже отправлено. Повторить можно через ${formatCooldown(left)}.`);
+      return;
+    }
     setSubmitting(true);
     try {
-      // Активная сессия — самый надёжный способ послать письмо; без неё
-      // Firebase требует повторного входа с паролем.
-      if (user) {
-        await resendVerification(user);
-        setSuccess('Письмо отправлено повторно');
-        return;
-      }
-      if (!verifyEmail) {
-        setMode('login');
-        setEmail('');
-        setPassword('');
-        setError('Введите email и пароль, чтобы отправить письмо ещё раз');
-        return;
-      }
-      if (!password) {
-        // Сессии нет: Firebase вышлет письмо только при успешном входе,
-        // поэтому просим пароль, а не отправляем пустое письмо.
-        setMode('login');
-        setError('Введите пароль, чтобы отправить письмо ещё раз');
-        return;
-      }
-      // Неверный пароль или неподтверждённая почта — ожидаемые варианты:
-      // в первом случае нужен ответ, во втором вход переводит окно обратно в verify.
-      await login(verifyEmail, password);
-      setSuccess('Письмо отправлено повторно');
+      const result = await resendVerification(target, password || undefined);
+      setVerifyEmail(target);
+      setMode('verify');
+      setSuccess(result.message);
+      // Лимит отсчитывается от фактической отправки, а не от нажатия:
+      // неудачная попытка не должна блокировать кнопку на минуту.
+      setCooldownTick(Date.now());
     } catch (err: any) {
       if (err.code === EMAIL_NOT_VERIFIED_CODE) {
-        setVerifyEmail(user?.email ?? verifyEmail);
-        // Пароль уже проверен: сохраняем его для следующей повторной отправки.
+        setVerifyEmail(target);
         setMode('verify');
-        setSuccess('Письмо отправлено повторно');
+        setSuccess(`Письмо отправлено на ${target}. Проверьте «Входящие» и «Спам».`);
         return;
       }
-      setMode('login');
       setError(
         err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential'
           ? 'Неверный пароль'
@@ -190,7 +210,7 @@ export const AuthModal = ({ onClose }: { onClose: () => void }) => {
           ? 'Некорректный email'
           : err.code === 'auth/network-request-failed'
           ? 'Нет подключения к интернету'
-          : err.message || 'Ошибка отправки',
+          : (err.code === EMAIL_NOT_SENT_CODE && err.message) || err.message || 'Ошибка отправки',
       );
     } finally {
       setSubmitting(false);
@@ -220,8 +240,13 @@ export const AuthModal = ({ onClose }: { onClose: () => void }) => {
         {mode === 'verify' && (
           <div className="auth-verify">
             <p>Проверьте почту и перейдите по ссылке из письма для подтверждения адреса.</p>
-            <button className="auth-btn" onClick={handleResend} disabled={submitting}>
-              {submitting ? 'Отправка...' : 'Отправить повторно'}
+            {verifyEmail && <p className="auth-hint">Адрес: {verifyEmail}</p>}
+            <button className="auth-btn" onClick={handleResend} disabled={submitting || cooldownLeft > 0}>
+              {submitting
+                ? 'Отправка...'
+                : cooldownLeft > 0
+                ? `Повторить через ${formatCooldown(cooldownLeft)}`
+                : 'Отправить повторно'}
             </button>
             <p className="auth-hint">
               После подтверждения вы сможете войти в аккаунт.

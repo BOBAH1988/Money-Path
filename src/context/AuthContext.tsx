@@ -13,25 +13,20 @@ import {
 } from 'firebase/auth';
 import { auth } from '../lib/firebase';
 import { AuthContext } from './AuthContextObject';
+import {
+  AuthError,
+  EMAIL_NOT_VERIFIED_CODE,
+  EMAIL_NOT_VERIFIED_MESSAGE,
+  EMAIL_NOT_SENT_CODE,
+  SESSION_NOT_READY_CODE,
+  afterVerificationSent,
+  mapVerificationError,
+} from '../lib/auth-errors';
 
 import { ADMIN_EMAIL } from './auth-constants';
 
 export { useAuth } from '../hooks/useAuth';
-
-export const EMAIL_NOT_VERIFIED_CODE = 'auth/email-not-verified';
-export const EMAIL_NOT_VERIFIED_MESSAGE =
-  'Перед входом подтвердите адрес электронной почты. Письмо с ссылкой отправлено на вашу почту.';
-
-/** Ошибка входа с кодом Firebase-подобного формата, чтобы AuthModal показал понятное сообщение. */
-export class AuthError extends Error {
-  readonly code: string;
-
-  constructor(code: string, message: string) {
-    super(message);
-    this.name = 'AuthError';
-    this.code = code;
-  }
-}
+export { AuthError, EMAIL_NOT_VERIFIED_CODE, EMAIL_NOT_VERIFIED_MESSAGE };
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
@@ -72,7 +67,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     return () => unsub();
   }, []);
 
-  const login = async (email: string, password: string) => {
+  /**
+   * Вход без подъёма красной плашки для ожидаемого случая — неподтверждённой почты.
+   * Firebase создаёт сессию до проверки emailVerified, поэтому сессию закрываем,
+   * а наружу отдаём ошибку с кодом EMAIL_NOT_VERIFIED_CODE.
+   */
+  const signInVerified = async (email: string, password: string): Promise<User> => {
     if (!auth) throw new Error('Firebase Auth не инициализирован');
     let credential;
     try {
@@ -91,8 +91,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       console.error('[auth] login: reload профиля не удался:', err instanceof Error ? err.message : err);
     }
     if (!credential.user.emailVerified) {
-      // signInWithEmailAndPassword уже создал сессию: без выхода пользователь
-      // окажется в приложении, хотя вход признан неуспешным.
       await signOut(auth).catch((err) => {
         // eslint-disable-next-line no-console
         console.error('[auth] login: signOut после неподтверждённой почты:', err instanceof Error ? err.message : err);
@@ -100,6 +98,60 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       throw new AuthError(EMAIL_NOT_VERIFIED_CODE, EMAIL_NOT_VERIFIED_MESSAGE);
     }
     setIsAuthenticated(true);
+    return credential.user;
+  };
+
+  const login = async (email: string, password: string) => {
+    await signInVerified(email, password);
+  };
+
+  /**
+   * Повторная отправка письма. Без активной сессии Firebase не вышлет письмо,
+   * поэтому входим паролем; неверный пароль — отдельная ошибка, а не «письмо отправлено».
+   */
+  const resendVerification = async (
+    email: string,
+    password?: string,
+  ): Promise<{ sent: boolean; message: string }> => {
+    if (!auth) throw new Error('Firebase Auth не инициализирован');
+    let target: User | null = auth.currentUser ?? user;
+    if (!target || target.email !== email) {
+      if (!password) {
+        throw new AuthError(
+          SESSION_NOT_READY_CODE,
+          'Введите пароль, чтобы отправить письмо ещё раз.',
+        );
+      }
+      try {
+        target = await signInVerified(email, password);
+      } catch (err) {
+        if ((err as { code?: string }).code === EMAIL_NOT_VERIFIED_CODE) {
+          // Пароль верный, но сессия закрыта при выходе — signIn создал её заново
+          // до выхода; отправляем письмо уже от имени закрытой сессии нельзя,
+          // поэтому повторно входим без проверки и сразу выходим.
+          const credential = await signInWithEmailAndPassword(auth, email, password);
+          try {
+            await sendEmailVerification(credential.user);
+            return { sent: true, message: afterVerificationSent(email) };
+          } finally {
+            await signOut(auth).catch(() => {});
+          }
+        }
+        throw err;
+      }
+    }
+    try {
+      await sendEmailVerification(target);
+      return { sent: true, message: afterVerificationSent(email) };
+    } catch (err) {
+      const reason = mapVerificationError(err);
+      // eslint-disable-next-line no-console
+      console.error('[auth] sendEmailVerification ошибка:', err);
+      throw new AuthError(
+        EMAIL_NOT_SENT_CODE,
+        reason ?? `Не удалось отправить письмо: ${err instanceof Error ? err.message : 'неизвестная ошибка'}`,
+      );
+    }
   };
 
   const register = async (email: string, password: string) => {
@@ -114,8 +166,17 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
     try {
       await sendEmailVerification(credential.user);
-    } catch {
-      // ignore — пользователь уже создан
+      afterVerificationSent(email);
+    } catch (err) {
+      // Аккаунт уже создан, поэтому не прерываем регистрацию, но и не врём про
+      // отправленное письмо: показываем реальную причину сбоя.
+      // eslint-disable-next-line no-console
+      console.error('[auth] register: sendEmailVerification ошибка:', err);
+      const reason = mapVerificationError(err);
+      throw new AuthError(
+        EMAIL_NOT_SENT_CODE,
+        reason ?? `Аккаунт создан, но письмо не отправлено: ${err instanceof Error ? err.message : 'неизвестная ошибка'}`,
+      );
     }
     try {
       const { trackUser } = await import('../lib/firestore');
@@ -167,11 +228,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const sendPasswordReset = async (email: string) => {
     if (!auth) throw new Error('Firebase Auth не инициализирован');
     await sendPasswordResetEmail(auth, email);
-  };
-
-  const resendVerification = async (user: User) => {
-    if (!auth) throw new Error('Firebase Auth не инициализирован');
-    await sendEmailVerification(user);
   };
 
   const value = {

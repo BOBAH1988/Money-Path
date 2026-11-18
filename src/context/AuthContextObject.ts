@@ -12,7 +12,7 @@ export interface AuthContextValue {
   logout: () => Promise<void>;
   deleteAccount: (password: string) => Promise<void>;
   sendPasswordReset: (email: string) => Promise<void>;
-  resendVerification: (user: User) => Promise<void>;
+  resendVerification: (email: string, password?: string) => Promise<{ sent: boolean; message: string }>;
 }
 
 export const AuthContext = createContext<AuthContextValue | undefined>(undefined);
