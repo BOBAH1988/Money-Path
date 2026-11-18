@@ -61,6 +61,9 @@ export function useBudgetPlan(): UseBudgetPlanReturn {
       const fresh = plan.items;
       itemsRef.current = fresh;
       setItems(fresh);
+      // Успешное чтение с сервера — единственный надёжный признак того,
+      // что прежняя ошибка синхронизации больше не актуальна.
+      setError(null);
     });
 
     return () => { cancelled = true; };
@@ -87,7 +90,6 @@ export function useBudgetPlan(): UseBudgetPlanReturn {
         if (revisionRef.current !== revision) return;
         itemsRef.current = plan.items;
         setItems(plan.items);
-        setError(null);
       });
     };
     window.addEventListener('online', refreshWhenOnline);
@@ -104,7 +106,6 @@ export function useBudgetPlan(): UseBudgetPlanReturn {
     itemsRef.current = next;
     revisionRef.current += 1;
     setItems(next);
-    setError(null);
     void saveBudgetPlan({ items: next, updatedAt: new Date().toISOString() }, uid).catch((err) => {
       const message = err instanceof Error ? err.message : 'Изменения сохранены на устройстве';
       setError(message);

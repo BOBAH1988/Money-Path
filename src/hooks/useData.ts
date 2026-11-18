@@ -100,20 +100,28 @@ export function useData<T extends { id: string }>(options: UseDataOptions): UseD
     const refreshWhenOnline = () => {
       if (document.visibilityState === 'hidden') return;
       const version = mutationVersionRef.current;
+      const reportSyncError = (err: unknown) => {
+        if (cancelled) return;
+        const message = err instanceof Error ? err.message : 'Ошибка синхронизации';
+        setError(message);
+        toastError('Ошибка синхронизации', message);
+      };
       void syncPendingToFirestore(userId)
-        .then(() => loadFromFirestore<T>(collectionName!, userId))
+        .then(() => loadFromFirestore<T>(
+          collectionName!,
+          userId,
+          undefined,
+          // Без этого обработчика сбой сервера тонул в консоли: кэш выглядел
+          // как свежие данные, и баннер об ошибке не появлялся.
+          reportSyncError,
+        ))
         .then((fresh) => {
           if (cancelled || mutationVersionRef.current !== version) return;
           dirtyRef.current = false;
           applyFresh(fresh);
           setError(null);
         })
-        .catch((err) => {
-          if (cancelled) return;
-          const message = err instanceof Error ? err.message : 'Ошибка синхронизации';
-          setError(message);
-          toastError('Ошибка синхронизации', message);
-        });
+        .catch(reportSyncError);
     };
     window.addEventListener('online', refreshWhenOnline);
     window.addEventListener('focus', refreshWhenOnline);
@@ -125,10 +133,21 @@ export function useData<T extends { id: string }>(options: UseDataOptions): UseD
           await syncPendingToFirestore(userId);
           if (mutationVersionRef.current === initialMutationVersion) dirtyRef.current = false;
         }
-        const data = await loadFromFirestore<T>(collectionName!, userId, (fresh) => {
-          if (cancelled || dirtyRef.current) return;
-          applyFresh(fresh);
-        });
+        const data = await loadFromFirestore<T>(
+          collectionName!,
+          userId,
+          (fresh) => {
+            if (cancelled || dirtyRef.current) return;
+            applyFresh(fresh);
+            setError(null);
+          },
+          (err) => {
+            if (cancelled) return;
+            const message = err instanceof Error ? err.message : 'Ошибка загрузки данных';
+            setError(message);
+            toastError('Ошибка синхронизации', message);
+          },
+        );
         if (!cancelled && !dirtyRef.current) {
           applyFresh(data);
           setError(null);

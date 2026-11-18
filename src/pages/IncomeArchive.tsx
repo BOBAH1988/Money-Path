@@ -127,23 +127,6 @@ export default function IncomeArchive() {
     toastSuccess('Удалено', 'Источник удалён');
   };
 
-  if (error) {
-    return (
-      <div className="page page-budget">
-        <div className="budget-card">
-          <div className="budget-card-body">
-            <div className="budget-table-wrap">
-              <div style={{ padding: 40, textAlign: 'center', color: 'var(--dp-color-danger)' }}>
-                <div style={{ fontSize: 18, fontWeight: 600, marginBottom: 12 }}>Ошибка загрузки данных</div>
-                <div style={{ fontSize: 14, marginBottom: 16 }}>{error}</div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   if (loading) {
     return (
       <div className="page page-budget">
@@ -162,6 +145,13 @@ export default function IncomeArchive() {
 
   return (
     <div className="page page-budget">
+      {error && (
+        <div className="budget-card" role="status">
+          <div className="budget-card-body" style={{ color: 'var(--dp-color-danger)' }}>
+            Не удалось обновить данные из облака. Показаны сохранённые на устройстве данные. {error}
+          </div>
+        </div>
+      )}
       <div className="budget-summary" style={{ margin: '0 4px 12px' }}>
         <div className="summary-item summary-item-total">
           <span className="summary-label">Итого за год</span>
