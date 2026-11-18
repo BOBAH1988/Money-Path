@@ -41,7 +41,7 @@ function formatBytes(bytes: number): string {
 }
 
 export default function Import() {
-  const { isAuthenticated, uid } = useAuth();
+  const { isAuthenticated, isAuthReady, uid } = useAuth();
   const navigate = useNavigate();
   const { success: toastSuccess, error: toastError } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -73,10 +73,18 @@ export default function Import() {
 
   const handleCreateArchive = async () => {
     if (!uid) {
-      toastError('Нужен вход', 'Войдите в аккаунт, чтобы скачать данные из облака.');
+      // Сессия Firebase восстанавливается асинхронно: до её готовности uid ещё пуст,
+      // и «нужен вход» показывался бы вошедшему пользователю.
+      toastError(
+        isAuthReady ? 'Нужен вход' : 'Сессия восстанавливается',
+        isAuthReady
+          ? 'Войдите в аккаунт, чтобы скачать данные из облака.'
+          : 'Подождите пару секунд и нажмите ещё раз.',
+      );
       return;
     }
     setCreating(true);
+    setLastExport(null);
     try {
       const archive = await exportBackup(uid);
       const fileName = backupFileName(archive.userId);
