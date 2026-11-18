@@ -2183,7 +2183,12 @@ body { margin: 0; font-family: system-ui, sans-serif; background: var(--theme-bg
   height: 40px;
   border-radius: 12px;
   background: var(--theme-surface);
-  font-size: 20px;
+}
+
+.import-card-icon .ui-icon {
+  width: 21px;
+  height: 21px;
+  stroke: var(--theme-accent);
 }
 
 .import-card-title {
@@ -2285,13 +2290,36 @@ body { margin: 0; font-family: system-ui, sans-serif; background: var(--theme-bg
 }
 
 .import-success {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
   margin: 0;
-  padding: 10px 12px;
+  padding: 12px;
+  border: 1px solid rgba(5, 150, 105, 0.35);
   border-radius: 12px;
   background: rgba(5, 150, 105, 0.12);
+}
+
+.import-success-title {
+  margin: 0;
   color: var(--dp-color-success);
   font-size: 13px;
+  font-weight: 700;
+}
+
+.import-success-file {
+  margin: 0;
+  color: var(--theme-text-muted);
+  font-size: 12px;
   word-break: break-all;
+}
+
+.import-success-btn {
+  align-self: flex-start;
+  min-height: 38px;
+  padding: 8px 16px;
+  font-size: 14px;
+  text-decoration: none;
 }
 
 .import-dropzone {
@@ -2320,7 +2348,19 @@ body { margin: 0; font-family: system-ui, sans-serif; background: var(--theme-bg
 }
 
 .import-dropzone-icon {
-  font-size: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 52px;
+  height: 52px;
+  border-radius: 14px;
+  background: var(--theme-surface);
+  color: var(--theme-accent);
+}
+
+.import-dropzone-icon .ui-icon {
+  width: 26px;
+  height: 26px;
 }
 
 .import-dropzone-title {

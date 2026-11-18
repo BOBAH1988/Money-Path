@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../ui/Toast';
+import { MenuIcon } from '../components/MenuIcons';
 import { ConfirmDialog } from '../ui/ConfirmDialog';
 import { loadLocalCollection } from '../lib/dataStore';
 import {
@@ -11,7 +12,8 @@ import {
   restoreBackupLocally,
   parseBackupFile,
   backupFileName,
-  downloadBackup,
+  createBackupLink,
+  revokeBackupLink,
   type BackupArchive,
   type RestoreReport,
 } from '../lib/backup';
@@ -53,7 +55,8 @@ export default function Import() {
   const [clearBeforeRestore, setClearBeforeRestore] = useState(false);
   const [dragActive, setDragActive] = useState(false);
   const [restored, setRestored] = useState(false);
-  const [lastExport, setLastExport] = useState<{ name: string; records: number } | null>(null);
+  const [lastExport, setLastExport] = useState<{ name: string; records: number; url: string; bytes: number } | null>(null);
+  const lastExportUrlRef = useRef<string | null>(null);
 
   const localCounts = useMemo(() => {
     const counts: Record<string, number> = {};
@@ -64,6 +67,14 @@ export default function Import() {
   }, [uid, restored]);
 
   const localTotal = Object.values(localCounts).reduce((sum, value) => sum + value, 0);
+
+  useEffect(
+    () => () => {
+      revokeBackupLink(lastExportUrlRef.current ?? '');
+      lastExportUrlRef.current = null;
+    },
+    [],
+  );
 
   useEffect(() => {
     if (!restored) return;
@@ -84,16 +95,18 @@ export default function Import() {
       return;
     }
     setCreating(true);
+    revokeBackupLink(lastExportUrlRef.current ?? '');
+    lastExportUrlRef.current = null;
     setLastExport(null);
     try {
       const archive = await exportBackup(uid);
       const fileName = backupFileName(archive.userId);
-      // downloadBackup вставляет ссылку в документ: без этого Safari и Firefox
-      // игнорируют программный клик и файл не сохраняется.
-      downloadBackup(archive, fileName);
+      const { url, bytes } = createBackupLink(archive, fileName);
+      revokeBackupLink(lastExportUrlRef.current ?? '');
+      lastExportUrlRef.current = url;
       const records = countCollections(archive.collections);
-      setLastExport({ name: fileName, records });
-      toastSuccess('Архив создан', `Сохранено записей: ${records}`);
+      setLastExport({ name: fileName, records, url, bytes });
+      toastSuccess('Архив готов', `Записей: ${records}. Нажмите «Сохранить файл».`);
     } catch (err) {
       toastError('Ошибка архива', err instanceof Error ? err.message : 'Не удалось создать архив');
     } finally {
@@ -176,7 +189,9 @@ export default function Import() {
       <div className="import-grid">
         <section className="import-card">
           <header className="import-card-head">
-            <span className="import-card-icon" aria-hidden="true">📤</span>
+            <span className="import-card-icon" aria-hidden="true">
+              <MenuIcon name="export" />
+            </span>
             <div>
               <h2 className="import-card-title">Экспорт</h2>
               <p className="import-card-text">
@@ -218,15 +233,29 @@ export default function Import() {
           </div>
 
           {lastExport && (
-            <p className="import-success" role="status">
-              Файл <strong>{lastExport.name}</strong> · записей: {lastExport.records}
-            </p>
+            <div className="import-success" role="status">
+              <p className="import-success-title">Архив готов · записей: {lastExport.records} · {formatBytes(lastExport.bytes)}</p>
+              <p className="import-success-file">{lastExport.name}</p>
+              <a
+                className="import-primary-btn import-success-btn"
+                href={lastExport.url}
+                download={lastExport.name}
+              >
+                Сохранить файл
+              </a>
+              <p className="import-hint">
+                Если файл не появился в «Загрузках», откройте эту ссылку в обычном браузере —
+                во встроенной панели загрузки могут уходить в её собственный список.
+              </p>
+            </div>
           )}
         </section>
 
         <section className="import-card">
           <header className="import-card-head">
-            <span className="import-card-icon" aria-hidden="true">📥</span>
+            <span className="import-card-icon" aria-hidden="true">
+              <MenuIcon name="import" />
+            </span>
             <div>
               <h2 className="import-card-title">Импорт</h2>
               <p className="import-card-text">
@@ -251,7 +280,9 @@ export default function Import() {
             tabIndex={0}
             aria-label="Выбрать или перетащить файл архива"
           >
-            <span className="import-dropzone-icon" aria-hidden="true">🗂️</span>
+            <span className="import-dropzone-icon" aria-hidden="true">
+              <MenuIcon name="archive" />
+            </span>
             <span className="import-dropzone-title">
               {dragActive ? 'Отпустите файл' : 'Перетащите архив или нажмите'}
             </span>
