@@ -631,7 +631,6 @@ body { margin: 0; font-family: system-ui, sans-serif; background: var(--theme-bg
 }
 
 .menu-item .menu-icon {
-  font-size: 16px;
   margin-right: 8px;
   width: 24px;
   height: 24px;
@@ -872,6 +871,24 @@ body { margin: 0; font-family: system-ui, sans-serif; background: var(--theme-bg
   z-index: 80;
 }
 
+.account-avatar {
+  width: 26px;
+  height: 26px;
+  display: block;
+  flex-shrink: 0;
+}
+
+.account-dot {
+  position: absolute;
+  right: 6px;
+  bottom: 6px;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: #10b981;
+  box-shadow: 0 0 0 2px var(--theme-surface, #fff);
+}
+
 .account-btn:hover {
   background: #f3f4f6;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
@@ -1092,7 +1109,16 @@ body { margin: 0; font-family: system-ui, sans-serif; background: var(--theme-bg
 }
 
 .account-icon {
-  font-size: 24px;
+  width: 40px;
+  height: 40px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.account-icon .account-avatar {
+  width: 40px;
+  height: 40px;
 }
 
 .account-email {
@@ -2882,7 +2908,20 @@ body { margin: 0; font-family: system-ui, sans-serif; background: var(--theme-bg
 }
 
 .bottom-nav-item .nav-icon {
-  font-size: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ui-icon {
+  width: 20px;
+  height: 20px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  display: block;
 }
 
 .footer-link {
@@ -3221,4 +3260,17 @@ html.dark .page-loader-icon {
   color: var(--theme-inverse-text, #fff);
   font: inherit;
   font-weight: 600;
+}
+
+.dark .account-dot {
+  box-shadow: 0 0 0 2px var(--theme-surface);
+}
+
+.menu-item .menu-icon .ui-icon {
+  width: 17px;
+  height: 17px;
+}
+
+.bottom-nav-item.active .nav-icon .ui-icon {
+  stroke-width: 2.1;
 }

@@ -395,7 +395,9 @@ export const AccountMenu = ({ onClose, onAnalytics }: { onClose: () => void; onA
         </button>
         <h2 className="auth-title">Аккаунт</h2>
         <div className="account-info">
-          <span className="account-icon">👤</span>
+          <span className="account-icon">
+            <UserAvatarIcon />
+          </span>
           <span className="account-email">{user?.email}</span>
           {isAdmin && (
             <span className="account-badge">Администратор</span>
@@ -600,20 +602,27 @@ export const AnalyticsModal = ({ onClose }: { onClose: () => void }) => {
   );
 };
 
+const UserAvatarIcon = () => (
+  <svg className="account-avatar" viewBox="0 0 24 24" aria-hidden="true">
+    <defs>
+      <linearGradient id="acctAvatar" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0%" stopColor="#2563eb" />
+        <stop offset="100%" stopColor="#10b981" />
+      </linearGradient>
+    </defs>
+    <circle cx="12" cy="12" r="12" fill="url(#acctAvatar)" />
+    <circle cx="12" cy="9.3" r="3.9" fill="#ffffff" />
+    <path d="M4.6 20.1a7.6 7.6 0 0 1 14.8 0 12 12 0 0 1-14.8 0Z" fill="#ffffff" />
+  </svg>
+);
+
 export const AccountButton = ({ onOpen }: { onOpen: () => void }) => {
   const { isAuthenticated } = useAuth();
 
-  if (!isAuthenticated) {
-    return (
-      <button className="account-btn" onClick={onOpen} aria-label="Аккаунт">
-        👤
-      </button>
-    );
-  }
-
   return (
     <button className="account-btn" onClick={onOpen} aria-label="Аккаунт">
-      👤
+      <UserAvatarIcon />
+      {isAuthenticated && <span className="account-dot" aria-hidden="true" />}
     </button>
   );
 };

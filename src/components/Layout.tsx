@@ -2,6 +2,7 @@ import { useContext, useState, useEffect, useMemo, useRef, useLayoutEffect } fro
 import { NavLink, Outlet, useNavigate, useLocation } from 'react-router-dom';
 import packageJson from '../../package.json';
 import { AppIcon } from './AppIcon';
+import { MenuIcon } from './MenuIcons';
 import { AccountButton, AccountMenu, AnalyticsModal, AuthModal } from './AuthModal';
 import { ImportModal } from './ImportModal';
 import { ConfirmDialog } from '../ui/ConfirmDialog';
@@ -20,13 +21,13 @@ const formatYearRange = (start: number, end?: number): string => {
 const footerText = `Vladimir Sokolov ${formatYearRange(currentYear)}`;
 
 const items = [
-  { to: '/', label: 'Главная', icon: '📊' },
-  { to: '/budget', label: 'Бюджет', icon: '💰' },
-  { to: '/assets', label: 'Активы', icon: '📈' },
-  { to: '/liabilities', label: 'Пассивы', icon: '🏦' },
-  { to: '/income', label: 'Доходы', icon: '💵' },
-  { to: '/import', label: 'Импорт', icon: '📥' },
-];
+  { to: '/', label: 'Главная', icon: 'dashboard' },
+  { to: '/budget', label: 'Бюджет', icon: 'budget' },
+  { to: '/assets', label: 'Активы', icon: 'assets' },
+  { to: '/liabilities', label: 'Пассивы', icon: 'liabilities' },
+  { to: '/income', label: 'Доходы', icon: 'income' },
+  { to: '/import', label: 'Импорт', icon: 'import' },
+] as const satisfies ReadonlyArray<{ to: string; label: string; icon: import('./MenuIcons').IconName }>;
 
 const routePrefetchers: Record<string, () => Promise<unknown>> = {
   '/': () => import('../pages/Dashboard'),
@@ -280,7 +281,7 @@ export default function Layout() {
                 onFocus={() => prefetchRoute(item.to)}
                 onTouchStart={() => prefetchRoute(item.to)}
               >
-                <span className="nav-icon">{item.icon}</span>
+                <span className="nav-icon"><MenuIcon name={item.icon} /></span>
                 <span>{item.label}</span>
               </button>
             ))}
@@ -321,7 +322,7 @@ export default function Layout() {
                       setMenuOpen(false);
                     }}
                   >
-                    <span className="menu-icon">{i.icon}</span>
+                    <span className="menu-icon"><MenuIcon name={i.icon} /></span>
                     {i.label}
                   </NavLink>
                 </li>
@@ -331,7 +332,7 @@ export default function Layout() {
                    className="menu-item menu-cache-btn"
                    onClick={handleClearCache}
                  >
-                  <span className="menu-icon">🗑️</span>
+                  <span className="menu-icon"><MenuIcon name="refresh" /></span>
                    Проверить обновления
                  </button>
                </li>
@@ -345,7 +346,7 @@ export default function Layout() {
                    }}
                    aria-label={theme === 'light' ? 'Переключить на темную тему' : 'Переключить на светлую тему'}
                  >
-                   <span className="menu-icon">🌓</span>
+                   <span className="menu-icon"><MenuIcon name="theme" /></span>
                    {theme === 'light' ? 'Темная тема' : 'Светлая тема'}
                  </button>
                </li>
@@ -358,7 +359,7 @@ export default function Layout() {
                       setMenuOpen(false);
                     }}
                   >
-                    <span className="menu-icon">🔄</span>
+                    <span className="menu-icon"><MenuIcon name="reset" /></span>
                     Сброс на стандартные
                   </button>
                 </li>
@@ -391,7 +392,7 @@ export default function Layout() {
                       setInstallModalOpen(true);
                     }}
                   >
-                    <span className="menu-icon">📱</span>
+                    <span className="menu-icon"><MenuIcon name="install" /></span>
                     Установить приложение
                   </button>
                 </li>
