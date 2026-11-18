@@ -174,6 +174,19 @@ export default function Dashboard() {
     [incomeArchive, activeMonth],
   );
 
+  // Средний доход — по тем же месяцам, что рисует «Динамика дохода»:
+  // только месяцы с заполненными данными, иначе пустые месяцы занижали бы среднее.
+  const averageIncome = useMemo(() => {
+    const monthsWithIncome: number[] = [];
+    incomeArchive.forEach((row) => {
+      row.months.forEach((value) => {
+        if (value > 0) monthsWithIncome.push(value);
+      });
+    });
+    if (monthsWithIncome.length === 0) return 0;
+    return monthsWithIncome.reduce((sum, value) => sum + value, 0) / monthsWithIncome.length;
+  }, [incomeArchive]);
+
   const currentMonthLabel = MONTHS[activeMonth.index];
   const summaryIncome = currentMonthIncome;
   const summaryExpenses = totals.totalAll;
@@ -271,6 +284,11 @@ export default function Dashboard() {
           <span className="dashboard-kpi-label">Доходы за месяц</span>
           <strong className="dashboard-kpi-value">{formatMoney(summaryIncome)}</strong>
           <span className="dashboard-kpi-note">{currentMonthLabel}</span>
+        </article>
+        <article className="dashboard-kpi">
+          <span className="dashboard-kpi-label">Средний доход</span>
+          <strong className="dashboard-kpi-value">{formatMoney(averageIncome)}</strong>
+          <span className="dashboard-kpi-note">в среднем за месяц</span>
         </article>
         <article className="dashboard-kpi dashboard-kpi-success">
           <span className="dashboard-kpi-label">Остаток расходов</span>
