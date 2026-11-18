@@ -354,6 +354,57 @@ body { margin: 0; font-family: system-ui, sans-serif; background: var(--theme-bg
 }
 .page { padding: 4px; }
 
+/* ---------- Свайп-навигация между страницами ---------- */
+.content {
+  touch-action: pan-y;
+  overflow-x: hidden;
+}
+
+.content::before,
+.content::after {
+  content: '';
+  position: fixed;
+  top: 56px;
+  bottom: var(--bottom-nav-height, 220px);
+  width: 24px;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  z-index: 10;
+}
+
+.content::before {
+  left: 0;
+  background: linear-gradient(90deg, var(--theme-accent) 0%, transparent 100%);
+}
+
+.content::after {
+  right: 0;
+  background: linear-gradient(270deg, var(--theme-accent) 0%, transparent 100%);
+}
+
+.content:hover::before,
+.content:hover::after,
+.content:focus-within::before,
+.content:focus-within::after {
+  opacity: 0.15;
+}
+
+@media (pointer: coarse) {
+  .content::before,
+  .content::after {
+    opacity: 0.08;
+  }
+}
+
+.dark .content::before {
+  background: linear-gradient(90deg, var(--theme-accent) 0%, transparent 100%);
+}
+
+.dark .content::after {
+  background: linear-gradient(270deg, var(--theme-accent) 0%, transparent 100%);
+}
+
 /* ---------- Нижняя навигация PWA-стиль (iPhone приоритет) ---------- */
 .layout {
   position: relative;

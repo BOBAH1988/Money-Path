@@ -1,5 +1,6 @@
 import { useContext, useState, useEffect, useMemo, useRef, useLayoutEffect, useCallback } from 'react';
 import { NavLink, Outlet, useNavigate, useLocation } from 'react-router-dom';
+import { useSwipeNavigation } from '../hooks/useSwipeNavigation';
 import packageJson from '../../package.json';
 import { AppIcon } from './AppIcon';
 import { AccountButton, AccountMenu, AnalyticsModal, AuthModal } from './AuthModal';
@@ -96,6 +97,8 @@ export default function Layout() {
   const location = useLocation();
   const ctx = useContext(PageTitleContext);
   const pageTitle = ctx?.pageTitle ?? '';
+
+  useSwipeNavigation(true);
 
   const refreshLegalConsent = useCallback(async (userId: string) => {
     const checkId = ++consentCheckId.current;
@@ -334,7 +337,7 @@ export default function Layout() {
           </div>
         </header>
 
-        <main className="content"><Outlet /></main>
+        <main className="content" style={{ touchAction: 'pan-y' }}><Outlet /></main>
 
       {/* Нижняя навигация PWA */}
       <nav className="bottom-nav" ref={bottomNavRef}>
