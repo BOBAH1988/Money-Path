@@ -7,6 +7,7 @@ import { getIncomeArchiveMonthWindow } from '../lib/incomeArchive';
 import { IncomeFormModal } from '../components/IncomeFormModal';
 import { ConfirmDialog } from '../ui/ConfirmDialog';
 import { useToast } from '../ui/Toast';
+import { IncomeArchiveChart } from '../components/IncomeArchiveChart';
 
 const CURRENT_YEAR = new Date().getFullYear();
 
@@ -262,6 +263,8 @@ export default function IncomeArchive() {
           </div>
         </div>
       </div>
+
+      <IncomeArchiveChart rows={items} />
 
       <IncomeFormModal
         open={formModalOpen}

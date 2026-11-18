@@ -2112,6 +2112,52 @@ body { margin: 0; font-family: system-ui, sans-serif; background: var(--theme-bg
   padding-bottom: 12px;
 }
 
+/* Сворачиваемый «Архив доходов» на странице «Доходы» */
+.income-archive-chart {
+  margin-top: 12px;
+}
+
+.income-archive-chart-toggle {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.income-archive-chart-toggle:focus-visible {
+  outline: 2px solid var(--dp-color-primary);
+  outline-offset: 3px;
+  border-radius: 6px;
+}
+
+.income-archive-chart-chevron {
+  display: inline-block;
+  color: var(--theme-text-muted);
+  font-size: 14px;
+  transition: transform 0.15s ease;
+}
+
+.income-archive-chart-chevron-open {
+  transform: rotate(90deg);
+}
+
+.income-archive-chart-year {
+  padding: 6px 10px;
+  border: 1px solid var(--theme-border);
+  border-radius: 8px;
+  background: var(--theme-card);
+  color: var(--theme-text);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
 .dashboard-archive-heading {
   display: flex;
   align-items: center;

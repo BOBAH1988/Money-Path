@@ -91,7 +91,6 @@ export default function Dashboard() {
   const { uid, isAuthReady } = useAuth();
   const { error: toastError } = useToast();
   const [authOpen, setAuthOpen] = useState(false);
-  const [selectedArchiveYear, setSelectedArchiveYear] = useState<number | null>(null);
   const userId = uid;
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(true);
@@ -176,55 +175,12 @@ export default function Dashboard() {
     [incomeArchive, activeMonth],
   );
 
-  const archiveYears = useMemo(
-    () => [...new Set(
-      incomeArchive
-        .filter((row) => row.months.some((value) => value !== 0))
-        .map((row) => row.year)
-    )].sort((a, b) => b - a),
-    [incomeArchive],
-  );
-  const archiveYear = selectedArchiveYear !== null && archiveYears.includes(selectedArchiveYear)
-    ? selectedArchiveYear
-    : archiveYears[0] ?? CURRENT_YEAR;
-
-  const averageIncome = useMemo(() => {
-    const rows = incomeArchive.filter((r) => r.year === archiveYear);
-    if (rows.length === 0) return 0;
-    const total = rows.reduce(
-      (s, r) => s + r.months.reduce((a, b) => a + (b || 0), 0),
-      0
-    );
-    const filled = new Set<number>();
-    rows.forEach((r) =>
-      r.months.forEach((v, idx) => {
-        if (v && v !== 0) filled.add(idx);
-      })
-    );
-    return filled.size > 0 ? Math.round(total / filled.size) : 0;
-  }, [incomeArchive, archiveYear]);
-
   const currentMonthLabel = MONTHS[activeMonth.index];
   const summaryIncome = currentMonthIncome;
   const summaryExpenses = totals.totalAll;
   const summaryDiff = summaryIncome - summaryExpenses;
   const summaryEqual = summaryExpenses === summaryIncome;
 
-  const monthlyArchiveIncome = useMemo(() => {
-    const rows = incomeArchive.filter((r) => r.year === archiveYear);
-    if (rows.length === 0) {
-      return new Array(12).fill(0);
-    }
-    const totalByMonth = new Array(12).fill(0);
-    rows.forEach((r) => {
-      r.months.forEach((v, idx) => {
-        if (v && v !== 0) totalByMonth[idx] += v;
-      });
-    });
-    return totalByMonth;
-  }, [incomeArchive, archiveYear]);
-
-  const hasArchivedIncome = archiveYears.length > 0;
 
   const formatMoney = (value: number) =>
     `${Math.round(value).toLocaleString('ru-RU')} ₽`;
@@ -250,14 +206,20 @@ export default function Dashboard() {
 
   const balanceTotal = balanceSegments.reduce((sum, segment) => sum + segment.value, 0);
 
-  const recentMonths = useMemo(
-    () =>
-      monthlyArchiveIncome
-        .map((value, index) => ({ label: MONTHS[index], value }))
-        .filter((month) => month.value > 0)
-        .slice(-6),
-    [monthlyArchiveIncome],
-  );
+  const recentMonths = useMemo(() => {
+    const totalsByMonth = new Array(12).fill(0);
+    incomeArchive
+      .filter((row) => row.year === CURRENT_YEAR)
+      .forEach((row) => {
+        row.months.forEach((value, index) => {
+          if (value) totalsByMonth[index] += value;
+        });
+      });
+    return totalsByMonth
+      .map((value, index) => ({ label: MONTHS[index], value }))
+      .filter((month) => month.value > 0)
+      .slice(-6);
+  }, [incomeArchive]);
   const recentMax = Math.max(...recentMonths.map((month) => month.value), 0);
 
   if (isLoading) {
@@ -431,32 +393,6 @@ export default function Dashboard() {
           />
         </section>
 
-        {hasArchivedIncome && (
-          <section className="dashboard-scale-group dashboard-scale-archive">
-            <div className="dashboard-archive-heading">
-              <h2>Архив доходов</h2>
-              <select
-                className="dashboard-archive-year"
-                aria-label="Год архива доходов"
-                value={archiveYear}
-                onChange={(event) => setSelectedArchiveYear(Number(event.target.value))}
-              >
-                {archiveYears.map((year) => (
-                  <option key={year} value={year}>{year}</option>
-                ))}
-              </select>
-            </div>
-            <BarChart
-              series={[
-                { labels: ['Средний доход за год'], values: [averageIncome] },
-                ...MONTHS.map((month, index) => ({
-                  labels: [month],
-                  values: [monthlyArchiveIncome[index] ?? 0],
-                })),
-              ]}
-            />
-          </section>
-        )}
       </div>
     </div>
   );
