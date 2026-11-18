@@ -18,7 +18,20 @@ import { ADMIN_EMAIL } from './auth-constants';
 
 export { useAuth } from '../hooks/useAuth';
 
+export const EMAIL_NOT_VERIFIED_CODE = 'auth/email-not-verified';
+export const EMAIL_NOT_VERIFIED_MESSAGE =
+  'Перед входом подтвердите адрес электронной почты. Письмо с ссылкой отправлено на вашу почту.';
 
+/** Ошибка входа с кодом Firebase-подобного формата, чтобы AuthModal показал понятное сообщение. */
+export class AuthError extends Error {
+  readonly code: string;
+
+  constructor(code: string, message: string) {
+    super(message);
+    this.name = 'AuthError';
+    this.code = code;
+  }
+}
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
@@ -62,15 +75,30 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const login = async (email: string, password: string) => {
     if (!auth) throw new Error('Firebase Auth не инициализирован');
+    let credential;
     try {
-      const result = await signInWithEmailAndPassword(auth, email, password);
-      if (!result.user.emailVerified) {
-        throw new Error('Перед входом подтвердите адрес электронной почты. Письмо с ссылкой отправлено на вашу почту.');
-      }
+      credential = await signInWithEmailAndPassword(auth, email, password);
     } catch (err) {
       // eslint-disable-next-line no-console
       console.error('[auth] login ошибка:', err instanceof Error ? err.message : err);
       throw err;
+    }
+    // Токен после входа может содержать устаревший emailVerified: обновляем профиль,
+    // иначе подтверждённая почта выглядит неподтверждённой и вход обрывается ошибкой.
+    try {
+      await credential.user.reload();
+    } catch (err) {
+      // eslint-disable-next-line no-console
+      console.error('[auth] login: reload профиля не удался:', err instanceof Error ? err.message : err);
+    }
+    if (!credential.user.emailVerified) {
+      // signInWithEmailAndPassword уже создал сессию: без выхода пользователь
+      // окажется в приложении, хотя вход признан неуспешным.
+      await signOut(auth).catch((err) => {
+        // eslint-disable-next-line no-console
+        console.error('[auth] login: signOut после неподтверждённой почты:', err instanceof Error ? err.message : err);
+      });
+      throw new AuthError(EMAIL_NOT_VERIFIED_CODE, EMAIL_NOT_VERIFIED_MESSAGE);
     }
     setIsAuthenticated(true);
   };

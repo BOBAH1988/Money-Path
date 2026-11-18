@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
+import { useAuth, EMAIL_NOT_VERIFIED_CODE, EMAIL_NOT_VERIFIED_MESSAGE } from '../context/AuthContext';
 import { loginSchema, registerSchema, forgotSchema, type LoginFormData, type RegisterFormData, type ForgotFormData } from '../lib/validation';
 import { useToast } from '../ui/Toast';
 import type { BackupArchive } from '../lib/backup';
@@ -92,6 +92,13 @@ export const AuthModal = ({ onClose }: { onClose: () => void }) => {
         setSubmitting(false);
       }
     } catch (err: any) {
+      if (err.code === EMAIL_NOT_VERIFIED_CODE) {
+        // Аккаунт существует и пароль верный — предлагаем подтвердить почту повторно.
+        setMode('verify');
+        setError(EMAIL_NOT_VERIFIED_MESSAGE);
+        setSubmitting(false);
+        return;
+      }
       const msg =
         err.code === 'auth/email-already-in-use'
           ? 'Пользователь с таким email уже зарегистрирован'
@@ -99,6 +106,28 @@ export const AuthModal = ({ onClose }: { onClose: () => void }) => {
           ? 'Неверный email или пароль'
           : err.code === 'auth/invalid-email'
           ? 'Некорректный email'
+          : err.code === 'auth/too-many-requests'
+          ? 'Слишком много попыток. Попробуйте позже'
+          : err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential'
+          ? 'Неверный email или пароль'
+          : err.code === 'auth/user-disabled'
+          ? 'Этот аккаунт отключён'
+          : err.code === 'auth/account-exists-with-different-credential'
+          ? 'На этот email уже зарегистрирован другой способ входа'
+          : err.code === 'auth/network-request-failed'
+          ? 'Нет подключения к интернету'
+          : err.code === 'auth/weak-password'
+          ? 'Пароль слишком короткий'
+          : err.code === 'auth/requires-recent-login'
+          ? 'Для безопасности войдите снова'
+          : err.code === 'auth/popup-closed-by-user'
+          ? 'Вход отменён'
+          : err.code === 'auth/cancelled-popup-request'
+          ? 'Другое окно входа занято'
+          : err.code === 'auth/operation-not-allowed'
+          ? 'Вход по email не включён в проекте Firebase'
+          : err.code === 'auth/invalid-credential'
+          ? 'Неверный email или пароль'
           : err.message || 'Ошибка';
       toastError('Ошибка авторизации', msg);
       setSubmitting(false);
