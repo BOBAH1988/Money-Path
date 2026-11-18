@@ -7,6 +7,8 @@ type IconName =
   | 'liabilities'
   | 'income'
   | 'import'
+  | 'export'
+  | 'archive'
   | 'refresh'
   | 'theme'
   | 'reset'
@@ -57,6 +59,20 @@ const paths: Record<IconName, ReactNode> = {
       <path d="M12 4v11" />
       <path d="m7.5 10.5 4.5 4.5 4.5-4.5" />
       <path d="M4.5 17.5v1A2 2 0 0 0 6.5 20.5h11a2 2 0 0 0 2-2v-1" />
+    </>
+  ),
+  export: (
+    <>
+      <path d="M12 15V4" />
+      <path d="m7.5 8.5 4.5-4.5 4.5 4.5" />
+      <path d="M4.5 17.5v1A2 2 0 0 0 6.5 20.5h11a2 2 0 0 0 2-2v-1" />
+    </>
+  ),
+  archive: (
+    <>
+      <path d="M3.5 7.5h17v3h-17z" />
+      <path d="M5 10.5v8a1.5 1.5 0 0 0 1.5 1.5h11a1.5 1.5 0 0 0 1.5-1.5v-8" />
+      <path d="M9.5 14.5h5" />
     </>
   ),
   refresh: (
