@@ -174,18 +174,22 @@ export default function Dashboard() {
     [incomeArchive, activeMonth],
   );
 
-  // Средний доход — по тем же месяцам, что рисует «Динамика дохода»:
-  // только месяцы с заполненными данными, иначе пустые месяцы занижали бы среднее.
+  // Средний доход считается так же, как на странице «Доходы»: берётся активный
+  // год, суммируются все его месяцы и делятся на число месяцев с данными.
   const averageIncome = useMemo(() => {
-    const monthsWithIncome: number[] = [];
-    incomeArchive.forEach((row) => {
-      row.months.forEach((value) => {
-        if (value > 0) monthsWithIncome.push(value);
-      });
-    });
-    if (monthsWithIncome.length === 0) return 0;
-    return monthsWithIncome.reduce((sum, value) => sum + value, 0) / monthsWithIncome.length;
-  }, [incomeArchive]);
+    const yearItems = incomeArchive.filter((row) => row.year === activeMonth.year);
+    const grandTotal = yearItems.reduce(
+      (sum, row) => sum + row.months.reduce((s, value) => s + (value || 0), 0),
+      0,
+    );
+    const filledMonths = new Set<number>();
+    yearItems.forEach((row) =>
+      row.months.forEach((value, index) => {
+        if (value) filledMonths.add(index);
+      }),
+    );
+    return filledMonths.size > 0 ? Math.round(grandTotal / filledMonths.size) : 0;
+  }, [incomeArchive, activeMonth.year]);
 
   const currentMonthLabel = MONTHS[activeMonth.index];
   const summaryIncome = currentMonthIncome;
