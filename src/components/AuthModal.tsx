@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
-import { useAuth, EMAIL_NOT_VERIFIED_CODE, EMAIL_NOT_VERIFIED_MESSAGE } from '../context/AuthContext';
+import { useAuth, EMAIL_NOT_VERIFIED_CODE } from '../context/AuthContext';
 import { loginSchema, registerSchema, forgotSchema, type LoginFormData, type RegisterFormData, type ForgotFormData } from '../lib/validation';
 import { useToast } from '../ui/Toast';
 import type { BackupArchive } from '../lib/backup';
@@ -12,6 +12,10 @@ export const AuthModal = ({ onClose }: { onClose: () => void }) => {
   const { login, register, sendPasswordReset, resendVerification, user } = useAuth();
   const { success: toastSuccess, error: toastError } = useToast();
   const [mode, setMode] = useState<Mode>('login');
+  // Адрес, на который была выслана ссылка подтверждения. В режиме verify поля
+  // email нет, поэтому повторная отправка должна знать адрес из сессии, иначе
+  // уходит письмо без пользователя и кнопка молча ничего не делает.
+  const [verifyEmail, setVerifyEmail] = useState<string | null>(null);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -89,13 +93,18 @@ export const AuthModal = ({ onClose }: { onClose: () => void }) => {
       } else {
         await register(email, password);
         toastSuccess('Регистрация успешна', 'Письмо с подтверждением почты отправлено на ' + email);
+        // Порядок важен: сначала показываем экран подтверждения, потом разрешаем
+        // нажатия. Иначе повторная отправка уходит до появления экрана, а нажатие
+        // на кнопку до этого момента не видно пользователю.
+        setVerifyEmail(email);
+        setMode('verify');
         setSubmitting(false);
       }
     } catch (err: any) {
       if (err.code === EMAIL_NOT_VERIFIED_CODE) {
         // Аккаунт существует и пароль верный — предлагаем подтвердить почту повторно.
+        setVerifyEmail(user?.email ?? email);
         setMode('verify');
-        setError(EMAIL_NOT_VERIFIED_MESSAGE);
         setSubmitting(false);
         return;
       }
@@ -138,20 +147,66 @@ export const AuthModal = ({ onClose }: { onClose: () => void }) => {
     clearMessages();
     setSubmitting(true);
     try {
+      // Активная сессия — самый надёжный способ послать письмо; без неё
+      // Firebase требует повторного входа с паролем.
       if (user) {
         await resendVerification(user);
+        setSuccess('Письмо отправлено повторно');
+        return;
       }
-      setSuccess('Письмо с подтверждением отправлено повторно');
+      if (!verifyEmail) {
+        setMode('login');
+        setEmail('');
+        setPassword('');
+        setError('Введите email и пароль, чтобы отправить письмо ещё раз');
+        return;
+      }
+      if (!password) {
+        // Сессии нет: Firebase вышлет письмо только при успешном входе,
+        // поэтому просим пароль, а не отправляем пустое письмо.
+        setMode('login');
+        setError('Введите пароль, чтобы отправить письмо ещё раз');
+        return;
+      }
+      // Неверный пароль или неподтверждённая почта — ожидаемые варианты:
+      // в первом случае нужен ответ, во втором вход переводит окно обратно в verify.
+      await login(verifyEmail, password);
+      setSuccess('Письмо отправлено повторно');
     } catch (err: any) {
-      setError(err.message || 'Ошибка отправки');
+      if (err.code === EMAIL_NOT_VERIFIED_CODE) {
+        setVerifyEmail(user?.email ?? verifyEmail);
+        // Пароль уже проверен: сохраняем его для следующей повторной отправки.
+        setMode('verify');
+        setSuccess('Письмо отправлено повторно');
+        return;
+      }
+      setMode('login');
+      setError(
+        err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential'
+          ? 'Неверный пароль'
+          : err.code === 'auth/too-many-requests'
+          ? 'Слишком много попыток. Попробуйте позже'
+          : err.code === 'auth/invalid-email'
+          ? 'Некорректный email'
+          : err.code === 'auth/network-request-failed'
+          ? 'Нет подключения к интернету'
+          : err.message || 'Ошибка отправки',
+      );
     } finally {
       setSubmitting(false);
     }
   };
 
   return (
-    <div className="auth-overlay" onClick={onClose}>
-      <div className="auth-card" onClick={(e) => e.stopPropagation()}>
+    <div
+      className="auth-overlay"
+      onClick={(e) => {
+        // Закрываем окно только нажатием по самому фону: всплытие из полей
+        // и кнопок раньше доходило до оверлея и обрывало авторизацию.
+        if (e.target === e.currentTarget) onClose();
+      }}
+    >
+      <div className="auth-card" role="dialog" aria-modal="true">
         <button className="auth-close" onClick={onClose} aria-label="Закрыть">
           ×
         </button>
@@ -178,10 +233,11 @@ export const AuthModal = ({ onClose }: { onClose: () => void }) => {
           <form onSubmit={handleSubmit} className="auth-form">
             {mode !== 'forgot' && (
               <div className="auth-field">
-                <label>Email</label>
+                <label htmlFor="auth-email">Email</label>
                 <input
                   type="email"
                   required
+                  id="auth-email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   autoComplete="email"
@@ -190,10 +246,11 @@ export const AuthModal = ({ onClose }: { onClose: () => void }) => {
             )}
             {mode === 'forgot' && (
               <div className="auth-field">
-                <label>Email для восстановления</label>
+                <label htmlFor="auth-email">Email для восстановления</label>
                 <input
                   type="email"
                   required
+                  id="auth-email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   autoComplete="email"
@@ -203,10 +260,11 @@ export const AuthModal = ({ onClose }: { onClose: () => void }) => {
             )}
             {(mode === 'login' || mode === 'register') && (
               <div className="auth-field">
-                <label>Пароль</label>
+                <label htmlFor="auth-password">Пароль</label>
                 <input
                   type="password"
                   required
+                  id="auth-password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
@@ -222,10 +280,11 @@ export const AuthModal = ({ onClose }: { onClose: () => void }) => {
             )}
             {mode === 'register' && (
               <div className="auth-field">
-                <label>Подтвердите пароль</label>
+                <label htmlFor="auth-confirm-password">Подтвердите пароль</label>
                 <input
                   type="password"
                   required
+                  id="auth-confirm-password"
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   autoComplete="new-password"

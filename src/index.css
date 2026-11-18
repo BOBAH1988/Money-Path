@@ -1271,6 +1271,10 @@ body { margin: 0; font-family: system-ui, sans-serif; background: var(--theme-bg
   margin: 0 0 16px 0;
 }
 
+.dark .auth-verify p {
+  color: var(--theme-text-muted);
+}
+
 @media (min-width: 768px) {
   .auth-card {
     max-width: 420px;
