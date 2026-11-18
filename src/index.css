@@ -2158,6 +2158,113 @@ body { margin: 0; font-family: system-ui, sans-serif; background: var(--theme-bg
   cursor: pointer;
 }
 
+.income-archive-chart-body {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.income-archive-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.income-archive-stats li {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 12px;
+  border: 1px solid var(--theme-border);
+  border-radius: 12px;
+  background: var(--theme-surface);
+}
+
+.income-archive-stat-label {
+  color: var(--theme-text-muted);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.income-archive-stat-value {
+  color: var(--theme-text);
+  font-size: 15px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.income-archive-bars {
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  gap: 4px;
+  align-items: end;
+  height: 150px;
+}
+
+.income-archive-bar-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 4px;
+  height: 100%;
+  min-width: 0;
+}
+
+.income-archive-bar-value {
+  color: var(--theme-text-muted);
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.income-archive-bar-track {
+  display: flex;
+  align-items: flex-end;
+  width: 100%;
+  height: 100%;
+  border-radius: 6px;
+  background: var(--theme-surface);
+}
+
+.income-archive-bar-fill {
+  width: 100%;
+  border-radius: 6px;
+  background: linear-gradient(180deg, var(--dp-color-success), var(--dp-color-info));
+  transition: height 0.25s ease;
+}
+
+.income-archive-bar-fill-empty {
+  background: var(--theme-border);
+}
+
+.income-archive-bar-label {
+  color: var(--theme-text-muted);
+  font-size: 10px;
+  font-weight: 600;
+}
+
+.income-archive-note {
+  margin: 0;
+  color: var(--theme-text-muted);
+  font-size: 12px;
+}
+
+@media (max-width: 480px) {
+  .income-archive-bar-value {
+    display: none;
+  }
+
+  .income-archive-bar-label {
+    font-size: 9px;
+  }
+}
+
 .dashboard-archive-heading {
   display: flex;
   align-items: center;

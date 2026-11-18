@@ -1,5 +1,4 @@
 import { useMemo, useState } from 'react';
-import { BarChart } from './dashboard/Charts';
 
 export interface IncomeArchiveChartRow {
   year: number;
@@ -26,21 +25,32 @@ export const IncomeArchiveChart = ({ rows }: IncomeArchiveChartProps) => {
     [rows],
   );
 
-  if (years.length === 0) return null;
-
   const activeYear = year !== null && years.includes(year) ? year : years[0];
 
-  const yearRows = rows.filter((row) => row.year === activeYear);
-  const monthlyTotals = new Array(12).fill(0);
-  yearRows.forEach((row) => {
-    row.months.forEach((value, index) => {
-      if (value) monthlyTotals[index] += value;
-    });
-  });
-  const filledMonths = monthlyTotals.filter((value) => value !== 0).length;
-  const averageIncome = filledMonths > 0
-    ? Math.round(monthlyTotals.reduce((sum, value) => sum + value, 0) / filledMonths)
-    : 0;
+  const stats = useMemo(() => {
+    const totals = new Array(12).fill(0);
+    rows
+      .filter((row) => row.year === activeYear)
+      .forEach((row) => {
+        row.months.forEach((value, index) => {
+          if (value) totals[index] += value;
+        });
+      });
+    const filled = totals.filter((value) => value !== 0);
+    const total = totals.reduce((sum, value) => sum + value, 0);
+    return {
+      totals,
+      total,
+      average: filled.length > 0 ? Math.round(total / filled.length) : 0,
+      max: Math.max(...totals, 0),
+      best: totals.indexOf(Math.max(...totals)),
+      filledMonths: filled.length,
+    };
+  }, [rows, activeYear]);
+
+  if (years.length === 0) return null;
+
+  const { totals, total, average, max, best, filledMonths } = stats;
 
   return (
     <section className="budget-card income-archive-chart">
@@ -52,7 +62,10 @@ export const IncomeArchiveChart = ({ rows }: IncomeArchiveChartProps) => {
           aria-expanded={open}
           aria-controls="income-archive-chart-body"
         >
-          <span className={`income-archive-chart-chevron${open ? ' income-archive-chart-chevron-open' : ''}`} aria-hidden="true">
+          <span
+            className={`income-archive-chart-chevron${open ? ' income-archive-chart-chevron-open' : ''}`}
+            aria-hidden="true"
+          >
             ▸
           </span>
           <h2 className="budget-card-title" style={{ margin: 0 }}>Архив доходов</h2>
@@ -71,16 +84,49 @@ export const IncomeArchiveChart = ({ rows }: IncomeArchiveChartProps) => {
         )}
       </div>
       {open && (
-        <div className="budget-card-body" id="income-archive-chart-body">
-          <BarChart
-            series={[
-              { labels: ['Средний доход за год'], values: [averageIncome] },
-              ...MONTHS.map((month, index) => ({
-                labels: [month],
-                values: [monthlyTotals[index] ?? 0],
-              })),
-            ]}
-          />
+        <div className="budget-card-body income-archive-chart-body" id="income-archive-chart-body">
+          <ul className="income-archive-stats">
+            <li>
+              <span className="income-archive-stat-label">За год</span>
+              <strong className="income-archive-stat-value">
+                {total.toLocaleString('ru-RU')} ₽
+              </strong>
+            </li>
+            <li>
+              <span className="income-archive-stat-label">В среднем в месяц</span>
+              <strong className="income-archive-stat-value">
+                {average.toLocaleString('ru-RU')} ₽
+              </strong>
+            </li>
+            <li>
+              <span className="income-archive-stat-label">Лучший месяц</span>
+              <strong className="income-archive-stat-value">
+                {max > 0 ? `${MONTHS[best]} · ${max.toLocaleString('ru-RU')} ₽` : '—'}
+              </strong>
+            </li>
+          </ul>
+
+          <div className="income-archive-bars" role="list" aria-label="Доход по месяцам года">
+            {totals.map((value, index) => (
+              <div className="income-archive-bar-item" role="listitem" key={MONTHS[index]}>
+                <span className="income-archive-bar-value">
+                  {value ? `${Math.round(value / 1000)}k` : '—'}
+                </span>
+                <div className="income-archive-bar-track">
+                  <div
+                    className={`income-archive-bar-fill${value === 0 ? ' income-archive-bar-fill-empty' : ''}`}
+                    style={{ height: `${max > 0 ? Math.max((value / max) * 100, value > 0 ? 3 : 0) : 0}%` }}
+                    title={`${MONTHS[index]}: ${value.toLocaleString('ru-RU')} ₽`}
+                  />
+                </div>
+                <span className="income-archive-bar-label">{MONTHS[index].replace('.', '')}</span>
+              </div>
+            ))}
+          </div>
+
+          <p className="income-archive-note">
+            Заполнено месяцев: {filledMonths} из 12 · год {activeYear}
+          </p>
         </div>
       )}
     </section>
