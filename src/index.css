@@ -2985,6 +2985,44 @@ body { margin: 0; font-family: system-ui, sans-serif; background: var(--theme-bg
   background: #fef2f2;
 }
 
+.account-deletion-banner {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0 0 12px 0;
+  padding: 12px;
+  border: 1px solid #fcd34d;
+  border-radius: 10px;
+  background: #fffbeb;
+}
+
+.dark .account-deletion-banner {
+  border-color: #78350f;
+  background: #451a03;
+}
+
+.account-deletion-banner-title {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 700;
+  color: #92400e;
+}
+
+.dark .account-deletion-banner-title {
+  color: #fbbf24;
+}
+
+.account-deletion-banner-text {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.45;
+  color: #78350f;
+}
+
+.dark .account-deletion-banner-text {
+  color: #fcd34d;
+}
+
 .account-delete-form {
   display: flex;
   flex-direction: column;

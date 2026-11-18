@@ -14,6 +14,7 @@ import {
 import { auth } from '../lib/firebase';
 import { AuthContext } from './AuthContextObject';
 import {
+  ACCOUNT_DELETION_DONE_CODE,
   AuthError,
   EMAIL_NOT_VERIFIED_CODE,
   EMAIL_NOT_VERIFIED_MESSAGE,
@@ -102,7 +103,18 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   const login = async (email: string, password: string) => {
-    await signInVerified(email, password);
+    const signedIn = await signInVerified(email, password);
+    const { getScheduledDeletion, isDeletionDue } = await import('../lib/account-deletion');
+    const scheduled = getScheduledDeletion(signedIn.uid);
+    // Период восстановления истёк: удаление выполняется при следующем входе,
+    // потому что без Cloud Functions ничто не разбудит клиент раньше.
+    if (scheduled && isDeletionDue(scheduled)) {
+      await eraseAccount(signedIn);
+      throw new AuthError(
+        ACCOUNT_DELETION_DONE_CODE,
+        `Аккаунт удалён: срок восстановления истёк ${new Date(scheduled.deleteAt).toLocaleDateString('ru-RU')}.`,
+      );
+    }
   };
 
   /**
@@ -205,24 +217,54 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     setIsAuthenticated(false);
   };
 
+  /**
+   * Полное удаление: данные, профиль и аккаунт Firebase. Вызывается только
+   * после истечения срока восстановления — до него действует scheduleAccountDeletion.
+   */
+  const eraseAccount = async (currentUser: User) => {
+    const { deleteAccountData } = await import('../lib/firestore');
+    await deleteAccountData(currentUser.uid);
+    try {
+      await deleteUser(currentUser);
+    } catch (err) {
+      const reason = err instanceof Error ? ` (${err.message})` : '';
+      throw new Error(
+        `Данные удалены, но аккаунт Firebase не удалось удалить${reason}. Перезагрузитесь и повторите.`,
+        { cause: err },
+      );
+    }
+    const { cancelScheduledDeletion } = await import('../lib/account-deletion');
+    cancelScheduledDeletion(currentUser.uid);
+    setUser(null);
+    setUid(undefined);
+    setIsAuthenticated(false);
+  };
+
   const deleteAccount = async (password: string) => {
     if (!auth || !user?.email) throw new Error('Не удалось определить аккаунт для удаления');
     const credential = EmailAuthProvider.credential(user.email, password);
     await reauthenticateWithCredential(user, credential);
-    const { deleteAccountData } = await import('../lib/firestore');
-    await deleteAccountData(user.uid);
-    try {
-      await deleteUser(user);
-    } catch (err) {
-      const reason = err instanceof Error ? ` (${err.message})` : '';
-      throw new Error(
-        `Данные удалены, но аккаунт Firebase не удалось удалить${reason}. Перезагрузите страницу и повторите удаление аккаунта.`,
-        { cause: err },
-      );
-    }
-    setUser(null);
-    setUid(undefined);
-    setIsAuthenticated(false);
+    await eraseAccount(user);
+  };
+
+  /**
+   * Ставит удаление в очередь на срок восстановления: пароль проверяется сразу,
+   * но данные остаются на месте, и вход продолжает работать.
+   */
+  const scheduleAccountDeletion = async (password: string) => {
+    if (!auth || !user?.email) throw new Error('Не удалось определить аккаунт для удаления');
+    const credential = EmailAuthProvider.credential(user.email, password);
+    await reauthenticateWithCredential(user, credential);
+    const { scheduleAccountDeletion: schedule } = await import('../lib/account-deletion');
+    const record = schedule(user.uid, user.email);
+    return { deleteAt: record.deleteAt, email: user.email };
+  };
+
+  const cancelAccountDeletion = () => {
+    if (!user?.uid) return;
+    void import('../lib/account-deletion').then(({ cancelScheduledDeletion }) => {
+      cancelScheduledDeletion(user.uid);
+    });
   };
 
   const sendPasswordReset = async (email: string) => {
@@ -240,6 +282,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     register,
     logout,
     deleteAccount,
+    scheduleAccountDeletion,
+    cancelAccountDeletion,
     sendPasswordReset,
     resendVerification,
   };

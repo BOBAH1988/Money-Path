@@ -11,6 +11,8 @@ export interface AuthContextValue {
   register: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
   deleteAccount: (password: string) => Promise<void>;
+  scheduleAccountDeletion: (password: string) => Promise<{ deleteAt: string; email: string }>;
+  cancelAccountDeletion: () => void;
   sendPasswordReset: (email: string) => Promise<void>;
   resendVerification: (email: string, password?: string) => Promise<{ sent: boolean; message: string }>;
 }

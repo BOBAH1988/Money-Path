@@ -10,6 +10,9 @@ export const SESSION_NOT_READY_MESSAGE =
 
 export const EMAIL_NOT_SENT_CODE = 'auth/email-not-sent';
 
+/** Срок восстановления аккаунта истёк: аккаунт удалён при входе. */
+export const ACCOUNT_DELETION_DONE_CODE = 'auth/account-deletion-done';
+
 /** Ошибка входа с Firebase-подобным кодом, чтобы интерфейс показал понятное сообщение. */
 export class AuthError extends Error {
   readonly code: string;

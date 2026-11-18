@@ -2,6 +2,12 @@ import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth, EMAIL_NOT_VERIFIED_CODE } from '../context/AuthContext';
 import { EMAIL_NOT_SENT_CODE, getVerificationCooldownLeft } from '../lib/auth-errors';
+import {
+  cancelScheduledDeletion,
+  deletionDaysLeft,
+  formatDeletionDate,
+  getScheduledDeletion,
+} from '../lib/account-deletion';
 import { loginSchema, registerSchema, forgotSchema, type LoginFormData, type RegisterFormData, type ForgotFormData } from '../lib/validation';
 import { useToast } from '../ui/Toast';
 import type { BackupArchive } from '../lib/backup';
@@ -384,13 +390,14 @@ export const AuthModal = ({ onClose }: { onClose: () => void }) => {
 };
 
 export const AccountMenu = ({ onClose, onAnalytics }: { onClose: () => void; onAnalytics?: () => void }) => {
-  const { user, uid, isAdmin, isAuthenticated, logout, deleteAccount } = useAuth();
+  const { user, uid, isAdmin, isAuthenticated, logout, scheduleAccountDeletion } = useAuth();
   const { success: toastSuccess, error: toastError } = useToast();
   const [deleteMode, setDeleteMode] = useState(false);
   const [deletePassword, setDeletePassword] = useState('');
   const [deleteConfirmation, setDeleteConfirmation] = useState('');
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [scheduled, setScheduled] = useState(() => getScheduledDeletion(uid));
   const [exporting, setExporting] = useState(false);
   const [pendingArchive, setPendingArchive] = useState<BackupArchive | null>(null);
   const [restoring, setRestoring] = useState(false);
@@ -455,20 +462,38 @@ export const AccountMenu = ({ onClose, onAnalytics }: { onClose: () => void; onA
     }
   };
 
+  // Удаление ставится в очередь: пароль проверяется сразу, а данные стираются
+  // после срока восстановления, чтобы ошибку можно было отменить.
   const handleDeleteAccount = async (event: React.FormEvent) => {
     event.preventDefault();
     setDeleteError(null);
     setDeleting(true);
     try {
-      await deleteAccount(deletePassword);
-      onClose();
-      // Account deletion terminates Firestore to erase its persistent cache.
-      window.location.reload();
+      const result = await scheduleAccountDeletion(deletePassword);
+      const record = { uid: uid ?? '', email: result.email, requestedAt: new Date().toISOString(), deleteAt: result.deleteAt };
+      setScheduled(record);
+      setDeleteMode(false);
+      setDeletePassword('');
+      setDeleteConfirmation('');
+      toastSuccess(
+        'Удаление запланировано',
+        `Аккаунт удалится ${formatDeletionDate(result.deleteAt)}. До этой даты вход работает и удаление можно отменить.`,
+      );
     } catch (err) {
-      setDeleteError(err instanceof Error ? err.message : 'Не удалось удалить аккаунт');
+      setDeleteError(
+        err instanceof Error
+          ? err.message
+          : 'Не удалось запланировать удаление аккаунта',
+      );
     } finally {
       setDeleting(false);
     }
+  };
+
+  const handleCancelDeletion = () => {
+    cancelScheduledDeletion(uid ?? '');
+    setScheduled(null);
+    toastSuccess('Удаление отменено', 'Аккаунт и все данные остаются на месте.');
   };
 
   return (
@@ -487,6 +512,20 @@ export const AccountMenu = ({ onClose, onAnalytics }: { onClose: () => void; onA
             <span className="account-badge">Администратор</span>
           )}
         </div>
+        {scheduled && !deleteMode && (
+          <div className="account-deletion-banner" role="status">
+            <p className="account-deletion-banner-title">
+              Удаление запланировано на {formatDeletionDate(scheduled.deleteAt)}
+            </p>
+            <p className="account-deletion-banner-text">
+              Осталось дней: {deletionDaysLeft(scheduled)}. До этой даты данные сохраняются,
+              вход работает, а удаление можно отменить.
+            </p>
+            <button className="account-action-btn" type="button" onClick={handleCancelDeletion}>
+              Отменить удаление
+            </button>
+          </div>
+        )}
         {!deleteMode ? (
           <div className="account-menu-actions">
             <button className="account-action-btn" onClick={handleLogout}>
@@ -521,7 +560,8 @@ export const AccountMenu = ({ onClose, onAnalytics }: { onClose: () => void; onA
         ) : (
           <form className="account-delete-form" onSubmit={handleDeleteAccount}>
             <p>
-              Аккаунт, облачные записи и локальные данные приложения будут удалены безвозвратно.
+              Удаление запустится не сразу: данные сохраняются ещё 7 дней, и всё это время
+              вход работает. По истечении срока аккаунт удалится при следующем входе.
               Сначала скачайте архив, если хотите сохранить данные.
             </p>
             <label>
@@ -562,7 +602,7 @@ export const AccountMenu = ({ onClose, onAnalytics }: { onClose: () => void; onA
                 className="account-action-btn account-delete-btn"
                 disabled={deleting || !deletePassword || deleteConfirmation !== 'УДАЛИТЬ'}
               >
-                {deleting ? 'Удаление…' : 'Удалить навсегда'}
+                {deleting ? 'Планирование…' : 'Запланировать удаление'}
               </button>
             </div>
           </form>
