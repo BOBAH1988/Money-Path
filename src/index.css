@@ -3167,11 +3167,11 @@ body { margin: 0; font-family: system-ui, sans-serif; background: var(--theme-bg
   width: 64px;
   height: 64px;
   border-radius: 16px;
-  background: linear-gradient(135deg, var(--dp-color-primary, #007aff), var(--dp-color-primary-hover, #5856d6));
+  background: transparent;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 12px 32px rgba(0, 122, 255, 0.35);
+  box-shadow: none;
   position: relative;
 }
 
@@ -3180,8 +3180,8 @@ body { margin: 0; font-family: system-ui, sans-serif; background: var(--theme-bg
   height: 40px;
 }
 .page-loader-fullscreen html.dark .page-loader-icon {
-  background: linear-gradient(135deg, var(--dp-color-primary, #38bdf8), var(--dp-color-primary-hover, #0ea5e9));
-  box-shadow: 0 12px 32px rgba(56, 189, 248, 0.35);
+  background: transparent;
+  box-shadow: none;
 }
 
 @keyframes pageLoaderIconFloat {
@@ -3228,34 +3228,24 @@ body { margin: 0; font-family: system-ui, sans-serif; background: var(--theme-bg
   width: 88px;
   height: 88px;
   border-radius: 22px;
-  background: linear-gradient(135deg, var(--dp-color-primary, #007aff), var(--dp-color-primary-hover, #5856d6));
+  /* Без градиентной подложки: пока картинка не загрузилась, на её месте
+     остаётся фон страницы, а не голубая плитка в цвет кнопок. */
+  background: transparent;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 16px 40px rgba(0, 122, 255, 0.38);
+  box-shadow: none;
   position: relative;
   overflow: hidden;
-  transition: background 0.3s ease, box-shadow 0.3s ease;
   flex-shrink: 0;
 }
 html.dark .page-loader-fullscreen .page-loader-icon {
-  background: linear-gradient(135deg, var(--dp-color-primary, #38bdf8), var(--dp-color-primary-hover, #0ea5e9));
-  box-shadow: 0 16px 40px rgba(56, 189, 248, 0.42);
+  background: transparent;
+  box-shadow: none;
 }
-.page-loader-fullscreen .page-loader-icon::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  background: inherit;
-  opacity: 0.08;
-}
+.page-loader-fullscreen .page-loader-icon::before,
 .page-loader-fullscreen .page-loader-icon-bg {
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  background: inherit;
-  opacity: 0.12;
+  display: none;
 }
 .page-loader-fullscreen .page-loader-icon-img {
   width: 52px;
@@ -3328,25 +3318,20 @@ html.dark .page-loader-fullscreen .page-loader-icon {
   width: 64px;
   height: 64px;
   border-radius: 16px;
-  background: linear-gradient(135deg, var(--dp-color-primary, #007aff), var(--dp-color-primary-hover, #5856d6));
+  background: transparent;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 12px 32px rgba(0, 122, 255, 0.35);
+  box-shadow: none;
   position: relative;
   overflow: hidden;
-  transition: background 0.3s ease, box-shadow 0.3s ease;
 }
 html.dark .page-loader-icon {
-  background: linear-gradient(135deg, var(--dp-color-primary, #38bdf8), var(--dp-color-primary-hover, #0ea5e9));
-  box-shadow: 0 12px 32px rgba(56, 189, 248, 0.38);
+  background: transparent;
+  box-shadow: none;
 }
 .page-loader-icon-bg {
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  background: inherit;
-  opacity: 0.1;
+  display: none;
 }
 .page-loader-icon-img {
   width: 40px;

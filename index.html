@@ -23,6 +23,7 @@
 
       /* Загрузчик до первого рендера React: иконка сайта и полоса загрузки */
       .app-loader {
+        -webkit-tap-highlight-color: transparent;
         position: fixed;
         inset: 0;
         display: flex;
@@ -47,13 +48,25 @@
         height: 72px;
         border-radius: 18px;
         overflow: hidden;
+        /* Фон под иконкой: если картинка не пришла, вместо голубой рамки
+           разбитого изображения остаётся ровный тёмный квадрат. */
+        background: #0f172a;
         box-shadow: 0 10px 28px rgba(15, 23, 42, 0.18);
         animation: app-icon-pulse 2.4s ease-in-out infinite;
+        -webkit-tap-highlight-color: transparent;
+        -webkit-touch-callout: none;
+        user-select: none;
+        pointer-events: none;
       }
       .app-loader-icon img {
         display: block;
         width: 100%;
         height: 100%;
+        border: none;
+        outline: none;
+      }
+      .app-loader-icon:has(img[hidden]) {
+        display: none;
       }
 
       .app-loader-bar {
@@ -81,6 +94,28 @@
         font-weight: 600;
         letter-spacing: 0.02em;
         opacity: 0.75;
+        max-width: 280px;
+        text-align: center;
+        line-height: 1.5;
+      }
+
+      .app-loader-retry {
+        margin-top: 4px;
+        padding: 9px 20px;
+        border-radius: 10px;
+        border: 1px solid #d1d5db;
+        background: #ffffff;
+        color: #1d1d1f;
+        font: inherit;
+        font-size: 14px;
+        font-weight: 600;
+        cursor: pointer;
+      }
+
+      html.dark .app-loader-retry {
+        border-color: #334155;
+        background: #1e293b;
+        color: #f8fafc;
       }
 
       @keyframes app-bar-slide {
@@ -113,7 +148,13 @@
     <div id="root"></div>
     <div class="app-loader" id="app-loader" role="status" aria-live="polite">
       <div class="app-loader-icon">
-        <img src="./app-icon.svg" alt="" width="72" height="72" />
+        <img
+          src="./app-icon.svg"
+          alt=""
+          width="72"
+          height="72"
+          onerror="this.setAttribute('hidden', ''); this.parentNode.setAttribute('hidden', '');"
+        />
       </div>
       <div class="app-loader-bar" aria-hidden="true"></div>
       <div class="app-loader-text">Загрузка…</div>
