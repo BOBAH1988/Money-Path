@@ -1285,6 +1285,10 @@ body { margin: 0; font-family: system-ui, sans-serif; background: var(--theme-bg
   margin-top: 4px;
   text-align: center;
 }
+.auth-hint-left {
+  text-align: left;
+  line-height: 1.45;
+}
 
 .auth-checkbox-field {
   display: flex;
@@ -3082,9 +3086,6 @@ body { margin: 0; font-family: system-ui, sans-serif; background: var(--theme-bg
     padding: 4px 0;
   }
 
-  .footer-legal-link {
-    display: none;
-  }
 }
 
 .account-delete-btn {

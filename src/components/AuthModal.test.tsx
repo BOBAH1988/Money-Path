@@ -92,8 +92,8 @@ describe('AuthModal: подтверждение почты', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Создать' }));
     fireEvent.change(screen.getByLabelText('Email'), { target: { value: 'user@ya.ru' } });
-    fireEvent.change(screen.getByLabelText('Пароль'), { target: { value: 'Secret123' } });
-    fireEvent.change(screen.getByLabelText('Подтвердите пароль'), { target: { value: 'Secret123' } });
+    fireEvent.change(screen.getByLabelText('Пароль'), { target: { value: 'Secret-2026!x' } });
+    fireEvent.change(screen.getByLabelText('Подтвердите пароль'), { target: { value: 'Secret-2026!x' } });
     const checkboxes = document.querySelectorAll<HTMLInputElement>('input[type="checkbox"]');
     checkboxes.forEach((box) => fireEvent.click(box));
 
@@ -102,7 +102,7 @@ describe('AuthModal: подтверждение почты', () => {
     await waitFor(() =>
       expect(screen.getByRole('heading', { name: 'Подтверждение почты' })).toBeInTheDocument(),
     );
-    expect(register).toHaveBeenCalledWith('user@ya.ru', 'Secret123');
+    expect(register).toHaveBeenCalledWith('user@ya.ru', 'Secret-2026!x');
     await waitFor(() =>
       expect(screen.getByRole('button', { name: 'Отправить повторно' })).not.toBeDisabled(),
     );
@@ -113,7 +113,7 @@ describe('AuthModal: подтверждение почты', () => {
     login.mockRejectedValue(new AuthError(EMAIL_NOT_VERIFIED_CODE, 'verify'));
     renderModal();
 
-    fillLogin('user@ya.ru', 'Secret123');
+    fillLogin('user@ya.ru', 'Secret-2026!x');
     await act(async () => {
       fireEvent.click(screen.getByRole('button', { name: 'Войти' }));
     });
@@ -126,7 +126,7 @@ describe('AuthModal: подтверждение почты', () => {
     // Без сессии письмо отправляет сам контекст: он входит паролем внутри
     // resendVerification, поэтому окно передаёт адрес и пароль, а не логинится.
     await waitFor(() => expect(resendVerification).toHaveBeenCalledTimes(1));
-    expect(resendVerification).toHaveBeenCalledWith('user@ya.ru', 'Secret123');
+    expect(resendVerification).toHaveBeenCalledWith('user@ya.ru', 'Secret-2026!x');
     expect(login).toHaveBeenCalledTimes(1);
     expect(toastError).not.toHaveBeenCalled();
     expect(screen.getByText(/Письмо отправлено на user@ya\.ru/)).toBeInTheDocument();
@@ -139,7 +139,7 @@ describe('AuthModal: подтверждение почты', () => {
       .mockResolvedValueOnce({ user: { email: 'user@ya.ru', emailVerified: true } });
     renderModal();
 
-    fillLogin('user@ya.ru', 'Secret123');
+    fillLogin('user@ya.ru', 'Secret-2026!x');
     await act(async () => {
       fireEvent.click(screen.getByRole('button', { name: 'Войти' }));
     });
@@ -149,7 +149,7 @@ describe('AuthModal: подтверждение почты', () => {
     await act(async () => {});
 
     await waitFor(() =>
-      expect(resendVerification).toHaveBeenCalledWith('user@ya.ru', 'Secret123'),
+      expect(resendVerification).toHaveBeenCalledWith('user@ya.ru', 'Secret-2026!x'),
     );
     // Ожидаемая ветка «почта ещё не подтверждена» не поднимает красное уведомление.
     expect(toastError).not.toHaveBeenCalled();
@@ -162,8 +162,8 @@ describe('AuthModal: подтверждение почты', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Создать' }));
     fireEvent.change(screen.getByLabelText('Email'), { target: { value: 'user@ya.ru' } });
-    fireEvent.change(screen.getByLabelText('Пароль'), { target: { value: 'Secret123' } });
-    fireEvent.change(screen.getByLabelText('Подтвердите пароль'), { target: { value: 'Secret123' } });
+    fireEvent.change(screen.getByLabelText('Пароль'), { target: { value: 'Secret-2026!x' } });
+    fireEvent.change(screen.getByLabelText('Подтвердите пароль'), { target: { value: 'Secret-2026!x' } });
     document.querySelectorAll<HTMLInputElement>('input[type="checkbox"]').forEach((box) => fireEvent.click(box));
 
     await act(async () => {
@@ -178,7 +178,7 @@ describe('AuthModal: подтверждение почты', () => {
     // Письмо шлёт контекст: он же и ставит лимит на повторную отправку,
     // поэтому окно обязано передать адрес и пароль.
     await waitFor(() =>
-      expect(resendVerification).toHaveBeenCalledWith('user@ya.ru', 'Secret123'),
+      expect(resendVerification).toHaveBeenCalledWith('user@ya.ru', 'Secret-2026!x'),
     );
     expect(toastError).not.toHaveBeenCalled();
   });

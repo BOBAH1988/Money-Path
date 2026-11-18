@@ -8,7 +8,7 @@ import {
   formatDeletionDate,
   getScheduledDeletion,
 } from '../lib/account-deletion';
-import { loginSchema, registerSchema, forgotSchema, type LoginFormData, type RegisterFormData, type ForgotFormData } from '../lib/validation';
+import { loginSchema, registerSchema, forgotSchema, passwordRequirements, type LoginFormData, type RegisterFormData, type ForgotFormData } from '../lib/validation';
 import { useToast } from '../ui/Toast';
 
 type Mode = 'login' | 'register' | 'forgot' | 'verify';
@@ -298,6 +298,11 @@ export const AuthModal = ({ onClose }: { onClose: () => void }) => {
                   onChange={(e) => setPassword(e.target.value)}
                   autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
                 />
+                {mode === 'register' && validationErrors.length === 0 && (
+                  <p className="auth-hint auth-hint-left">
+                    Требования к паролю: {passwordRequirements.join(', ')}.
+                  </p>
+                )}
                 {mode === 'register' && validationErrors.length > 0 && (
                   <div className="auth-password-hints">
                     {validationErrors.map((err, i) => (

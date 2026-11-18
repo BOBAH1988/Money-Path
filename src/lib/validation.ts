@@ -1,11 +1,48 @@
 import { z } from 'zod';
 
+export const PASSWORD_MIN_LENGTH = 10;
+export const PASSWORD_MAX_LENGTH = 128;
+
+// Список самых частых паролей и шаблонных основ: такие значения запрещаем
+// отдельно, иначе они проходят формальные буквенно-цифровые требования.
+const COMMON_PASSWORDS = new Set([
+  'password', 'password1', 'password12', 'password123', 'password1234',
+  'qwerty', 'qwerty123', 'qwertyuiop', '12345678', '123456789', '1234567890',
+  '12345678910', 'iloveyou', 'welcome', 'welcome1', 'welcome123', 'admin123',
+  'administrator', 'letmein', 'monkey123', 'dragon123', 'football', 'baseball',
+  'sunshine', 'princess', 'abc12345', '1q2w3e4r', '1qaz2wsx', 'zaq12wsx',
+  'q1w2e3r4', 'asdfghjk', 'asdf1234', 'trustno1', 'changeme', 'superman',
+  'master123', 'shadow123', 'michael123', 'jennifer', 'matthew123',
+]);
+
+const isCommonPassword = (value: string) => {
+  // Сравниваем только буквы и цифры: спецсимволы вида «Password1!» не делают
+  // частый пароль безопасным.
+  const core = value.toLowerCase().replace(/[^a-z0-9]/g, '');
+  if (COMMON_PASSWORDS.has(core)) return true;
+  // Отсекаем хвосты вида «password2026» и «qwerty1234».
+  return COMMON_PASSWORDS.has(core.replace(/\d+$/, ''));
+};
+
+export const passwordRequirements = [
+  `не менее ${PASSWORD_MIN_LENGTH} символов`,
+  `не более ${PASSWORD_MAX_LENGTH} символов`,
+  'заглавная и строчная буквы',
+  'хотя бы одна цифра',
+  'хотя бы один спецсимвол (!@#$%^&* и подобные)',
+  'не входит в список частых паролей',
+];
+
 export const passwordSchema = z
   .string()
-  .min(8, 'Пароль должен содержать не менее 8 символов')
+  .min(PASSWORD_MIN_LENGTH, `Пароль должен содержать не менее ${PASSWORD_MIN_LENGTH} символов`)
+  .max(PASSWORD_MAX_LENGTH, `Пароль должен содержать не более ${PASSWORD_MAX_LENGTH} символов`)
   .regex(/[A-Z]/, 'Пароль должен содержать заглавную букву')
   .regex(/[a-z]/, 'Пароль должен содержать строчную букву')
-  .regex(/\d/, 'Пароль должен содержать цифру');
+  .regex(/\d/, 'Пароль должен содержать цифру')
+  .regex(/[^A-Za-z0-9]/, 'Пароль должен содержать хотя бы один спецсимвол')
+  .refine((v) => !isCommonPassword(v), 'Такой пароль слишком простой и часто встречается')
+  .refine((v) => !/^(.{1,4})\1+$/.test(v), 'Пароль не должен состоять из повторяющегося фрагмента');
 
 export const emailSchema = z.string().email('Некорректный email адрес');
 
