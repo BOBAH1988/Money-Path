@@ -1,8 +1,11 @@
-import { useState, useRef, useEffect } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../ui/Toast';
 import { ConfirmDialog } from '../ui/ConfirmDialog';
+import { loadLocalCollection } from '../lib/dataStore';
 import {
+  BACKUP_COLLECTIONS,
   exportBackup,
   restoreBackup,
   restoreBackupLocally,
@@ -12,49 +15,79 @@ import {
   type RestoreReport,
 } from '../lib/backup';
 
+const MAX_FILE_BYTES = 20 * 1024 * 1024;
 
 function formatDate(iso: string): string {
-  try {
-    return new Date(iso).toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
-  } catch {
-    return iso;
-  }
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return iso;
+  return date.toLocaleString('ru-RU', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
 }
 
 function countCollections(collections: BackupArchive['collections']): number {
-  return Object.values(collections).reduce((s, a) => s + (a?.length ?? 0), 0);
+  return Object.values(collections).reduce((sum, list) => sum + (list?.length ?? 0), 0);
+}
+
+function formatBytes(bytes: number): string {
+  if (bytes < 1024) return `${bytes} Б`;
+  if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} КБ`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} МБ`;
 }
 
 export default function Import() {
   const { isAuthenticated, uid } = useAuth();
+  const navigate = useNavigate();
   const { success: toastSuccess, error: toastError } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [creating, setCreating] = useState(false);
   const [restoring, setRestoring] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [pendingArchive, setPendingArchive] = useState<BackupArchive | null>(null);
+  const [pendingFileName, setPendingFileName] = useState('');
   const [clearBeforeRestore, setClearBeforeRestore] = useState(false);
+  const [dragActive, setDragActive] = useState(false);
   const [restored, setRestored] = useState(false);
+  const [lastExport, setLastExport] = useState<{ name: string; records: number } | null>(null);
+
+  const localCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    (BACKUP_COLLECTIONS as string[]).forEach((name) => {
+      counts[name] = loadLocalCollection<{ id: string }>(name, uid).length;
+    });
+    return counts;
+  }, [uid, restored]);
+
+  const localTotal = Object.values(localCounts).reduce((sum, value) => sum + value, 0);
 
   useEffect(() => {
     if (!restored) return;
-    const timer = window.setTimeout(() => setRestored(false), 3500);
+    const timer = window.setTimeout(() => setRestored(false), 5000);
     return () => window.clearTimeout(timer);
   }, [restored]);
 
   const handleCreateArchive = async () => {
-    if (!uid) return;
+    if (!uid) {
+      toastError('Нужен вход', 'Войдите в аккаунт, чтобы скачать данные из облака.');
+      return;
+    }
     setCreating(true);
     try {
       const archive = await exportBackup(uid);
       const blob = new Blob([JSON.stringify(archive, null, 2)], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = backupFileName(archive.userId);
-      a.click();
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = backupFileName(archive.userId);
+      link.click();
       URL.revokeObjectURL(url);
-      toastSuccess('Архив создан', `Сохранено записей: ${countCollections(archive.collections)}`);
+      const records = countCollections(archive.collections);
+      setLastExport({ name: backupFileName(archive.userId), records });
+      toastSuccess('Архив создан', `Сохранено записей: ${records}`);
     } catch (err) {
       toastError('Ошибка архива', err instanceof Error ? err.message : 'Не удалось создать архив');
     } finally {
@@ -62,17 +95,41 @@ export default function Import() {
     }
   };
 
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    e.target.value = '';
+  const acceptFile = async (file: File) => {
+    if (file.size > MAX_FILE_BYTES) {
+      toastError('Слишком большой файл', `Лимит — ${formatBytes(MAX_FILE_BYTES)}. Выбран ${formatBytes(file.size)}.`);
+      return;
+    }
     try {
       const archive = await parseBackupFile(file);
       setPendingArchive(archive);
+      setPendingFileName(file.name);
       setConfirmOpen(true);
     } catch (err) {
       toastError('Ошибка файла', err instanceof Error ? err.message : 'Не удалось прочитать архив');
     }
+  };
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    await acceptFile(file);
+  };
+
+  const handleDrop = async (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setDragActive(false);
+    const file = e.dataTransfer.files?.[0];
+    if (!file) return;
+    await acceptFile(file);
+  };
+
+  const closeConfirm = () => {
+    setConfirmOpen(false);
+    setPendingArchive(null);
+    setPendingFileName('');
+    setClearBeforeRestore(false);
   };
 
   const handleRestore = async () => {
@@ -80,50 +137,179 @@ export default function Import() {
     setConfirmOpen(false);
     setRestoring(true);
     try {
+      let report: RestoreReport;
       if (uid) {
-        const report: RestoreReport = await restoreBackup(pendingArchive, uid);
-        toastSuccess('Данные восстановлены', `Восстановлено записей: ${report.totalRecords}. Обновите страницу.`);
+        report = await restoreBackup(pendingArchive, uid);
       } else {
-        const report = restoreBackupLocally(pendingArchive, clearBeforeRestore);
-        toastSuccess('Данные восстановлены', `Восстановлено записей: ${report.totalRecords}. Обновите страницу, чтобы увидеть изменения.`);
+        report = restoreBackupLocally(pendingArchive, clearBeforeRestore);
       }
       setRestored(true);
+      toastSuccess('Данные восстановлены', `Записей: ${report.totalRecords}. Обновите страницу.`);
     } catch (err) {
       toastError('Ошибка восстановления', err instanceof Error ? err.message : 'Не удалось восстановить данные');
     } finally {
       setRestoring(false);
       setPendingArchive(null);
+      setPendingFileName('');
       setClearBeforeRestore(false);
     }
   };
 
+  const pendingRecords = pendingArchive ? countCollections(pendingArchive.collections) : 0;
+  const sameAccount = Boolean(pendingArchive && uid && pendingArchive.userId === uid);
+
   return (
-    <div className="page page-budget">
+    <div className="page page-budget page-import">
       <div className="budget-page-header">
         <h1 className="budget-page-header h1">Импорт и экспорт</h1>
-        <p className="budget-page-subtitle">Резервное копирование и восстановление данных</p>
+        <p className="budget-page-subtitle">
+          Резервная копия всех данных и восстановление из архива
+        </p>
       </div>
-      <div className="budget-card">
-        <div className="budget-card-header"><h2 className="budget-card-title">Экспорт</h2></div>
-        <div className="budget-card-body">
-          <p style={{ fontSize: 14, color: 'var(--theme-text-muted)' }}>Создаёт JSON-файл со всеми вашими данными (активы, пассивы, доходы, архив, план бюджета).</p>
-          <button className="btn-add-item" type="button" onClick={handleCreateArchive} disabled={creating || !isAuthenticated}>{creating ? 'Создание…' : 'Скачать архив'}</button>
-          {!isAuthenticated && <p style={{ fontSize: 13, color: 'var(--theme-text-muted)' }}>Войдите в аккаунт, чтобы экспортировать данные из облака.</p>}
-        </div>
-      </div>
-      <div className="budget-card">
-        <div className="budget-card-header"><h2 className="budget-card-title">Импорт</h2></div>
-        <div className="budget-card-body">
-          <p style={{ fontSize: 14, color: 'var(--theme-text-muted)' }}>Восстанавливает данные из ранее сохранённого архива.</p>
-          <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
-            <label style={{ display: 'flex', gap: 8, alignItems: 'center', fontSize: 14 }}><input type="checkbox" checked={clearBeforeRestore} onChange={(e) => setClearBeforeRestore(e.target.checked)} />Очистить локальные данные перед импортом (в гостевом режиме)</label>
+
+      <div className="import-grid">
+        <section className="import-card">
+          <header className="import-card-head">
+            <span className="import-card-icon" aria-hidden="true">📤</span>
+            <div>
+              <h2 className="import-card-title">Экспорт</h2>
+              <p className="import-card-text">
+                JSON-файл с активами, пассивами, доходами, архивом и планом бюджета.
+              </p>
+            </div>
+          </header>
+
+          <dl className="import-meta">
+            <div>
+              <dt>Источник</dt>
+              <dd>{isAuthenticated ? 'облако аккаунта' : 'гостевые данные'}</dd>
+            </div>
+            {isAuthenticated && (
+              <div>
+                <dt>Записей на устройстве</dt>
+                <dd>{localTotal}</dd>
+              </div>
+            )}
+          </dl>
+
+          <div className="import-actions">
+            <button
+              className="import-primary-btn"
+              type="button"
+              onClick={handleCreateArchive}
+              disabled={creating}
+            >
+              {creating ? 'Создание архива…' : 'Скачать архив'}
+            </button>
+            {!isAuthenticated && (
+              <p className="import-hint">
+                Экспорт из облака доступен после входа.{' '}
+                <button type="button" className="import-link-btn" onClick={() => navigate('/')}>
+                  Войти на главной
+                </button>
+              </p>
+            )}
           </div>
-          <input ref={fileInputRef} type="file" accept="application/json,.json" style={{ display: 'none' }} onChange={handleFileChange} />
-          <button className="btn-add-item" type="button" onClick={() => fileInputRef.current?.click()} disabled={restoring}>{restoring ? 'Восстановление…' : 'Выбрать файл архива'}</button>
-        </div>
+
+          {lastExport && (
+            <p className="import-success" role="status">
+              Файл <strong>{lastExport.name}</strong> · записей: {lastExport.records}
+            </p>
+          )}
+        </section>
+
+        <section className="import-card">
+          <header className="import-card-head">
+            <span className="import-card-icon" aria-hidden="true">📥</span>
+            <div>
+              <h2 className="import-card-title">Импорт</h2>
+              <p className="import-card-text">
+                Перетащите файл архива сюда или выберите его вручную.
+              </p>
+            </div>
+          </header>
+
+          <div
+            className={`import-dropzone${dragActive ? ' import-dropzone-active' : ''}`}
+            onDragOver={(e) => { e.preventDefault(); setDragActive(true); }}
+            onDragLeave={() => setDragActive(false)}
+            onDrop={handleDrop}
+            onClick={() => fileInputRef.current?.click()}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                fileInputRef.current?.click();
+              }
+            }}
+            role="button"
+            tabIndex={0}
+            aria-label="Выбрать или перетащить файл архива"
+          >
+            <span className="import-dropzone-icon" aria-hidden="true">🗂️</span>
+            <span className="import-dropzone-title">
+              {dragActive ? 'Отпустите файл' : 'Перетащите архив или нажмите'}
+            </span>
+            <span className="import-dropzone-hint">Формат .json · до {formatBytes(MAX_FILE_BYTES)}</span>
+          </div>
+
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="application/json,.json"
+            className="import-file-input"
+            onChange={handleFileChange}
+          />
+
+          <label className="import-switch">
+            <input
+              type="checkbox"
+              checked={clearBeforeRestore}
+              onChange={(e) => setClearBeforeRestore(e.target.checked)}
+              disabled={isAuthenticated}
+            />
+            <span>
+              <strong>Очистить текущие данные перед импортом</strong>
+              <small>
+                {isAuthenticated
+                  ? 'В аккаунте записи объединяются по ID — очистка недоступна.'
+                  : 'Только для гостевого режима: текущие данные на устройстве будут удалены.'}
+              </small>
+            </span>
+          </label>
+
+          {restoring && <p className="import-hint" role="status">Восстановление данных…</p>}
+        </section>
       </div>
-      {restored && <div className="budget-card"><div className="budget-card-body" style={{ color: 'var(--dp-color-success, #059669)', fontWeight: 600 }}>Данные восстановлены. Обновите страницу.</div></div>}
-      {pendingArchive && <ConfirmDialog open={confirmOpen} onClose={() => { setConfirmOpen(false); setPendingArchive(null); setClearBeforeRestore(false); }} onConfirm={handleRestore} title="Восстановить из архива?" description={`Архив от ${formatDate(pendingArchive.createdAt)}. Записей: ${countCollections(pendingArchive.collections)}. ${(clearBeforeRestore && !uid) ? 'Текущие локальные данные будут очищены.' : 'Данные будут объединены (записи с теми же ID обновятся).'}`} confirmLabel="Восстановить" confirmVariant={clearBeforeRestore ? 'danger' : 'primary'} />}
+
+      {restored && (
+        <div className="import-banner" role="status">
+          <span>Данные восстановлены. Обновите страницу, чтобы увидеть изменения.</span>
+          <button type="button" className="import-link-btn" onClick={() => window.location.reload()}>
+            Обновить
+          </button>
+        </div>
+      )}
+
+      {pendingArchive && (
+        <ConfirmDialog
+          open={confirmOpen}
+          onClose={closeConfirm}
+          onConfirm={handleRestore}
+          title="Восстановить из архива?"
+          description={[
+            `Файл: ${pendingFileName}.`,
+            `Архив от ${formatDate(pendingArchive.createdAt)}, записей: ${pendingRecords}.`,
+            pendingArchive.budgetPlan ? 'План бюджета будет восстановлен.' : 'Плана бюджета в архиве нет.',
+            clearBeforeRestore && !uid
+              ? 'Текущие локальные данные будут очищены.'
+              : sameAccount
+                ? 'Записи с теми же ID обновятся, остальные добавятся.'
+                : 'Архив создан для другого аккаунта: данные объединятся с текущими по ID.',
+          ].join(' ')}
+          confirmLabel="Восстановить"
+          confirmVariant={clearBeforeRestore && !uid ? 'danger' : 'primary'}
+        />
+      )}
     </div>
   );
 }
