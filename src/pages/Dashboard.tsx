@@ -292,13 +292,13 @@ export default function Dashboard() {
         <article className="dashboard-kpi">
           <span className="dashboard-kpi-label">Средний доход</span>
           <strong className="dashboard-kpi-value">{formatMoney(averageIncome)}</strong>
-          <span className="dashboard-kpi-note">в среднем за месяц</span>
+          <span className="dashboard-kpi-note">в месяц</span>
         </article>
         <article className="dashboard-kpi dashboard-kpi-success">
           <span className="dashboard-kpi-label">Остаток расходов</span>
           <strong className="dashboard-kpi-value">{formatMoney(summaryExpenses)}</strong>
           <span className="dashboard-kpi-note">
-            {summaryIncome > 0 ? `из ${formatMoney(summaryIncome)} доходов` : 'нет доходов'}
+            Регулярные расходы {formatMoney(totals.regularTotal)}
           </span>
         </article>
         <article className={`dashboard-kpi${netWorth < 0 ? ' dashboard-kpi-danger' : ''}`}>
