@@ -9,10 +9,10 @@ import { loadFromFirestore, loadLocalCollection, storageKeyFor, COLLECTIONS, syn
 import { EmptyState } from '../ui/EmptyState';
 import { AuthModal } from '../components/AuthModal';
 import { BarChart } from '../components/dashboard/Charts';
+import { resolveActiveMonth } from '../lib/incomeArchive';
 import { useToast } from '../ui/Toast';
 
 const CURRENT_YEAR = new Date().getFullYear();
-const CURRENT_MONTH_INDEX = new Date().getMonth();
 
 interface AssetRow {
   id: string;
@@ -165,15 +165,16 @@ export default function Dashboard() {
     return -sum;
   }, [liabilities]);
 
-  // Доходы берём из архива доходов — итог по текущему месяцу, как на странице «Доходы».
-  const currentMonthIncome = useMemo(() => {
-    const now = new Date();
-    const year = now.getFullYear();
-    const monthIndex = now.getMonth();
-    return incomeArchive
-      .filter((row) => row.year === year)
-      .reduce((sum, row) => sum + (row.months[monthIndex] || 0), 0);
-  }, [incomeArchive]);
+  // Доходы берём из архива: месяц считается новым, когда в нём появились данные,
+  // а не с 1-го числа — зарплата обычно приходит около 12-го.
+  const activeMonth = useMemo(() => resolveActiveMonth(incomeArchive), [incomeArchive]);
+  const currentMonthIncome = useMemo(
+    () =>
+      incomeArchive
+        .filter((row) => row.year === activeMonth.year)
+        .reduce((sum, row) => sum + (row.months[activeMonth.index] || 0), 0),
+    [incomeArchive, activeMonth],
+  );
 
   const archiveYears = useMemo(
     () => [...new Set(
@@ -203,7 +204,7 @@ export default function Dashboard() {
     return filled.size > 0 ? Math.round(total / filled.size) : 0;
   }, [incomeArchive, archiveYear]);
 
-  const currentMonthLabel = MONTHS[CURRENT_MONTH_INDEX];
+  const currentMonthLabel = MONTHS[activeMonth.index];
   const summaryIncome = currentMonthIncome;
   const summaryExpenses = totals.totalAll;
   const summaryDiff = summaryIncome - summaryExpenses;
