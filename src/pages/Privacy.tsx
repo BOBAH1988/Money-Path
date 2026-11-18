@@ -1,12 +1,22 @@
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { PRIVACY_NOTICE_VERSION } from '../lib/legal';
 
 export default function Privacy() {
+  const navigate = useNavigate();
+
   return (
     <article className="legal-page">
-      <div className="budget-page-header">
+      <div className="budget-page-header legal-page-header">
         <h1>Уведомление о конфиденциальности</h1>
         <p className="budget-page-subtitle">Редакция от {PRIVACY_NOTICE_VERSION}</p>
+        <button
+          type="button"
+          className="legal-close"
+          onClick={() => navigate(-1)}
+          aria-label="Закрыть"
+        >
+          ×
+        </button>
       </div>
 
       <p>

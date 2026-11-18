@@ -1,12 +1,22 @@
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { TERMS_VERSION } from '../lib/legal';
 
 export default function Terms() {
+  const navigate = useNavigate();
+
   return (
     <article className="legal-page">
-      <div className="budget-page-header">
+      <div className="budget-page-header legal-page-header">
         <h1>Условия использования «Денежного пути»</h1>
         <p className="budget-page-subtitle">Редакция от {TERMS_VERSION}</p>
+        <button
+          type="button"
+          className="legal-close"
+          onClick={() => navigate(-1)}
+          aria-label="Закрыть"
+        >
+          ×
+        </button>
       </div>
 
       <p>
