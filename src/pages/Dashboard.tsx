@@ -12,6 +12,7 @@ import { BarChart } from '../components/dashboard/Charts';
 import { useToast } from '../ui/Toast';
 
 const CURRENT_YEAR = new Date().getFullYear();
+const CURRENT_MONTH_INDEX = new Date().getMonth();
 
 interface AssetRow {
   id: string;
@@ -164,10 +165,15 @@ export default function Dashboard() {
     return -sum;
   }, [liabilities]);
 
-  const incomeAmount = useMemo(
-    () => income.reduce((sum, it) => sum + (it.amount ?? 0), 0),
-    [income]
-  );
+  // Доходы берём из архива доходов — итог по текущему месяцу, как на странице «Доходы».
+  const currentMonthIncome = useMemo(() => {
+    const now = new Date();
+    const year = now.getFullYear();
+    const monthIndex = now.getMonth();
+    return incomeArchive
+      .filter((row) => row.year === year)
+      .reduce((sum, row) => sum + (row.months[monthIndex] || 0), 0);
+  }, [incomeArchive]);
 
   const archiveYears = useMemo(
     () => [...new Set(
@@ -197,7 +203,8 @@ export default function Dashboard() {
     return filled.size > 0 ? Math.round(total / filled.size) : 0;
   }, [incomeArchive, archiveYear]);
 
-  const summaryIncome = incomeAmount;
+  const currentMonthLabel = MONTHS[CURRENT_MONTH_INDEX];
+  const summaryIncome = currentMonthIncome;
   const summaryExpenses = totals.totalAll;
   const summaryDiff = summaryIncome - summaryExpenses;
   const summaryEqual = summaryExpenses === summaryIncome;
@@ -308,8 +315,9 @@ export default function Dashboard() {
 
       <section className="dashboard-kpi-grid" aria-label="Ключевые показатели">
         <article className="dashboard-kpi">
-          <span className="dashboard-kpi-label">Доходы</span>
+          <span className="dashboard-kpi-label">Доходы за месяц</span>
           <strong className="dashboard-kpi-value">{formatMoney(summaryIncome)}</strong>
+          <span className="dashboard-kpi-note">{currentMonthLabel}</span>
         </article>
         <article className="dashboard-kpi">
           <span className="dashboard-kpi-label">Расходы</span>
