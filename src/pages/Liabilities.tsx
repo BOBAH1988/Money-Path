@@ -63,6 +63,19 @@ export default function Liabilities() {
         <p className="budget-page-subtitle">Долги и обязательства — что вы должны и сколько % отдаете за использование</p>
       </div>
 
+      {items.length > 0 && (
+        <section className="dashboard-kpi-grid income-summary-grid" aria-label="Итоги пассивов">
+        <article className="dashboard-kpi dashboard-kpi-danger">
+          <span className="dashboard-kpi-label">Итого долг</span>
+          <strong className="dashboard-kpi-value">{totals.totalMonthly} ₽</strong>
+        </article>
+        <article className="dashboard-kpi">
+          <span className="dashboard-kpi-label">Плата % в месяц</span>
+          <strong className="dashboard-kpi-value">{totals.totalMonthlyPlan} ₽</strong>
+        </article>
+        </section>
+      )}
+
       <BudgetTable
         title="Пассивы"
         group="monthly"
@@ -74,22 +87,6 @@ export default function Liabilities() {
         onRemove={removeItem}
         onAdd={addFromBudget}
       />
-      {items.length > 0 && (
-        <div className="budget-card" style={{ marginTop: 8 }}>
-          <div className="budget-card-body">
-            <div className="budget-summary">
-              <div className="summary-item summary-item-total">
-                <span className="summary-label">Итого долг</span>
-                <span className="summary-value">{totals.totalMonthly.toLocaleString('ru-RU')} ₽</span>
-              </div>
-              <div className="summary-item">
-                <span className="summary-label">Итого % в месяц</span>
-                <span className="summary-value">{totals.totalMonthlyPlan.toLocaleString('ru-RU')} ₽</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

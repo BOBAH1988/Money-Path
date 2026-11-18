@@ -63,6 +63,19 @@ export default function Assets() {
         <p className="budget-page-subtitle">Имущество и вложения — то, что приносит вам доход или имеет ценность</p>
       </div>
 
+      {items.length > 0 && (
+        <section className="dashboard-kpi-grid income-summary-grid" aria-label="Итоги активов">
+        <article className="dashboard-kpi dashboard-kpi-success">
+          <span className="dashboard-kpi-label">Итого активы</span>
+          <strong className="dashboard-kpi-value">{totals.totalMonthly} ₽</strong>
+        </article>
+        <article className="dashboard-kpi">
+          <span className="dashboard-kpi-label">Доход в месяц</span>
+          <strong className="dashboard-kpi-value">{totals.totalMonthlyPlan} ₽</strong>
+        </article>
+        </section>
+      )}
+
       <BudgetTable
         title="Активы"
         group="monthly"
@@ -74,22 +87,6 @@ export default function Assets() {
         onRemove={removeItem}
         onAdd={addFromBudget}
       />
-      {items.length > 0 && (
-        <div className="budget-card" style={{ marginTop: 8 }}>
-          <div className="budget-card-body">
-            <div className="budget-summary">
-              <div className="summary-item summary-item-total">
-                <span className="summary-label">Итого активы</span>
-                <span className="summary-value">{totals.totalMonthly.toLocaleString('ru-RU')} ₽</span>
-              </div>
-              <div className="summary-item">
-                <span className="summary-label">Доход в месяц</span>
-                <span className="summary-value">{totals.totalMonthlyPlan.toLocaleString('ru-RU')} ₽</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

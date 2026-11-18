@@ -244,29 +244,21 @@
   transition: background 0.15s, color 0.15s, border-color 0.15s, transform 0.1s;
 }
 
-.btn-add {
-  background: var(--theme-accent);
-  border-color: var(--theme-accent);
-  color: var(--theme-inverse-text);
+/* Цвет как у иконок меню: прозрачный фон и приглушённый штрих. */
+.btn-add,
+.btn-remove {
+  background: transparent;
+  border-color: var(--theme-border);
+  color: var(--theme-text-muted);
 }
 
 .btn-add:hover,
-.btn-add:focus-visible {
-  background: var(--theme-accent-hover);
-  border-color: var(--theme-accent-hover);
-  outline: none;
-}
-
-.btn-remove {
-  background: rgba(220, 38, 38, 0.1);
-  border-color: rgba(220, 38, 38, 0.35);
-  color: var(--dp-color-danger);
-}
-
+.btn-add:focus-visible,
 .btn-remove:hover,
 .btn-remove:focus-visible {
-  background: rgba(220, 38, 38, 0.2);
-  border-color: var(--dp-color-danger);
+  background: var(--theme-surface);
+  border-color: var(--theme-accent);
+  color: var(--theme-accent);
   outline: none;
 }
 
@@ -612,4 +604,14 @@
 .income-month-head .income-month-name {
   display: block;
   text-align: center;
+}
+
+/* Итог по месяцу на странице «Доходы»: число прижато к тому же правому
+   краю, что и значения строк выше, поэтому столбец читается ровно. */
+.budget-cell.income-total-cell {
+  text-align: right;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  padding-right: 4px;
 }

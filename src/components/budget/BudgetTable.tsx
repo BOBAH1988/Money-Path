@@ -1,6 +1,8 @@
 import { useState, useCallback } from 'react';
 import type { BudgetPlanItem, BudgetGroup } from '../../types';
 import { BudgetRow } from './BudgetRow';
+import type { BudgetPlanItem as RowItem } from '../../types';
+import { ConfirmDialog } from '../../ui/ConfirmDialog';
 import { format } from './format';
 
 interface Props {
@@ -40,6 +42,8 @@ export const BudgetTable = ({
 }: Props) => {
   const groupItems = items.filter((it) => it.group === group);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [deletePickerOpen, setDeletePickerOpen] = useState(false);
+  const [pendingRemove, setPendingRemove] = useState<RowItem | null>(null);
 
   // «+» сразу добавляет пустую строку в конец списка: отдельной формы ввода нет,
   // название и суммы правятся уже в самой строке тапом по ним.
@@ -91,6 +95,16 @@ export const BudgetTable = ({
               ✓
             </button>
           )}
+          <button
+            type="button"
+            className="btn-remove btn-remove-header"
+            onClick={() => setDeletePickerOpen(true)}
+            disabled={items.filter((it) => it.group === group && it.type === 'item').length === 0}
+            aria-label="Удалить строку"
+            title="Удалить строку"
+          >
+            −
+          </button>
           <button
             type="button"
             className="btn-add btn-add-header"
@@ -193,6 +207,54 @@ export const BudgetTable = ({
           </table>
         </div>
       </div>
+
+      {deletePickerOpen && (
+        <div className="auth-overlay" onClick={() => setDeletePickerOpen(false)} role="dialog" aria-modal="true">
+          <div className="auth-card" onClick={(e) => e.stopPropagation()}>
+            <button
+              type="button"
+              className="auth-close"
+              onClick={() => setDeletePickerOpen(false)}
+              aria-label="Закрыть"
+            >
+              ×
+            </button>
+            <h2 className="auth-title">Удалить строку</h2>
+            <p className="import-hint">Выберите строку — удаление потребует подтверждения.</p>
+            <div className="account-menu-actions">
+              {groupItems
+                .filter((it) => it.type === 'item')
+                .map((it) => (
+                  <button
+                    key={it.id}
+                    type="button"
+                    className="account-action-btn"
+                    onClick={() => {
+                      setDeletePickerOpen(false);
+                      setPendingRemove(it);
+                    }}
+                  >
+                    {it.name || '—'}
+                  </button>
+                ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      <ConfirmDialog
+        open={pendingRemove !== null}
+        onClose={() => setPendingRemove(null)}
+        onConfirm={() => {
+          if (pendingRemove) handleRemove(pendingRemove.id);
+          setPendingRemove(null);
+        }}
+        title="Удалить строку?"
+        description={`Строка «${pendingRemove?.name ?? '—'}» будет удалена безвозвратно.`}
+        confirmLabel="Удалить"
+        cancelLabel="Отмена"
+        confirmVariant="danger"
+      />
     </section>
   );
 };

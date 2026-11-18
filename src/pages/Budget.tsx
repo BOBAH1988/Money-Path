@@ -59,16 +59,16 @@ export default function Budget() {
           </div>
         </div>
       )}
-      <div className="budget-summary">
-        <div className="summary-item summary-item-total">
-          <span className="summary-label">Общее итого</span>
-          <span className="summary-value">{totalAll.toLocaleString('ru-RU')} ₽</span>
-        </div>
-        <div className="summary-item">
-          <span className="summary-label">Регулярные расходы</span>
-          <span className="summary-value">{totals.regularTotal.toLocaleString('ru-RU')} ₽</span>
-        </div>
-      </div>
+      <section className="dashboard-kpi-grid income-summary-grid" aria-label="Итоги бюджета">
+        <article className="dashboard-kpi dashboard-kpi-success">
+          <span className="dashboard-kpi-label">Общее итого</span>
+          <strong className="dashboard-kpi-value">{totalAll.toLocaleString('ru-RU')} ₽</strong>
+        </article>
+        <article className="dashboard-kpi">
+          <span className="dashboard-kpi-label">Регулярные расходы</span>
+          <strong className="dashboard-kpi-value">{totals.regularTotal.toLocaleString('ru-RU')} ₽</strong>
+        </article>
+      </section>
 
       <div className="budget-grid">
         <BudgetTable

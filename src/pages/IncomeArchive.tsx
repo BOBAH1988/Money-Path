@@ -239,7 +239,7 @@ export default function IncomeArchive() {
                   <tr className="budget-row total">
                     <td className="budget-cell budget-cell-name"><span className="footer-label">Итого:</span></td>
                     {visibleMonths.map(({ year, index }) => (
-                      <td key={`${year}-${index}`} className="budget-cell budget-cell-amount" style={{ whiteSpace: 'nowrap', fontWeight: 700 }}>
+                      <td key={`${year}-${index}`} className="budget-cell budget-cell-amount income-total-cell">
                         {colTotal(year, index).toLocaleString('ru-RU')}
                       </td>
                     ))}
