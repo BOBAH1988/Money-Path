@@ -11,6 +11,7 @@ import {
   restoreBackupLocally,
   parseBackupFile,
   backupFileName,
+  downloadBackup,
   type BackupArchive,
   type RestoreReport,
 } from '../lib/backup';
@@ -78,15 +79,12 @@ export default function Import() {
     setCreating(true);
     try {
       const archive = await exportBackup(uid);
-      const blob = new Blob([JSON.stringify(archive, null, 2)], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = backupFileName(archive.userId);
-      link.click();
-      URL.revokeObjectURL(url);
+      const fileName = backupFileName(archive.userId);
+      // downloadBackup вставляет ссылку в документ: без этого Safari и Firefox
+      // игнорируют программный клик и файл не сохраняется.
+      downloadBackup(archive, fileName);
       const records = countCollections(archive.collections);
-      setLastExport({ name: backupFileName(archive.userId), records });
+      setLastExport({ name: fileName, records });
       toastSuccess('Архив создан', `Сохранено записей: ${records}`);
     } catch (err) {
       toastError('Ошибка архива', err instanceof Error ? err.message : 'Не удалось создать архив');
