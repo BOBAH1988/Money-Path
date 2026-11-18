@@ -226,6 +226,8 @@
   transition: background 0.15s, transform 0.1s;
 }
 
+/* «+» и «−» — одна форма и один размер, различаются только цветом действия. */
+.btn-add,
 .btn-remove {
   display: inline-flex;
   align-items: center;
@@ -233,10 +235,8 @@
   width: 26px;
   height: 26px;
   padding: 0;
-  border: 1px solid var(--theme-border);
+  border: 1px solid transparent;
   border-radius: 10px;
-  background: var(--theme-surface);
-  color: var(--theme-text-muted);
   font-size: 18px;
   font-weight: 700;
   line-height: 1;
@@ -244,20 +244,37 @@
   transition: background 0.15s, color 0.15s, border-color 0.15s, transform 0.1s;
 }
 
-.btn-remove:hover,
-.btn-remove:focus-visible {
-  color: var(--dp-color-danger);
-  border-color: var(--dp-color-danger);
-  background: rgba(220, 38, 38, 0.08);
+.btn-add {
+  background: var(--theme-accent);
+  border-color: var(--theme-accent);
+  color: var(--theme-inverse-text);
+}
+
+.btn-add:hover,
+.btn-add:focus-visible {
+  background: var(--theme-accent-hover);
+  border-color: var(--theme-accent-hover);
   outline: none;
 }
 
-.btn-remove:active { transform: scale(0.92); }
-.btn-remove:disabled { opacity: 0.4; cursor: default; transform: none; }
+.btn-remove {
+  background: rgba(220, 38, 38, 0.1);
+  border-color: rgba(220, 38, 38, 0.35);
+  color: var(--dp-color-danger);
+}
 
-.btn-add { background: var(--theme-accent); color: var(--theme-inverse-text); }
-.btn-add:hover { background: var(--theme-accent-hover); }
-.btn-add:active { transform: scale(0.92); }
+.btn-remove:hover,
+.btn-remove:focus-visible {
+  background: rgba(220, 38, 38, 0.2);
+  border-color: var(--dp-color-danger);
+  outline: none;
+}
+
+.btn-add:active,
+.btn-remove:active { transform: scale(0.92); }
+
+.btn-add:disabled,
+.btn-remove:disabled { opacity: 0.4; cursor: default; transform: none; }
 
 .btn-done {
   background: var(--theme-accent);
@@ -586,14 +603,13 @@
   .budget-input-amount { width: 100%; min-width: 0; }
 }
 
-/* Шапка месяца на странице «Доходы»: название и год стоят левым краем
-   друг под другом, поэтому первая буква месяца и первая цифра года совпадают. */
+/* Шапка месяца на странице «Доходы»: месяц и год стоят по центру столбца. */
 .budget-head.income-month-head {
-  text-align: left;
+  text-align: center;
   white-space: normal;
 }
 
 .income-month-head .income-month-name {
   display: block;
-  text-align: left;
+  text-align: center;
 }
