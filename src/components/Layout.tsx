@@ -8,6 +8,7 @@ import { ConfirmDialog } from '../ui/ConfirmDialog';
 import { PageTitleContext } from './PageTitleContext';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../ui/Toast';
+import { useSwipeNavigation } from '../hooks/useSwipeNavigation';
 
 const pkgVersion = packageJson.version;
 const currentYear = new Date().getFullYear();
@@ -50,6 +51,7 @@ const prefetchRoute = (to: string) => {
 
 
 export default function Layout() {
+  useSwipeNavigation(true);
   const [menuOpen, setMenuOpen] = useState(false);
   const [confirmReset, setConfirmReset] = useState(false);
   const [authModalOpen, setAuthModalOpen] = useState(false);
