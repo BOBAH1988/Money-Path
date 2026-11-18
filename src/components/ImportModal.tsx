@@ -3,7 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import { COLLECTIONS } from '../lib/dataStore';
 import { loadFromFirestore } from '../lib/firestore';
 import { loadBudgetPlan } from '../lib/budget';
-import type { BackupArchive } from '../lib/backup';
+import { downloadBackup, type BackupArchive } from '../lib/backup';
 
 export const ImportModal = ({ onClose }: { onClose: () => void }) => {
   const { user, uid } = useAuth();
@@ -58,13 +58,7 @@ export const ImportModal = ({ onClose }: { onClose: () => void }) => {
         budgetPlan: budget,
       };
 
-      const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `denegnyj_put_${userId}_${new Date().toISOString().slice(0, 10)}.json`;
-      a.click();
-      URL.revokeObjectURL(url);
+      downloadBackup(payload, `denegnyj_put_${userId}_${new Date().toISOString().slice(0, 10)}.json`);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Не удалось экспортировать данные');
     } finally {

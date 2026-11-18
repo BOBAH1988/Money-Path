@@ -421,8 +421,8 @@ body { margin: 0; font-family: system-ui, sans-serif; background: var(--theme-bg
   right: 0;
   height: 56px;
   padding-top: env(safe-area-inset-top);
-  background: #ffffff;
-  border-bottom: 1px solid var(--border, #e5e7eb);
+  background: var(--theme-card);
+  border-bottom: 1px solid var(--theme-border);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -442,7 +442,7 @@ body { margin: 0; font-family: system-ui, sans-serif; background: var(--theme-bg
 .app-title {
   font-size: 18px;
   font-weight: 800;
-  color: #111827;
+  color: var(--theme-text);
 }
 
 .app-title-block {
@@ -454,7 +454,7 @@ body { margin: 0; font-family: system-ui, sans-serif; background: var(--theme-bg
 .app-subtitle {
   font-size: 12px;
   font-weight: 500;
-  color: #64748b;
+  color: var(--theme-text-muted);
 }
 
 .app-icon {

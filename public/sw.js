@@ -1,7 +1,7 @@
 const appBase = new URL('./', self.registration.scope);
 const scopeKey = new URL(self.registration.scope).pathname.replaceAll('/', '_');
 const cachePrefix = `denegnyj-put-${scopeKey}-`;
-const cacheName = `${cachePrefix}v17`;
+const cacheName = `${cachePrefix}v18`;
 
 const cacheJavaScriptTree = async (url, cache, seen) => {
   if (seen.has(url)) return;

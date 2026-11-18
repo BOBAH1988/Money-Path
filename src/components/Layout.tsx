@@ -4,7 +4,6 @@ import packageJson from '../../package.json';
 import { AppIcon } from './AppIcon';
 import { MenuIcon } from './MenuIcons';
 import { AccountButton, AccountMenu, AnalyticsModal, AuthModal } from './AuthModal';
-import { ImportModal } from './ImportModal';
 import { ConfirmDialog } from '../ui/ConfirmDialog';
 import { PageTitleContext } from './PageTitleContext';
 import { useAuth } from '../context/AuthContext';
@@ -55,7 +54,6 @@ export default function Layout() {
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [accountMenuOpen, setAccountMenuOpen] = useState(false);
   const [analyticsOpen, setAnalyticsOpen] = useState(false);
-  const [importModalOpen, setImportModalOpen] = useState(false);
   const themeExplicitRef = useRef(!!localStorage.getItem('denegnyj_put_theme'));
   const [theme, setTheme] = useState<'light' | 'dark'>(() => {
     const saved = localStorage.getItem('denegnyj_put_theme') as 'light' | 'dark' | null;
@@ -220,17 +218,37 @@ export default function Layout() {
 
   const handleClearCache = async () => {
     setMenuOpen(false);
+    if (!('serviceWorker' in navigator) || !navigator.serviceWorker.controller) {
+      toastSuccess('Обновление недоступно', 'Приложение работает без кэша — просто перезагрузите страницу.');
+      return;
+    }
     toastSuccess('Обновление приложения', 'Проверяем обновление…');
+    const reloadOnUpdate = () => window.location.reload();
+    navigator.serviceWorker.addEventListener('controllerchange', reloadOnUpdate, { once: true });
     try {
-      if ('serviceWorker' in navigator) {
-        const regs = await navigator.serviceWorker.getRegistrations();
-        await Promise.all(regs.map(async (reg) => {
-          try { await reg.update(); } catch {}
-          if (reg.waiting) reg.waiting.postMessage({ type: 'SKIP_WAITING' });
-        }));
+      const regs = await navigator.serviceWorker.getRegistrations();
+      const updates = await Promise.all(regs.map(async (reg) => {
+        try {
+          await reg.update();
+        } catch {
+          return false;
+        }
+        if (reg.waiting) {
+          reg.waiting.postMessage({ type: 'SKIP_WAITING' });
+          return true;
+        }
+        return false;
+      }));
+      if (!updates.some(Boolean)) {
+        navigator.serviceWorker.removeEventListener('controllerchange', reloadOnUpdate);
+        toastSuccess('Обновлений нет', 'Установлена последняя версия приложения.');
       }
-    } catch {
-      // ignore; SW/controllerchange в main.tsx выполнит безопасный refresh при наличии обновления
+    } catch (err) {
+      navigator.serviceWorker.removeEventListener('controllerchange', reloadOnUpdate);
+      toastError(
+        'Не удалось проверить обновления',
+        err instanceof Error ? err.message : 'Проверьте подключение к интернету и повторите попытку.',
+      );
     }
   };
 
@@ -314,13 +332,7 @@ export default function Layout() {
                   <NavLink
                     to={i.to}
                     className={({ isActive }) => isActive ? 'menu-item active' : 'menu-item'}
-                    onClick={(e) => {
-                      if (i.label === 'Импорт') {
-                        e.preventDefault();
-                        setImportModalOpen(true);
-                      }
-                      setMenuOpen(false);
-                    }}
+                    onClick={() => setMenuOpen(false)}
                   >
                     <span className="menu-icon"><MenuIcon name={i.icon} /></span>
                     {i.label}
@@ -423,8 +435,6 @@ export default function Layout() {
       {analyticsOpen && (
         <AnalyticsModal onClose={() => setAnalyticsOpen(false)} />
       )}
-
-      {importModalOpen && <ImportModal onClose={() => setImportModalOpen(false)} />}
 
       {installModalOpen && (
         <div className="install-overlay" onClick={() => setInstallModalOpen(false)}>
