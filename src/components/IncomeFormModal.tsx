@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useState } from 'react';
 import { Modal } from '../ui/Modal';
 import { Input } from '../ui/Input';
 import { Button } from '../ui/Button';
@@ -39,16 +39,18 @@ export function IncomeFormModal({
 const [deleteOpen, setDeleteOpen] = useState(false);
 const [submitting, setSubmitting] = useState(false);
 
-  const initial = useMemo(() => {
+  // Текущий год берём один раз при монтировании: вызов new Date() в рендере
+  // делает компонент недетерминированным.
+  const [currentYear] = useState(() => new Date().getFullYear());
+
+  const [form, setForm] = useState<IncomeArchiveFormData>(() => {
     const months = row?.months ?? new Array(12).fill(0);
     return {
       name: row?.name ?? '',
-      year: row?.year ?? new Date().getFullYear(),
+      year: row?.year ?? currentYear,
       months: [...months],
     };
-  }, [row]);
-
-  const [form, setForm] = useState<IncomeArchiveFormData>(initial);
+  });
   const [errors, setErrors] = useState<Partial<Record<keyof IncomeArchiveFormData, string>>>({});
 
   const handleInputChange = useCallback(

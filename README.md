@@ -121,7 +121,7 @@ npm run dev
 |---|---|
 | `npm run dev` | Запустить сервер разработки |
 | `npm run lint` | Запустить oxlint |
-| `npm test` | Запустить unit- и компонентные тесты |
+| `npm test` | Запустить unit- и компонентные тесты (тесты Firestore Rules пропускаются без эмулятора) |
 | `npm run build` | Проверить TypeScript и собрать приложение |
 | `npm run check` | Последовательно выполнить lint, тесты и production-сборку |
 | `npm run preview` | Локально просмотреть production-сборку |
@@ -140,7 +140,7 @@ npx --yes firebase-tools@14.22.0 emulators:exec \
 
 ## Firebase и безопасность
 
-Для разработки и развёртывания Firebase Auth и Firestore должны быть настроены в проекте Firebase. Клиентские параметры конфигурации можно передать через `VITE_FIREBASE_*`; у веб-приложения также есть публичный Firebase API key для fallback, который попадёт в браузерную сборку. Ограничьте его по HTTP referrer и используемым API в Google Cloud Console. Не добавляйте приватные ключи, пароли или service-account credentials в клиентский код.
+Для разработки и развёртывания Firebase Auth и Firestore должны быть настроены в проекте Firebase. Клиентские параметры конфигурации можно передать через `VITE_FIREBASE_*`; у веб-приложения также есть публичный Firebase API key для fallback, который попадёт в браузерную сборку. Ограничьте его по HTTP referrer и используемым API в Google Cloud Console — без этого ключ можно использовать из чужого проекта. Проверка обязательна после смены домена, например при переезде с GitHub Pages на собственный сервер. Не добавляйте приватные ключи, пароли или service-account credentials в клиентский код.
 
 Правила [`firestore.rules`](firestore.rules) ограничивают доступ к данным владельцем аккаунта; администратор имеет отдельный ограниченный доступ к списку профилей. Перед изменением правил запускайте emulator-тесты. Для production проект и актуальная схема размещения данных описаны в [уведомлении о конфиденциальности](https://BOBAH1988.github.io/Money-Path/#/privacy) и `docs/operations.md`.
 

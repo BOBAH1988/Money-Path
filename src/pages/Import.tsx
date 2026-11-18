@@ -64,7 +64,7 @@ export default function Import() {
       counts[name] = loadLocalCollection<{ id: string }>(name, uid).length;
     });
     return counts;
-  }, [uid, restored]);
+  }, [uid]);
 
   const localTotal = Object.values(localCounts).reduce((sum, value) => sum + value, 0);
 

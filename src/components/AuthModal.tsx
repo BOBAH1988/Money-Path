@@ -633,9 +633,10 @@ export const AnalyticsModal = ({ onClose }: { onClose: () => void }) => {
     };
     load();
     return () => { cancelled = true; };
-  }, [isAdmin]);
+  }, [isAdmin, uid]);
 
-  const now = new Date();
+  // Границы считаются один раз при открытии окна, а не в каждом рендере.
+  const [now] = useState(() => new Date());
   const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
   const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
 

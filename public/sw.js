@@ -33,10 +33,12 @@ const precacheShell = async () => {
   await Promise.allSettled(scripts.map((url) => cacheJavaScriptTree(url, cache, new Set())));
 
   // Иконки и манифест нужны офлайн-оболочке не меньше скриптов.
+  // Манифест кэшируется с тем же ?v, что и в index.html: иначе обновлённый
+  // манифест не долетит до установленного приложения.
   const assets = [
     'app-icon.svg',
     'favicon.ico',
-    'manifest.json',
+    'manifest.json?v=9',
     'icons/app-icon-180.png',
     'icons/app-icon-192.png',
     'icons/app-icon-512.png',
