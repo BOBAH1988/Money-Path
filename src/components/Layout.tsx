@@ -1,6 +1,5 @@
-import { useContext, useState, useEffect, useMemo, useRef, useLayoutEffect, useCallback } from 'react';
+import { useContext, useState, useEffect, useMemo, useRef, useLayoutEffect } from 'react';
 import { NavLink, Outlet, useNavigate, useLocation } from 'react-router-dom';
-import { useSwipeNavigation } from '../hooks/useSwipeNavigation';
 import packageJson from '../../package.json';
 import { AppIcon } from './AppIcon';
 import { AccountButton, AccountMenu, AnalyticsModal, AuthModal } from './AuthModal';
@@ -9,9 +8,6 @@ import { ConfirmDialog } from '../ui/ConfirmDialog';
 import { PageTitleContext } from './PageTitleContext';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../ui/Toast';
-import { PRIVACY_NOTICE_VERSION, TERMS_VERSION } from '../lib/legal';
-
-type ConsentState = 'loading' | 'current' | 'needed' | 'error';
 
 const pkgVersion = packageJson.version;
 const currentYear = new Date().getFullYear();
@@ -70,14 +66,6 @@ export default function Layout() {
   const bottomNavRef = useRef<HTMLElement>(null);
   const layoutRef = useRef<HTMLDivElement>(null);
   const [hiddenIndices, setHiddenIndices] = useState<Set<number>>(new Set());
-  const [consentState, setConsentState] = useState<ConsentState>('loading');
-  const [consentForUid, setConsentForUid] = useState<string | undefined>();
-  const [consentTermsChecked, setConsentTermsChecked] = useState(false);
-  const [consentPrivacyChecked, setConsentPrivacyChecked] = useState(false);
-  const [consentSelectionUid, setConsentSelectionUid] = useState<string>();
-  const [consentError, setConsentError] = useState<string | null>(null);
-  const [savingConsent, setSavingConsent] = useState(false);
-  const consentCheckId = useRef(0);
 
   const isInstalled = useMemo(
     () => window.matchMedia('(display-mode: standalone)').matches,
@@ -92,71 +80,11 @@ export default function Layout() {
     []
   );
   const { error: toastError, success: toastSuccess } = useToast();
-  const { isAuthenticated, isAuthReady, uid, legalConsentRevision, logout } = useAuth();
+  const { isAuthenticated, uid } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const ctx = useContext(PageTitleContext);
   const pageTitle = ctx?.pageTitle ?? '';
-
-  useSwipeNavigation(true);
-
-  const refreshLegalConsent = useCallback(async (userId: string) => {
-    const checkId = ++consentCheckId.current;
-    setConsentState('loading');
-    setConsentError(null);
-    try {
-      const { getLegalConsent } = await import('../lib/firestore');
-      const consent = await getLegalConsent(userId);
-      if (checkId !== consentCheckId.current) return;
-      setConsentForUid(userId);
-      setConsentState(
-        consent.termsVersion === TERMS_VERSION && consent.privacyVersion === PRIVACY_NOTICE_VERSION
-          ? 'current'
-          : 'needed',
-      );
-    } catch (err) {
-      if (checkId !== consentCheckId.current) return;
-      setConsentForUid(userId);
-      setConsentState('error');
-      setConsentError(err instanceof Error ? err.message : 'Не удалось проверить согласие');
-    }
-  }, []);
-
-  useEffect(() => {
-    if (!isAuthReady) return;
-    if (!isAuthenticated || !uid) {
-      consentCheckId.current += 1;
-      setConsentForUid(undefined);
-      setConsentState('current');
-      return;
-    }
-    void refreshLegalConsent(uid);
-  }, [isAuthReady, isAuthenticated, uid, legalConsentRevision, refreshLegalConsent]);
-
-  const acceptCurrentLegalDocuments = async () => {
-    if (!uid) return;
-    consentCheckId.current += 1;
-    setSavingConsent(true);
-    setConsentError(null);
-    try {
-      const { recordLegalConsent } = await import('../lib/firestore');
-      await recordLegalConsent(uid);
-      setConsentForUid(uid);
-      setConsentState('current');
-    } catch (err) {
-      setConsentError(err instanceof Error ? err.message : 'Не удалось сохранить согласие');
-    } finally {
-      setSavingConsent(false);
-    }
-  };
-
-  const leaveUntilConsent = async () => {
-    try {
-      await logout();
-    } catch (err) {
-      setConsentError(err instanceof Error ? err.message : 'Не удалось выйти из аккаунта');
-    }
-  };
 
   useLayoutEffect(() => {
     const container = navRef.current;
@@ -337,7 +265,7 @@ export default function Layout() {
           </div>
         </header>
 
-        <main className="content" style={{ touchAction: 'pan-y' }}><Outlet /></main>
+        <main className="content"><Outlet /></main>
 
       {/* Нижняя навигация PWA */}
       <nav className="bottom-nav" ref={bottomNavRef}>
@@ -534,68 +462,6 @@ export default function Layout() {
                 Закрыть
               </button>
             </div>
-          </div>
-        </div>
-      )}
-      {isAuthReady && isAuthenticated && uid && (
-        consentForUid !== uid || consentState !== 'current'
-      ) && (
-        <div className="legal-consent-overlay" role="dialog" aria-modal="true" aria-labelledby="legal-consent-title">
-          <div className="legal-consent-card">
-            <h2 id="legal-consent-title">Обновление документов</h2>
-            {consentState === 'needed' && (
-              <>
-                <p>
-                  Чтобы продолжить пользоваться аккаунтом, ознакомьтесь с актуальными документами
-                  и подтвердите согласие.
-                </p>
-                <p>
-                  <NavLink to="/terms">Условия использования</NavLink>
-                  {' · '}
-                  <NavLink to="/privacy">Уведомление о конфиденциальности</NavLink>
-                </p>
-                <label className="legal-consent-checkbox">
-                  <input
-                    type="checkbox"
-                    checked={consentSelectionUid === uid && consentTermsChecked}
-                    onChange={(event) => {
-                      setConsentSelectionUid(uid);
-                      setConsentTermsChecked(event.target.checked);
-                    }}
-                  />
-                  Принимаю текущую редакцию условий использования
-                </label>
-                <label className="legal-consent-checkbox">
-                  <input
-                    type="checkbox"
-                    checked={consentSelectionUid === uid && consentPrivacyChecked}
-                    onChange={(event) => {
-                      setConsentSelectionUid(uid);
-                      setConsentPrivacyChecked(event.target.checked);
-                    }}
-                  />
-                  Согласен на обработку данных согласно уведомлению о конфиденциальности
-                </label>
-                {consentError && <p role="alert" className="auth-error">{consentError}</p>}
-                <div className="legal-consent-actions">
-                  <button
-                    className="btn-install"
-                    onClick={() => void acceptCurrentLegalDocuments()}
-                    disabled={
-                      savingConsent ||
-                      consentSelectionUid !== uid ||
-                      !consentTermsChecked ||
-                      !consentPrivacyChecked
-                    }
-                  >
-                    {savingConsent ? 'Сохраняем…' : 'Принять и продолжить'}
-                  </button>
-                  <button className="btn-cancel" onClick={() => void leaveUntilConsent()} disabled={savingConsent}>
-                    Выйти
-                  </button>
-                </div>
-              </>
-            )}
           </div>
         </div>
       )}

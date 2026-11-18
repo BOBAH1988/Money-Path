@@ -51,9 +51,7 @@ import {
   enqueueCollectionClear,
   enqueueCollectionDelete,
   deleteAccountData,
-  recordLegalConsent,
 } from './firestore';
-import { PRIVACY_NOTICE_VERSION, TERMS_VERSION } from './legal';
 
 describe('saveToFirestore', () => {
   const userId = 'uid-123';
@@ -307,19 +305,6 @@ describe('account privacy operations', () => {
     vi.clearAllMocks();
     mocks.collection.mockReturnValue({} as any);
     mocks.doc.mockReturnValue({ __doc: true });
-  });
-
-  it('records the current legal document versions on the profile', async () => {
-    await recordLegalConsent('consent-user');
-
-    expect(mocks.setDoc).toHaveBeenCalledWith(
-      { __doc: true },
-      expect.objectContaining({
-        acceptedTermsVersion: TERMS_VERSION,
-        acceptedPrivacyVersion: PRIVACY_NOTICE_VERSION,
-      }),
-      { merge: true },
-    );
   });
 
   it('deletes the user collections, profile, legacy plan, cache, and local queues', async () => {

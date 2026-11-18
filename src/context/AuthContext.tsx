@@ -38,7 +38,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isAuthReady, setIsAuthReady] = useState(false);
   const [uid, setUid] = useState<string | undefined>(undefined);
-  const [legalConsentRevision, setLegalConsentRevision] = useState(0);
 
   const isAdmin = isAuthenticated && user
     ? user.email === ADMIN_EMAIL && user.emailVerified
@@ -119,9 +118,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       // ignore — пользователь уже создан
     }
     try {
-      const { recordLegalConsent, trackUser } = await import('../lib/firestore');
-      await recordLegalConsent(credential.user.uid);
-      setLegalConsentRevision((revision) => revision + 1);
+      const { trackUser } = await import('../lib/firestore');
       await trackUser(credential.user.uid, email);
     } catch (err) {
       // eslint-disable-next-line no-console
@@ -183,7 +180,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     isAuthenticated,
     isAuthReady,
     isAdmin,
-    legalConsentRevision,
     login,
     register,
     logout,

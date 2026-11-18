@@ -7,7 +7,6 @@ export interface AuthContextValue {
   isAuthenticated: boolean;
   isAuthReady: boolean;
   isAdmin: boolean;
-  legalConsentRevision: number;
   login: (email: string, password: string) => Promise<void>;
   register: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;

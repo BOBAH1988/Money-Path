@@ -37,7 +37,6 @@ import {
   clearCollectionData,
   clearUserLocalData,
 } from './dataStore';
-import { PRIVACY_NOTICE_VERSION, TERMS_VERSION } from './legal';
 
 export {
   COLLECTIONS,
@@ -150,31 +149,6 @@ export const trackUser = async (uid: string, email: string): Promise<void> => {
   } catch (err) {
     console.error(`[firestore] trackUser uid=${uid} ошибка:`, err);
   }
-};
-
-export const recordLegalConsent = async (uid: string): Promise<void> => {
-  const firestoreDb = await getFirestoreDb();
-  await setDoc(doc(firestoreDb, 'users', uid), {
-    acceptedTermsVersion: TERMS_VERSION,
-    acceptedPrivacyVersion: PRIVACY_NOTICE_VERSION,
-    consentUpdatedAt: new Date().toISOString(),
-  }, { merge: true });
-};
-
-export const getLegalConsent = async (
-  uid: string,
-): Promise<{ termsVersion: string; privacyVersion: string }> => {
-  const firestoreDb = await getFirestoreDb();
-  const snapshot = await withTimeout(
-    getDocFromServer(doc(firestoreDb, 'users', uid)),
-    10000,
-    'getLegalConsent',
-  );
-  const data = snapshot.data() ?? {};
-  return {
-    termsVersion: typeof data.acceptedTermsVersion === 'string' ? data.acceptedTermsVersion : '',
-    privacyVersion: typeof data.acceptedPrivacyVersion === 'string' ? data.acceptedPrivacyVersion : '',
-  };
 };
 
 /** Удаляет документы коллекции пачками, чтобы не упёреться в лимит writeBatch. */
