@@ -2022,6 +2022,15 @@ body { margin: 0; font-family: system-ui, sans-serif; background: var(--theme-bg
   padding: 8px 12px 0;
 }
 
+/* Заголовок секции над сеткой KPI: занимает всю строку сетки. */
+.dashboard-section-title {
+  grid-column: 1 / -1;
+  margin: 0 0 2px;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--theme-text);
+}
+
 .dashboard-kpi {
   display: flex;
   flex-direction: column;

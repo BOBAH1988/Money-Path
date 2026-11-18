@@ -32,7 +32,7 @@ describe('Budget page', () => {
       </ToastProvider>
     );
     await new Promise((r) => setTimeout(r, 100));
-    expect(screen.getAllByText('Общее итого').length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText('Осталось оплатить').length).toBeGreaterThanOrEqual(1);
     expect(screen.getAllByText('0 ₽').length).toBeGreaterThanOrEqual(1);
   });
 

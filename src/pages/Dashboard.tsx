@@ -8,7 +8,6 @@ import { useAuth } from '../context/AuthContext';
 import { loadFromFirestore, loadLocalCollection, storageKeyFor, COLLECTIONS, syncPendingToFirestore } from '../lib/firestore';
 import { EmptyState } from '../ui/EmptyState';
 import { AuthModal } from '../components/AuthModal';
-import { BarChart } from '../components/dashboard/Charts';
 import { resolveActiveMonth } from '../lib/incomeArchive';
 import { useToast } from '../ui/Toast';
 
@@ -363,30 +362,19 @@ export default function Dashboard() {
           </section>
         )}
 
-        <section className="dashboard-scale-group">
-          <h2>Структура расходов</h2>
-          <BarChart
-            series={[
-              { labels: ['Текущий месяц'], values: [totals.totalMonthly] },
-              { labels: ['Запланированные'], values: [totals.totalPlanned] },
-            ]}
-          />
-          <p className="dashboard-scale-note">
-            Регулярные платежи по плану: {formatMoney(totals.regularTotal)}
-          </p>
-        </section>
-
-        <section className="dashboard-scale-group">
-          <h2>Активы и пассивы</h2>
-          <BarChart
-            series={[
-              { labels: ['Активы'], values: [totalAssets] },
-              { labels: ['Пассивы'], values: [totalLiabilities] },
-            ]}
-          />
-        </section>
-
       </div>
+
+      <section className="dashboard-kpi-grid income-summary-grid" aria-label="Активы и пассивы">
+        <h2 className="dashboard-section-title">Активы и пассивы</h2>
+        <article className="dashboard-kpi dashboard-kpi-success">
+          <span className="dashboard-kpi-label">Активы</span>
+          <strong className="dashboard-kpi-value">{formatMoney(totalAssets)}</strong>
+        </article>
+        <article className={`dashboard-kpi${totalLiabilities < 0 ? ' dashboard-kpi-danger' : ''}`}>
+          <span className="dashboard-kpi-label">Пассивы</span>
+          <strong className="dashboard-kpi-value">{formatMoney(totalLiabilities)}</strong>
+        </article>
+      </section>
     </div>
   );
 }

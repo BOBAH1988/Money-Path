@@ -61,7 +61,7 @@ export default function Budget() {
       )}
       <section className="dashboard-kpi-grid income-summary-grid" aria-label="Итоги бюджета">
         <article className="dashboard-kpi dashboard-kpi-success">
-          <span className="dashboard-kpi-label">Общее итого</span>
+          <span className="dashboard-kpi-label">Осталось оплатить</span>
           <strong className="dashboard-kpi-value">{totalAll.toLocaleString('ru-RU')} ₽</strong>
         </article>
         <article className="dashboard-kpi">
