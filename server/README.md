@@ -29,6 +29,14 @@ npm run check             # oxlint + vitest + tsc
 docker compose up --build  # api + postgres
 ```
 
+## Авторизация
+
+Все маршруты, кроме `/health`, требуют `Authorization: Bearer <Firebase ID token>`.
+`uid` берётся только из проверенного токена; поле `uid` в теле запроса отклоняется с `422`.
+Неподтверждённая почта возвращает `403`, отозванный токен — `401`.
+Проверка идёт с `checkRevoked=true` и требует учётных данных сервисного аккаунта
+(`GOOGLE_APPLICATION_CREDENTIALS`).
+
 ## База данных
 
 ```bash

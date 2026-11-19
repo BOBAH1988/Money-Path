@@ -77,6 +77,8 @@ paths:
           $ref: '#/components/responses/NoContent'
         '401':
           $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
         '422':
           $ref: '#/components/responses/ValidationError'
 
@@ -285,7 +287,9 @@ components:
           schema:
             $ref: '#/components/schemas/Error'
     Forbidden:
-      description: Доступ к чужому аккаунту
+      description: >
+        Доступ запрещён: чужой аккаунт или неподтверждённый адрес электронной почты
+        (сервер отклоняет запросы с неподтверждённой почтой так же, как это делает клиент).
       content:
         application/json:
           schema:
