@@ -87,6 +87,31 @@ docker compose run --rm api node dist/scripts/db-migrate.js
 `FIREBASE_PROJECT_ID`/`GOOGLE_APPLICATION_CREDENTIALS` — до этапа 6 это предстоит
 дописать в `docker-compose.yml`.
 
+## Снимок и проверка перед переездом
+
+```bash
+# Полный снимок Firestore: все документы со всеми полями + sha256, пишется в backups/
+GOOGLE_APPLICATION_CREDENTIALS=... FIREBASE_PROJECT_ID=... \
+  npx tsx src/scripts/snapshot-firestore.ts
+
+# Сухой прогон импорта: только чтение, печатает счётчики по пользователям
+GOOGLE_APPLICATION_CREDENTIALS=... FIREBASE_PROJECT_ID=... \
+  npx tsx src/scripts/migrate-firestore.ts --dry-run
+
+# Живая проверка авторизации: настоящий ID-token от Google через verifyIdToken
+GOOGLE_APPLICATION_CREDENTIALS=... FIREBASE_PROJECT_ID=... VITE_FIREBASE_API_KEY=... \
+  npx tsx src/scripts/verify-live-auth.ts
+```
+
+`snapshot-firestore.ts` пишет документы как есть, включая профили и поля, которых нет
+в приложении, — этим он отличается от `scripts/backup.cjs` (формат для восстановления
+из интерфейса). Каталог `backups/` в `.gitignore`.
+
+`verify-live-auth.ts` создаёт временного пользователя email/пароль, проверяет его токен
+и удаляет пользователя. Ключ приложения ограничен по referer, поэтому скрипт подставляет
+`APP_ORIGIN` (по умолчанию `https://bobah1988.github.io`). Режим `--uid=<uid>` выпускает
+custom-token и требует включённого IAM Service Account Credentials API.
+
 ## Контракт
 API описан в [`openapi.yaml`](./openapi.yaml) (OpenAPI 3.1). Спецификация закреплена тестом
 `src/openapi.test.ts`: он проверяет наличие путей, `operationId` и резолв всех `$ref`.
