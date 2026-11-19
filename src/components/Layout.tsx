@@ -287,7 +287,11 @@ export default function Layout() {
           </div>
         </header>
 
-        <main className="content"><Outlet /></main>
+        <main className="content">
+          <div className="content-page" key={location.pathname}>
+            <Outlet />
+          </div>
+        </main>
 
       {/* Нижняя навигация PWA */}
       <nav className="bottom-nav" ref={bottomNavRef}>
