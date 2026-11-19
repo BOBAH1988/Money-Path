@@ -58,13 +58,19 @@
 ## Этап 1. Ветка и каркас `server/`
 
 Метка: **эта неделя**. Блокирующий пункт помечен ⛔.
+**Статус на 2026-11-19: выполнен.** Каркас собирается, тесты и линт проходят, CI настроен.
 
 - [x] Ветка `feat/server` создана от `main`
-- [ ] ⛔ `server/` со **своим** `package.json`, `tsconfig`, oxlint, vitest. *Отдельная сборка, чтобы CI Pages не подхватывал серверный код.*
-- [ ] Папка сервера вынесена из команд `npm run check` фронта. *Иначе незавершённый сервер будет ронять деплой Pages.*
-- [ ] `.env.example` для сервера; реальные значения — только в GitHub Secrets и `.env` сервера. *Никаких ключей в ветку.*
-- [ ] `Dockerfile` + `docker-compose.yml` (сервер + Postgres) для локального запуска.
-- [ ] CI job `server` отдельно от job `pages`, работает только в `feat/server` и защищённых ветках. *Pages триггерится push в `main` (`deploy.yml:5`) — каркас не заденет прод.*
+- [x] ⛔ `server/` со **своим** `package.json`, `tsconfig.json`, `.oxlintrc.json` и vitest. *Отдельная сборка, чтобы CI Pages не подхватывал серверный код.* Стек: Fastify 5 + zod 4, dev — `tsx`.
+- [x] Папка сервера вынесена из команд `npm run check` фронта: в `vitest.config.ts` добавлен `include` только по `src` и `rules-tests`, в корневом `.oxlintrc.json` — `ignorePatterns: ["server/**"]`, `tsconfig.app.json` включает только `src`. *Иначе незавершённый сервер будет ронять деплой Pages.*
+- [x] `server/.env.example`; реальные значения — только в GitHub Secrets и `.env` сервера (файл попадает под корневой `.gitignore`). *Никаких ключей в ветку.*
+- [x] `Dockerfile` (multi-stage, `node:24-alpine`) + `docker-compose.yml` (api + postgres:17, healthchecks, volume).
+- [x] CI workflow `.github/workflows/server.yml` отдельно от Pages: push в `main`/`feat/server` и PR по путям `server/**`. *`deploy.yml` триггерится только push в `main` (`deploy.yml:5`) — каркас не заденет прод.*
+- [x] Проверки пройдены локально: `server` — `lint + 4 теста + tsc`; фронт — `lint` (0 ошибок, 7 прежних предупреждений), `125 тестов`, `build` (серверные файлы не попадают).
+
+**Что осталось по этапу:**
+- [ ] Собрать образ и поднять `docker compose up --build` на машине с Docker, проверить `/health` из контейнера. *Локально Docker не установлен — образ не проверен вживую.*
+- [ ] Выровнять версию Node: локально 26, CI 24, `engines: >=22`. *Расхождение может дать разное поведение сборки.*
 
 ## Этап 2. Контракт API
 
