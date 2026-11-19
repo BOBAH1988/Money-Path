@@ -1,0 +1,489 @@
+openapi: 3.1.0
+
+info:
+  title: Money-Path API
+  description: >
+    Бэкенд Money-Path. Контракт полностью повторяет то, что клиент сегодня делает
+    через Firestore (см. src/lib/firestore.ts и src/lib/dataStore.ts): снимки коллекций,
+    локальная очередь операций (upsert/delete/clear), план бюджета, профиль.
+    Авторизация — Firebase ID-token (Bearer). Версия контракта — 0.1.0.
+  version: 0.1.0
+
+servers:
+  - url: https://api.money-path.example
+
+tags:
+  - name: me
+    description: Работа с данными авторизованного пользователя
+  - name: admin
+    description: Админская аналитика (доступ по ADMIN_UIDS)
+  - name: meta
+    description: Служебные эндпоинты
+
+security:
+  - bearerAuth: []
+
+paths:
+  /health:
+    get:
+      tags: [meta]
+      summary: Проверка живости сервиса (без авторизации)
+      operationId: health
+      security: []
+      responses:
+        '200':
+          description: Сервис работает
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [status]
+                properties:
+                  status:
+                    type: string
+                    enum: [ok]
+
+  /me/profile:
+    get:
+      tags: [me]
+      summary: Профиль пользователя
+      description: Аналог trackUser + loadUserAvatar в src/lib/firestore.ts.
+      operationId: getProfile
+      responses:
+        '200':
+          description: Профиль
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Profile'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+    put:
+      tags: [me]
+      summary: Создать/обновить профиль (email, lastActive, avatar)
+      operationId: putProfile
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email: { type: string, format: email }
+                avatar: { type: [string, 'null'], maxLength: 200000, description: data URL профиля; null — удалить }
+              additionalProperties: false
+      responses:
+        '204':
+          $ref: '#/components/responses/NoContent'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+
+  /me/collections/{collection}:
+    get:
+      tags: [me]
+      summary: Снимок коллекции пользователя
+      description: >
+        Аналог getDocs/loadFromFirestore. Отдаёт полный список записей и dataVersion.
+        dataVersion — строка (ISO-дата последней записи): клиент сравнивает со своим
+        локальным снимком и не перезаписывает более свежие локальные данные.
+      operationId: getCollection
+      parameters:
+        - $ref: '#/components/parameters/Collection'
+      responses:
+        '200':
+          description: Снимок коллекции
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CollectionSnapshot'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    delete:
+      tags: [me]
+      summary: Очистить коллекцию целиком
+      description: Аналог clearCollectionOperation (тип 'clear' в очереди).
+      operationId: clearCollection
+      parameters:
+        - $ref: '#/components/parameters/Collection'
+      responses:
+        '204':
+          $ref: '#/components/responses/NoContent'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /me/collections/{collection}/{id}:
+    put:
+      tags: [me]
+      summary: Записать запись (upsert по id)
+      description: >
+        Аналог setDoc в syncPendingToFirestore. Безопасен для повтора с одним и тем же
+        Idempotency-Key. Сервер сам проставляет userId и updatedAt от момента записи.
+      operationId: putItem
+      parameters:
+        - $ref: '#/components/parameters/Collection'
+        - $ref: '#/components/parameters/ItemId'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [id]
+              properties:
+                id: { type: string }
+              additionalProperties: true
+      responses:
+        '204':
+          $ref: '#/components/responses/NoContent'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+    delete:
+      tags: [me]
+      summary: Удалить запись
+      operationId: deleteItem
+      parameters:
+        - $ref: '#/components/parameters/Collection'
+        - $ref: '#/components/parameters/ItemId'
+      responses:
+        '204':
+          $ref: '#/components/responses/NoContent'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /me/budget_plan:
+    get:
+      tags: [me]
+      summary: План бюджета целиком
+      description: Аналог loadBudgetPlan (src/lib/firestore.ts:354).
+      operationId: getBudgetPlan
+      responses:
+        '200':
+          description: План бюджета
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BudgetPlan'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+    put:
+      tags: [me]
+      summary: Сохранить план бюджета целиком
+      description: Замена всего плана, как enqueueBudgetPlan + sync.
+      operationId: putBudgetPlan
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BudgetPlan'
+      responses:
+        '204':
+          $ref: '#/components/responses/NoContent'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+
+  /me/sync:
+    post:
+      tags: [me]
+      summary: Применить пакет операций локальной очереди
+      description: >
+        Аналог syncPendingToFirestore (src/lib/firestore.ts:433). Клиент шлёт очередь
+        операций (upsert/delete/clear/budget_plan); каждая операция может нести
+        operationId из локальной очереди — так повтор от клиента не дублирует запись.
+        Операции применяются по порядку. dataVersion в ответе — актуальный снимок.
+      operationId: sync
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SyncRequest'
+      responses:
+        '200':
+          description: Результат применения операций
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SyncResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+
+  /admin/stats:
+    get:
+      tags: [admin]
+      summary: Агрегаты для админской аналитики
+      description: >
+        Заменяет клиентское чтение всей коллекции users. Отдаёт только счётчики —
+        почты, uid и другие признаки пользователей не возвращаются. Доступ есть
+        только у uid из ADMIN_UIDS; остальные получают 403.
+      operationId: getAdminStats
+      responses:
+        '200':
+          description: Счётчики пользователей
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminStats'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /me:
+    delete:
+      tags: [me]
+      summary: Удалить все данные пользователя
+      description: Аналог deleteAccountData (src/lib/firestore.ts:202).
+      operationId: deleteAccount
+      responses:
+        '204':
+          $ref: '#/components/responses/NoContent'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Firebase ID-token; uid берётся только из токена, никогда из тела запроса.
+
+  parameters:
+    Collection:
+      name: collection
+      in: path
+      required: true
+      description: Имя коллекции пользователя
+      schema:
+        type: string
+        enum: [assets, liabilities, income, income_archive]
+        example: income
+    ItemId:
+      name: id
+      in: path
+      required: true
+      description: UUID записи
+      schema:
+        type: string
+        pattern: '^[0-9a-fA-F-]{1,128}$'
+    IdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      required: false
+      description: operation.id из локальной очереди; повтор с тем же ключом не дублирует запись.
+      schema:
+        type: string
+
+  responses:
+    NoContent:
+      description: Успешно, без тела
+      content:
+        application/json:
+          schema:
+            type: object
+    Unauthorized:
+      description: Отсутствует или недействителен ID-token
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    Forbidden:
+      description: >
+        Доступ запрещён: чужой аккаунт или неподтверждённый адрес электронной почты
+        (сервер отклоняет запросы с неподтверждённой почтой так же, как это делает клиент).
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    NotFound:
+      description: Ресурс не найден
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    Conflict:
+      description: Конфликт версии данных — клиенту надо перечитать снимок
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    ValidationError:
+      description: Некорректное тело запроса
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+  schemas:
+    Error:
+      type: object
+      required: [code, message]
+      properties:
+        code:
+          type: string
+          enum:
+            - UNAUTHENTICATED
+            - FORBIDDEN
+            - NOT_FOUND
+            - CONFLICT
+            - VALIDATION_ERROR
+            - RATE_LIMITED
+            - INTERNAL
+        message:
+          type: string
+          description: Человекочитаемое сообщение (язык по Accept-Language)
+        details:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+
+    AdminStats:
+      type: object
+      required: [total, active30, new30, new7]
+      properties:
+        total: { type: integer, description: всего профилей }
+        active30: { type: integer, description: активны за последние 30 дней }
+        new30: { type: integer, description: зарегистрированы за 30 дней }
+        new7: { type: integer, description: зарегистрированы за 7 дней }
+
+    Profile:
+      type: object
+      required: [uid, email, createdAt, lastActive]
+      properties:
+        uid: { type: string }
+        email: { type: string, format: email }
+        createdAt: { type: string, format: date-time }
+        lastActive: { type: string, format: date-time }
+        avatar: { type: [string, 'null'], description: data URL профиля }
+
+    DataItem:
+      type: object
+      description: >
+        Форма записи зависит от коллекции (см. src/types и src/pages):
+        assets/liabilities/income — {id, name, amount, monthly}; income_archive —
+        {id, name, year, months[12]}. Дополнительные поля разрешены для совместимости
+        с legacy-записями. Схемы-примеры ниже.
+      additionalProperties: true
+
+    CollectionSnapshot:
+      type: object
+      required: [dataVersion, items]
+      properties:
+        dataVersion:
+          type: string
+          format: date-time
+          description: ISO-дата последней записи в коллекции
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/DataItem'
+
+    BudgetPlanItem:
+      type: object
+      required: [id, name, amount, plan, group, type]
+      properties:
+        id: { type: string }
+        name: { type: string }
+        amount: { type: number, description: по факту (текущий месяц) }
+        plan: { type: number, description: план на следующий месяц }
+        group: { type: string, enum: [monthly, planned] }
+        type: { type: string, enum: [item, subtotal, total] }
+        linkedGroup:
+          type: [string, 'null']
+          description: для subtotal — группа, чей итог отображается
+
+    BudgetPlan:
+      type: object
+      required: [items, updatedAt]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/BudgetPlanItem'
+        updatedAt:
+          type: string
+          format: date-time
+
+    SyncOperation:
+      type: object
+      required: [op]
+      properties:
+        op:
+          type: string
+          enum: [upsert, delete, clear, budget_plan]
+        operationId:
+          type: string
+          description: id из локальной очереди; при повторе сервер вернёт прежний результат
+        collection:
+          type: string
+          enum: [assets, liabilities, income, income_archive]
+        # поля для op=upsert:
+        item:
+          type: object
+          required: [id]
+          additionalProperties: true
+        # для op=delete:
+        itemId:
+          type: string
+        # для op=budget_plan:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/BudgetPlanItem'
+        updatedAt:
+          type: string
+          format: date-time
+
+    SyncRequest:
+      type: object
+      required: [clientId, operations]
+      properties:
+        clientId:
+          type: string
+          description: Уникальный id клиента/вкладки (для трассировки и дедупликации)
+        operations:
+          type: array
+          minItems: 1
+          items:
+            $ref: '#/components/schemas/SyncOperation'
+
+    SyncResponse:
+      type: object
+      required: [dataVersion, applied]
+      properties:
+        dataVersion:
+          type: string
+          format: date-time
+        applied:
+          type: array
+          items:
+            type: object
+            required: [operationId, status]
+            properties:
+              operationId: { type: string }
+              status:
+                type: string
+                enum: [ok, duplicate, error]

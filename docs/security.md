@@ -1,5 +1,16 @@
 # Security review
 
+## Периметр API — 2026-11-19
+
+Пока данные жили в Firestore, доступ, объём записей и частоту обращений ограничивал сам Firestore. С появлением собственного сервера (`server/`) эти границы пришлось выстроить вручную — сделано до переключения трафика, чтобы API не оказался открытее прежнего.
+
+- **CORS** — только origin'ы из `CORS_ORIGINS`. Пустой список означает запрет cross-origin: браузер не получит разрешающий заголовок. Предварительный `OPTIONS` обслуживает CORS, а не охранник авторизации.
+- **Лимит запросов** — `RATE_LIMIT_MAX` за `RATE_LIMIT_WINDOW_MS` на uid (после проверки токена) или IP. Счётчики в памяти процесса; при нескольких инстансах нужен общий store.
+- **Размер тела** — `BODY_LIMIT` (256 КБ по умолчанию), превышение даёт `413`.
+- **Заголовки** — `@fastify/helmet`; CSP отключён, поскольку API отдаёт только JSON.
+- **Кэш проверки токена** — результат `verifyIdToken(token, true)` живёт `TOKEN_CACHE_TTL_MS` (5 минут по умолчанию). Компромисс осознанный: без кэша каждый запрос ходит к Google, с кэшем отозванная сессия действует до истечения TTL. `TOKEN_CACHE_TTL_MS=0` возвращает проверку на каждый запрос.
+- **Проверки** — `server/src/security.test.ts` (11 тестов): заголовки, CORS, `429`, `413`, поведение кэша включая отключение и отсутствие кэширования ошибок.
+
 ## Dependency audit — 2026-11-10
 
 The current dependency tree uses `@grpc/grpc-js@1.14.7` through an npm override scoped to `@firebase/firestore`. This is newer than Firestore `4.19.1`'s declared `~1.9.0` range, because Firebase `13.2.0` / Firestore `4.19.1` are the latest published versions checked and still declare that older range. The override selects the patched `1.x` line without downgrading Firebase. Both `npm audit` and `npm audit --omit=dev` report zero vulnerabilities.

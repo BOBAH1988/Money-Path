@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth, EMAIL_NOT_VERIFIED_CODE } from '../context/AuthContext';
 import { EMAIL_NOT_SENT_CODE, getVerificationCooldownLeft } from '../lib/auth-errors';
+import { errorText } from '../lib/api-errors';
 import {
   cancelScheduledDeletion,
   deletionDaysLeft,
@@ -613,7 +614,7 @@ export const AccountMenu = ({ onClose, onAnalytics }: { onClose: () => void; onA
 
 export const AnalyticsModal = ({ onClose }: { onClose: () => void }) => {
   const { isAdmin, uid } = useAuth();
-  const [users, setUsers] = useState<{ uid: string; email: string; createdAt: string; lastActive: string }[]>([]);
+  const [stats, setStats] = useState<{ total: number; active30: number; new30: number; new7: number } | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -627,11 +628,11 @@ export const AnalyticsModal = ({ onClose }: { onClose: () => void }) => {
       try {
         setLoading(true);
         setError(null);
-        const { getAllUsers } = await import('../lib/firestore');
-        const data = await getAllUsers(uid);
-        if (!cancelled) setUsers(data);
+        const { loadUserStats } = await import('../lib/firestore');
+        const data = await loadUserStats(uid);
+        if (!cancelled) setStats(data);
       } catch (err) {
-        if (!cancelled) setError(err instanceof Error ? err.message : 'Ошибка загрузки статистики');
+        if (!cancelled) setError(errorText(err, 'Ошибка загрузки статистики'));
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -640,24 +641,11 @@ export const AnalyticsModal = ({ onClose }: { onClose: () => void }) => {
     return () => { cancelled = true; };
   }, [isAdmin, uid]);
 
-  // Границы считаются один раз при открытии окна, а не в каждом рендере.
-  const [now] = useState(() => new Date());
-  const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-  const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-
-  const total = users.length;
-  const active = users.filter((u) => {
-    const d = u.lastActive ? new Date(u.lastActive) : null;
-    return Boolean(d && d >= thirtyDaysAgo);
-  }).length;
-  const new30 = users.filter((u) => {
-    const d = u.createdAt ? new Date(u.createdAt) : null;
-    return Boolean(d && d >= thirtyDaysAgo);
-  }).length;
-  const new7 = users.filter((u) => {
-    const d = u.createdAt ? new Date(u.createdAt) : null;
-    return Boolean(d && d >= sevenDaysAgo);
-  }).length;
+  // Счётчики считает сервер: клиенту не нужен список чужих профилей.
+  const total = stats?.total ?? 0;
+  const active = stats?.active30 ?? 0;
+  const new30 = stats?.new30 ?? 0;
+  const new7 = stats?.new7 ?? 0;
 
   if (loading) {
     return (
