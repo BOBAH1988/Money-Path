@@ -5,6 +5,19 @@ export interface BudgetPlanPayload {
   updatedAt: string;
 }
 
+export interface ProfilePayload {
+  uid: string;
+  email: string;
+  createdAt: string;
+  lastActive: string;
+  avatar: string | null;
+}
+
+export interface ProfileInput {
+  email?: string;
+  avatar?: string | null;
+}
+
 export interface CollectionSnapshot<T> {
   dataVersion: string;
   items: T[];
@@ -54,6 +67,8 @@ export interface ApiClient {
   putBudgetPlan: (plan: BudgetPlanPayload) => Promise<void>;
   sync: (clientId: string, operations: SyncOperation[]) => Promise<SyncResult>;
   deleteAccount: () => Promise<void>;
+  getProfile: () => Promise<ProfilePayload>;
+  putProfile: (input: ProfileInput) => Promise<void>;
 }
 
 const parseBody = (text: string): unknown => {
@@ -117,5 +132,9 @@ export const createApiClient = ({ baseUrl, getToken, fetchImpl = fetch }: ApiCli
     sync: (clientId, operations) => request<SyncResult>('POST', '/me/sync', { clientId, operations }),
 
     deleteAccount: () => request<void>('DELETE', '/me'),
+
+    getProfile: () => request<ProfilePayload>('GET', '/me/profile'),
+
+    putProfile: (input) => request<void>('PUT', '/me/profile', input),
   };
 };

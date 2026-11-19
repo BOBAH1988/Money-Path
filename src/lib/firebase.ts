@@ -73,6 +73,16 @@ export const clearFirestorePersistence = async (): Promise<void> => {
   await firestore.clearIndexedDbPersistence(firestoreDb);
 };
 
+/** ID-token текущей сессии для запросов к собственному API; null — если сессии нет. */
+export const getIdToken = async (): Promise<string | null> => {
+  if (!auth?.currentUser) return null;
+  try {
+    return await auth.currentUser.getIdToken();
+  } catch {
+    return null;
+  }
+};
+
 export const getFirebaseError = () => firebaseError;
 
 export { app, auth, firebaseError };
