@@ -23,6 +23,15 @@
 ### ImportBatch
 - id, createdAt (ISO), fileName, years[], recordsCount, totalAmount, errors[]
 
+## Postgres mirror
+
+`server/src/db/schema.ts` повторяет эти сущности таблицами: `assets`, `liabilities`,
+`income`, `income_archive`, `budget_plan` с составным ключом `(user_id, id)` и `profiles`.
+Суммы хранятся как `double precision` — приложение и импорт из Excel уже работают с float;
+переход на `numeric` потребует менять формат на всём пути. Поля, которых нет в схеме
+(например `importBatchId`), при импорте не переносятся — их наличие проверяется сверкой
+до боевого импорта.
+
 ## Normalization rule
 One non-empty cell "category × month" = one record. Empty/zero cells skipped.
 

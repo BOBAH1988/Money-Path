@@ -54,6 +54,7 @@ src/
   ui/           Базовые UI-компоненты
 public/         Манифест, Service Worker, иконки, fallback GitHub Pages
 rules-tests/    Тесты правил безопасности Firestore
+server/         API на Fastify + Postgres (переезд с Firebase, см. server/PLAN.md)
 docs/           Операционные, security- и проектные документы
 firestore.rules Правила доступа Firestore
 scripts/        Сборка версии, hooks, резервное копирование

@@ -252,12 +252,3 @@ export const loadUserStats = async (currentUid?: string): Promise<AdminStats> =>
   }
   return statsFromUsers(await firestore.getAllUsers(currentUid));
 };
-
-export const getAllUsers = async (
-  currentUid?: string,
-): Promise<{ uid: string; email: string; createdAt: string; lastActive: string }[]> => {
-  if (isApiBackend()) {
-    return api.getAllUsers();
-  }
-  return firestore.getAllUsers(currentUid);
-};

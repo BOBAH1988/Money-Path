@@ -300,8 +300,3 @@ export const loadUserStats = async (): Promise<{
   new7: number;
 }> => getClient().getAdminStats();
 
-export const getAllUsers = async (): Promise<never> => {
-  throw new Error(
-    'Список пользователей недоступен на собственном API: нужен админский эндпоинт (см. PLAN.md, этап 2).',
-  );
-};
