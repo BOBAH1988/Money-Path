@@ -6,7 +6,7 @@
 ## Требования
 
 - Node.js 22+ (CI использует 24).
-- Docker и Docker Compose — для локального Postgres.
+- Postgres 17 — через Docker Compose либо локально (`brew install postgresql@17`).
 
 ## Запуск
 
@@ -22,6 +22,23 @@ npm run dev               # http://127.0.0.1:8080/health
 ```bash
 npm run check             # oxlint + vitest + tsc
 ```
+
+Интеграционные тесты (БД, маршруты, импорт) без `TEST_DATABASE_URL` пропускаются.
+Чтобы прогнать их локально:
+
+```bash
+brew services start postgresql@17
+/opt/homebrew/opt/postgresql@17/bin/psql -d postgres \
+  -c "create role money_path login password 'money_path'"
+/opt/homebrew/opt/postgresql@17/bin/createdb -O money_path money_path_test
+
+TEST_DATABASE_URL=postgres://money_path:money_path@127.0.0.1:5432/money_path_test \
+  npm run check
+```
+
+Тесты чистят таблицы в `beforeEach`, поэтому файлы идут последовательно
+(`fileParallelism: false` в `vitest.config.ts`) — иначе параллельные файлы
+сносят данные друг друга.
 
 ## Docker
 
