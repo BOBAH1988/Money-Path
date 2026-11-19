@@ -29,6 +29,11 @@ npm run check             # oxlint + vitest + tsc
 docker compose up --build  # api + postgres
 ```
 
+## Контракт
+
+API описан в [`openapi.yaml`](./openapi.yaml) (OpenAPI 3.1). Спецификация закреплена тестом
+`src/openapi.test.ts`: он проверяет наличие путей, `operationId` и резолв всех `$ref`.
+
 ## Структура
 
 ```

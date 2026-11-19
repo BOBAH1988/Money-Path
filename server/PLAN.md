@@ -74,20 +74,30 @@
 
 ## Этап 2. Контракт API
 
-- [ ] Спецификация в `server/openapi.yaml` (или её эквивалент) — раньше кода. *Дальше по ней пишутся и сервер, и клиент.*
-- [ ] Эндпоинты под коллекции (зеркалят `users/{uid}/{collection}`):
+**Статус на 2026-11-19: выполнен.** Спецификация — `server/openapi.yaml`, контракт закреплён тестом `server/src/openapi.test.ts` (10 тестов сервера проходят, включая проверку резолва всех `$ref`).
+
+- [x] Спецификация в `server/openapi.yaml` — раньше кода. *Дальше по ней пишутся и сервер, и клиент.* OpenAPI 3.1; под неё добавился devDep `yaml` и мета-тест, который не даёт спецификации разъехаться.
+- [x] Эндпоинты под коллекции. Пути уточнены против черновика: `budget_plan` — отдельный ресурс, а запись идёт точечно либо пакетом.
 
 | Метод | Путь | Смысл | Соответствие фронту |
 |---|---|---|---|
-| GET | `/me/{collection}` | снимок коллекции | `getSnapshotFast` |
-| PUT | `/me/{collection}` | жирный апдейт набора (замена) | `writeBatch` / снимки |
-| DELETE | `/me/{collection}/{id}` | удалить запись | `deleteDoc` + очередь |
-| PUT | `/me/budget_plan` | план бюджета целиком | `enqueueBudgetPlan` |
-| GET | `/me` | профиль, версия данных | `trackUser` |
+| GET | `/me/collections/{collection}` | снимок + `dataVersion` | `getSnapshotFast`, `loadFromFirestore` |
+| DELETE | `/me/collections/{collection}` | очистка коллекции | op `clear` в очереди |
+| PUT | `/me/collections/{collection}/{id}` | upsert записи | `setDoc` в `drainPendingOnce` |
+| DELETE | `/me/collections/{collection}/{id}` | удаление записи | `deleteDoc` + op `delete` |
+| GET / PUT | `/me/budget_plan` | план бюджета целиком | `loadBudgetPlan` / `enqueueBudgetPlan` |
+| POST | `/me/sync` | пакет операций очереди | `syncPendingToFirestore` — основной путь офлайн-очереди |
+| GET / PUT | `/me/profile` | профиль, email, аватар | `trackUser`, `saveUserAvatar` |
+| DELETE | `/me` | удалить все данные | `deleteAccountData` |
+| GET | `/health` | живость | — |
 
-- [ ] Идемпотентность: заголовок `Idempotency-Key` = `operation.id` из очереди. *Повтор клиента не создаст дубликаты.*
-- [ ] Версионирование данных — поле `dataVersion` в ответе, согласен с локальным снимком. *Защита от перезаписи свежего локального кэша.*
-- [ ] Статус-коды и ошибки — машиночитаемые коды; сопоставить с `auth-errors.ts`. *UI уже умеет показывать типовые ошибки.*
+- [x] Идемпотентность: заголовок `Idempotency-Key` на `PUT .../{id}` и `operationId` в каждой операции `/me/sync`. *Повтор клиента не создаст дубликаты.*
+- [x] Версионирование данных — `dataVersion` в ответах чтения и `sync`, `409 CONFLICT` при расхождении версий. *Защита от перезаписи свежего локального кэша.*
+- [x] Коды ошибок: `UNAUTHENTICATED`, `FORBIDDEN`, `NOT_FOUND`, `CONFLICT`, `VALIDATION_ERROR`, `RATE_LIMITED`, `INTERNAL` — единый конверт `{code, message, details?}`.
+
+**Что осталось по этапу:**
+- [ ] Сверить коды ошибок с текстами, которые показывает UI (`src/components/AuthModal.tsx`, `src/lib/auth-errors.ts`): часть сообщений сегодня формируется на клиенте, при переезде их лучше отдавать сервером.
+- [ ] Решить, нужен ли админский эндпоинт списка пользователей (`getAllUsers`, `src/lib/firestore.ts:239`) — сейчас это чтение всей коллекции `users` клиентом, в новой схеме так нельзя.
 
 ## Этап 3. Хранилище и миграция данных
 
