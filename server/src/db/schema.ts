@@ -1,9 +1,11 @@
 import { integer, jsonb, pgTable, primaryKey, text, timestamp, doublePrecision } from 'drizzle-orm/pg-core';
 
 /**
- * Денежные суммы хранятся как double precision: приложение работает с числами
- * из Excel и уже суммирует их во float. Переход на numeric — отдельное решение,
- * его нельзя делать молча при миграции.
+ * Решение: денежные суммы остаются double precision. Фронт и импорт из Excel уже
+ * работают с float, бюджет личный — сверки до копейки нет. numeric(14,2) вернул бы
+ * строки из node-postgres и потребовал менять формат на всём пути (транспорт, кэш, UI).
+ * Если копеечная точность понадобится, это делается до боевого импорта: numeric(14,2)
+ * плюс приведение к числу на границе репозитория и тесты округления.
  */
 const money = (name: string) => doublePrecision(name).notNull().default(0);
 

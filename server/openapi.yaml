@@ -15,6 +15,8 @@ servers:
 tags:
   - name: me
     description: Работа с данными авторизованного пользователя
+  - name: admin
+    description: Админская аналитика (доступ по ADMIN_UIDS)
   - name: meta
     description: Служебные эндпоинты
 
@@ -225,6 +227,27 @@ paths:
         '422':
           $ref: '#/components/responses/ValidationError'
 
+  /admin/stats:
+    get:
+      tags: [admin]
+      summary: Агрегаты для админской аналитики
+      description: >
+        Заменяет клиентское чтение всей коллекции users. Отдаёт только счётчики —
+        почты, uid и другие признаки пользователей не возвращаются. Доступ есть
+        только у uid из ADMIN_UIDS; остальные получают 403.
+      operationId: getAdminStats
+      responses:
+        '200':
+          description: Счётчики пользователей
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminStats'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
   /me:
     delete:
       tags: [me]
@@ -336,6 +359,15 @@ components:
           items:
             type: object
             additionalProperties: true
+
+    AdminStats:
+      type: object
+      required: [total, active30, new30, new7]
+      properties:
+        total: { type: integer, description: всего профилей }
+        active30: { type: integer, description: активны за последние 30 дней }
+        new30: { type: integer, description: зарегистрированы за 30 дней }
+        new7: { type: integer, description: зарегистрированы за 7 дней }
 
     Profile:
       type: object

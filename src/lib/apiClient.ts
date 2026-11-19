@@ -18,6 +18,14 @@ export interface ProfileInput {
   avatar?: string | null;
 }
 
+/** Админская аналитика: только агрегаты, без идентификаторов и почт. */
+export interface AdminStats {
+  total: number;
+  active30: number;
+  new30: number;
+  new7: number;
+}
+
 export interface CollectionSnapshot<T> {
   dataVersion: string;
   items: T[];
@@ -69,6 +77,7 @@ export interface ApiClient {
   deleteAccount: () => Promise<void>;
   getProfile: () => Promise<ProfilePayload>;
   putProfile: (input: ProfileInput) => Promise<void>;
+  getAdminStats: () => Promise<AdminStats>;
 }
 
 const parseBody = (text: string): unknown => {
@@ -136,5 +145,7 @@ export const createApiClient = ({ baseUrl, getToken, fetchImpl = fetch }: ApiCli
     getProfile: () => request<ProfilePayload>('GET', '/me/profile'),
 
     putProfile: (input) => request<void>('PUT', '/me/profile', input),
+
+    getAdminStats: () => request<AdminStats>('GET', '/admin/stats'),
   };
 };

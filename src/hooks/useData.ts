@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useToast } from '../ui/Toast';
 import { useAuth } from '../context/AuthContext';
+import { errorText } from '../lib/api-errors';
 import {
   loadLocalCollection,
   saveLocalCollection,
@@ -102,7 +103,7 @@ export function useData<T extends { id: string }>(options: UseDataOptions): UseD
       const version = mutationVersionRef.current;
       const reportSyncError = (err: unknown) => {
         if (cancelled) return;
-        const message = err instanceof Error ? err.message : 'Ошибка синхронизации';
+        const message = errorText(err, 'Ошибка синхронизации');
         setError(message);
         toastError('Ошибка синхронизации', message);
       };
@@ -143,7 +144,7 @@ export function useData<T extends { id: string }>(options: UseDataOptions): UseD
           },
           (err) => {
             if (cancelled) return;
-            const message = err instanceof Error ? err.message : 'Ошибка загрузки данных';
+            const message = errorText(err, 'Ошибка загрузки данных');
             setError(message);
             toastError('Ошибка синхронизации', message);
           },
@@ -154,7 +155,7 @@ export function useData<T extends { id: string }>(options: UseDataOptions): UseD
         }
       } catch (err) {
         if (!cancelled) {
-          const message = err instanceof Error ? err.message : 'Ошибка загрузки данных';
+          const message = errorText(err, 'Ошибка загрузки данных');
           setError(message);
           toastError('Ошибка синхронизации', message);
         }

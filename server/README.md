@@ -5,7 +5,7 @@
 
 ## Требования
 
-- Node.js 22+ (CI использует 24).
+- Node.js 22+; рабочая версия — 24 (`.nvmrc` в корне и в `server/`).
 - Postgres 17 — через Docker Compose либо локально (`brew install postgresql@17`).
 
 ## Запуск
@@ -16,6 +16,9 @@ npm ci
 cp .env.example .env      # заполнить значения
 npm run dev               # http://127.0.0.1:8080/health
 ```
+
+Переменные окружения — в `.env.example`: `DATABASE_URL`, `TEST_DATABASE_URL`,
+`FIREBASE_PROJECT_ID`, `ADMIN_UIDS`, `PORT`/`HOST`/`LOG_LEVEL`.
 
 ## Проверки
 
@@ -54,6 +57,13 @@ docker compose up --build  # api + postgres
 Проверка идёт с `checkRevoked=true` и требует учётных данных сервисного аккаунта
 (`GOOGLE_APPLICATION_CREDENTIALS`).
 
+### Админская аналитика
+
+`GET /admin/stats` отдаёт только агрегаты — `{ total, active30, new30, new7 }`, без почт и uid.
+Доступ есть у uid из `ADMIN_UIDS=uid1,uid2` (пусто — эндпоинт закрыт для всех, отвечает `403`).
+UI показывает окно аналитики по своей проверке (`VITE_ADMIN_EMAIL`), но данные получает
+с сервера: если uid не совпал, окно скажет «Недостаточно прав».
+
 ## База данных
 
 ```bash
@@ -67,7 +77,15 @@ npm run db:import -- --uid=<uid> # один пользователь
 ```
 
 Импорт требует `GOOGLE_APPLICATION_CREDENTIALS` — сервисный аккаунт с правом чтения проекта.
-В контейнере миграции запускаются скомпилированным файлом: `node dist/scripts/db-migrate.js`.
+В контейнере миграции запускаются скомпилированным файлом:
+
+```bash
+docker compose run --rm api node dist/scripts/db-migrate.js
+```
+
+`docker compose up` сам миграции не применяет, и сервис `api` не получает
+`FIREBASE_PROJECT_ID`/`GOOGLE_APPLICATION_CREDENTIALS` — до этапа 6 это предстоит
+дописать в `docker-compose.yml`.
 
 ## Контракт
 API описан в [`openapi.yaml`](./openapi.yaml) (OpenAPI 3.1). Спецификация закреплена тестом

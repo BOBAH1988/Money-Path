@@ -293,6 +293,13 @@ export const loadUserAvatar = async (userId: string): Promise<string | null> => 
   }
 };
 
+export const loadUserStats = async (): Promise<{
+  total: number;
+  active30: number;
+  new30: number;
+  new7: number;
+}> => getClient().getAdminStats();
+
 export const getAllUsers = async (): Promise<never> => {
   throw new Error(
     'Список пользователей недоступен на собственном API: нужен админский эндпоинт (см. PLAN.md, этап 2).',

@@ -52,6 +52,7 @@ describe('openapi.yaml', () => {
       '/me/profile',
       '/me/budget_plan',
       '/me/sync',
+      '/admin/stats',
       '/me/collections/{collection}',
       '/me/collections/{collection}/{id}',
     ];

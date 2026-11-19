@@ -11,5 +11,8 @@ export const verifierReturning = (user: AuthUser | Error): TokenVerifier => ({
   },
 });
 
-export const createTestApp = (verifier: TokenVerifier, db: Database | null = null): FastifyInstance =>
-  buildApp({ logLevel: 'silent', verifier, db });
+export const createTestApp = (
+  verifier: TokenVerifier,
+  db: Database | null = null,
+  adminUids: string[] = [],
+): FastifyInstance => buildApp({ logLevel: 'silent', verifier, db, adminUids });

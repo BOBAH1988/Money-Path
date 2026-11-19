@@ -196,6 +196,27 @@ export const readDataVersion = async (tx: Tx, userId: string): Promise<string> =
   return value instanceof Date ? value.toISOString() : String(value);
 };
 
+export interface UserStats {
+  total: number;
+  active30: number;
+  new30: number;
+  new7: number;
+}
+
+/** Счётчики пользователей для админской аналитики: без имён и адресов. */
+export const readUserStats = async (tx: Tx): Promise<UserStats> => {
+  const result = await tx.execute(sql`
+    select
+      count(*)::int as total,
+      count(*) filter (where last_active >= now() - interval '30 days')::int as active30,
+      count(*) filter (where created_at >= now() - interval '30 days')::int as new30,
+      count(*) filter (where created_at >= now() - interval '7 days')::int as new7
+    from profiles
+  `);
+  const rows = (result as unknown as { rows: UserStats[] }).rows;
+  return rows[0] ?? { total: 0, active30: 0, new30: 0, new7: 0 };
+};
+
 export const deleteUserData = async (tx: Tx, userId: string): Promise<void> => {
   for (const table of [assets, liabilities, income, incomeArchive, budgetPlan]) {
     await tx.delete(table as typeof assets).where(sql`user_id = ${userId}`);

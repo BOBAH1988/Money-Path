@@ -15,6 +15,9 @@ export const unauthenticated = (reply: FastifyReply) =>
 export const noDatabase = (reply: FastifyReply) =>
   sendError(reply, 503, 'INTERNAL', 'База данных не настроена');
 
+export const forbidden = (reply: FastifyReply, message = 'Недостаточно прав') =>
+  sendError(reply, 403, 'FORBIDDEN', message);
+
 export const notFound = (reply: FastifyReply, message = 'Ресурс не найден') =>
   sendError(reply, 404, 'NOT_FOUND', message);
 

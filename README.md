@@ -72,7 +72,7 @@ scripts/        Сборка версии, hooks, резервное копир�
 
 ## Разработка
 
-Требуются Node.js и npm; версия Node.js задана в `.github/workflows/deploy.yml`.
+Требуются Node.js и npm. Рабочая версия — 24 (`.nvmrc`, `.node-version`), её же используют оба workflow; поддерживается 22+.
 
 ```bash
 git clone https://github.com/BOBAH1988/Money-Path.git
@@ -108,6 +108,8 @@ npx --yes firebase-tools@14.22.0 emulators:exec \
 ## Безопасность
 
 **Ключи.** Параметры Firebase передаются через `VITE_FIREBASE_*` (образец — `.env.example`). В исходном коде ключа нет: без `VITE_FIREBASE_API_KEY` приложение сообщает об ошибке конфигурации.
+
+**Свой сервер (в разработке).** `VITE_DATA_BACKEND=api` вместе с `VITE_API_URL` переключает слой данных с Firestore на собственный API; без обоих значений приложение остаётся на Firebase. `VITE_SHADOW_API=1` включает фоновую сверку с API, `VITE_DUAL_WRITE=1` — дублирование записей. Сервер описан в [`server/README.md`](./server/README.md).
 
 **Ограничение ключа.** Ключ веб-приложения публичен и попадает в браузерную сборку, поэтому в Google Cloud Console его ограничивают по HTTP referrer и списку API. Для GitHub Pages нужны оба адреса — `https://<user>.github.io/*` и `https://<user>.github.io/<repo>/*`, иначе вход отклоняется с `auth/requests-from-referer-…-are-blocked`. Пересматривайте ограничения при смене домена.
 

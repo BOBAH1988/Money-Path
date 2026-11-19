@@ -1,3 +1,4 @@
+import type { AdminStats } from './apiClient';
 import * as api from './apiBackend';
 import { BACKEND_CONFIG, isApiBackend } from './backend';
 import * as firestore from './firestoreBackend';
@@ -222,6 +223,34 @@ export const loadUserAvatar = async (userId: string): Promise<string | null> => 
     return api.loadUserAvatar(userId);
   }
   return firestore.loadUserAvatar(userId);
+};
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+const statsFromUsers = (users: { createdAt: string; lastActive: string }[], now = Date.now()): AdminStats => {
+  const within = (iso: string, days: number): boolean => {
+    if (!iso) return false;
+    const time = new Date(iso).getTime();
+    return Number.isFinite(time) && now - time <= days * DAY_MS;
+  };
+
+  return {
+    total: users.length,
+    active30: users.filter((user) => within(user.lastActive, 30)).length,
+    new30: users.filter((user) => within(user.createdAt, 30)).length,
+    new7: users.filter((user) => within(user.createdAt, 7)).length,
+  };
+};
+
+/**
+ * Агрегаты для админской аналитики. На API их считает сервер — клиент не получает
+ * чужой список пользователей; на Firestore приходится считать по коллекции `users`.
+ */
+export const loadUserStats = async (currentUid?: string): Promise<AdminStats> => {
+  if (isApiBackend()) {
+    return api.loadUserStats();
+  }
+  return statsFromUsers(await firestore.getAllUsers(currentUid));
 };
 
 export const getAllUsers = async (

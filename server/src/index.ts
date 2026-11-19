@@ -1,7 +1,7 @@
 import 'dotenv/config';
 import { buildApp } from './app.js';
 import { createFirebaseVerifier } from './auth.js';
-import { loadEnv } from './config.js';
+import { loadEnv, parseAdminUids } from './config.js';
 import { createDb } from './db/index.js';
 
 const env = loadEnv();
@@ -12,7 +12,12 @@ if (!handle) {
   console.warn('DATABASE_URL не задан: эндпоинты данных будут отвечать 503');
 }
 
-const app = buildApp({ logLevel: env.LOG_LEVEL, verifier, db: handle?.db ?? null });
+const adminUids = parseAdminUids(env.ADMIN_UIDS);
+if (adminUids.length === 0) {
+  console.warn('ADMIN_UIDS не задан: /admin/stats будет отвечать 403');
+}
+
+const app = buildApp({ logLevel: env.LOG_LEVEL, verifier, db: handle?.db ?? null, adminUids });
 
 for (const signal of ['SIGINT', 'SIGTERM'] as const) {
   process.on(signal, () => {
