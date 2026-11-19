@@ -9,8 +9,10 @@ import {
   DEFAULT_SECURITY,
   registerHardening,
   registerRateLimit,
+  securityFromEnv,
   type SecurityOptions,
 } from './security.js';
+import { parseAdminUids, type Env } from './config.js';
 
 export interface AppOptions {
   logLevel: string;
@@ -64,3 +66,20 @@ export const buildApp = ({
 
   return app;
 };
+
+/**
+ * Сборка приложения из окружения: единственное место, где переменные периметра
+ * попадают в `buildApp`. Отдельная функция нужна, чтобы забытый `security`
+ * (CORS, лимиты, размер тела молча остаются по умолчанию) ловился тестом.
+ */
+export const createAppForEnv = (
+  env: Env,
+  deps: { verifier: TokenVerifier; db?: Database | null },
+): FastifyInstance =>
+  buildApp({
+    logLevel: env.LOG_LEVEL,
+    verifier: deps.verifier,
+    db: deps.db ?? null,
+    adminUids: parseAdminUids(env.ADMIN_UIDS),
+    security: securityFromEnv(env),
+  });

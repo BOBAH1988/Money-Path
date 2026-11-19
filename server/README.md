@@ -114,9 +114,10 @@ npm run db:compare -- --strict   # то же, но падать и на поля
 docker compose run --rm api node dist/scripts/db-migrate.js
 ```
 
-`docker compose up` сам миграции не применяет, и сервис `api` не получает
-`FIREBASE_PROJECT_ID`/`GOOGLE_APPLICATION_CREDENTIALS` — до этапа 6 это предстоит
-дописать в `docker-compose.yml`.
+`docker compose up` сам миграции не применяет. Сервис `api` также не получает
+`FIREBASE_PROJECT_ID`/`GOOGLE_APPLICATION_CREDENTIALS` и настройки периметра
+(`CORS_ORIGINS`, лимиты): в контейнере действуют значения по умолчанию, то есть
+cross-origin запрещён. До этапа 6 это предстоит дописать в `docker-compose.yml`.
 
 ## Снимок и проверка перед переездом
 

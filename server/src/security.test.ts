@@ -1,7 +1,8 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import type { FastifyInstance } from 'fastify';
-import { buildApp } from './app.js';
+import { buildApp, createAppForEnv } from './app.js';
 import type { AuthUser, TokenVerifier } from './auth.js';
+import { loadEnv } from './config.js';
 import { cachedVerifier, type SecurityOptions } from './security.js';
 import { verifierReturning } from './test-support.js';
 
@@ -77,6 +78,29 @@ describe('периметр HTTP', () => {
     });
 
     expect(response.statusCode).toBe(413);
+  });
+
+  it('берёт периметр из переменных окружения', async () => {
+    const env = loadEnv({
+      LOG_LEVEL: 'fatal',
+      CORS_ORIGINS: 'https://app.example',
+      RATE_LIMIT_MAX: '2',
+      RATE_LIMIT_WINDOW_MS: '60000',
+    });
+    const app = createAppForEnv(env, { verifier: verifierReturning(user) });
+    apps.push(app);
+
+    const preflight = await app.inject({
+      method: 'OPTIONS',
+      url: '/health',
+      headers: { 'origin': 'https://app.example', 'access-control-request-method': 'GET' },
+    });
+    expect(preflight.statusCode).toBe(204);
+    expect(preflight.headers['access-control-allow-origin']).toBe('https://app.example');
+
+    expect((await app.inject({ method: 'GET', url: '/health' })).statusCode).toBe(200);
+    expect((await app.inject({ method: 'GET', url: '/health' })).statusCode).toBe(200);
+    expect((await app.inject({ method: 'GET', url: '/health' })).statusCode).toBe(429);
   });
 });
 
