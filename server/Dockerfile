@@ -15,6 +15,7 @@ ENV NODE_ENV=production
 COPY package.json ./
 COPY --from=build /app/node_modules ./node_modules
 COPY --from=build /app/dist ./dist
+COPY drizzle ./drizzle
 
 USER node
 EXPOSE 8080
