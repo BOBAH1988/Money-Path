@@ -21,6 +21,8 @@ const lockPath = path.resolve('package-lock.json');
 if (fs.existsSync(lockPath)) {
   const lock = JSON.parse(fs.readFileSync(lockPath, 'utf8'));
   lock.version = pkg.version;
+  // npm ci сверяет и корневую запись пакета, а не только version на верхнем уровне.
+  if (lock.packages && lock.packages['']) lock.packages[''].version = pkg.version;
   fs.writeFileSync(lockPath, JSON.stringify(lock, null, 2) + '\n');
 }
 
