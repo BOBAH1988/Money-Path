@@ -82,6 +82,19 @@ describe('публичные и защищённые маршруты', () => {
     expect(response.json()).toMatchObject({ code: 'INTERNAL' });
   });
 
+  it('DELETE с заголовком json и без тела доходит до маршрута, а не падает на парсере', async () => {
+    const response = await createApp(
+      verifierReturning({ uid: 'u1', email: 'user@example.com', emailVerified: true }),
+    ).inject({
+      method: 'DELETE',
+      url: '/me/collections/income/rec1',
+      headers: { 'authorization': 'Bearer valid-token', 'content-type': 'application/json' },
+    });
+
+    expect(response.statusCode).toBe(503);
+    expect(response.json()).toMatchObject({ code: 'INTERNAL' });
+  });
+
   it('не принимает uid из тела запроса', async () => {
     const response = await createApp(verifierReturning({ uid: 'u1', email: null, emailVerified: true })).inject({
       method: 'PUT',
