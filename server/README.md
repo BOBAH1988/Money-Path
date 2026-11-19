@@ -18,7 +18,8 @@ npm run dev               # http://127.0.0.1:8080/health
 ```
 
 Переменные окружения — в `.env.example`: `DATABASE_URL`, `TEST_DATABASE_URL`,
-`FIREBASE_PROJECT_ID`, `ADMIN_UIDS`, `PORT`/`HOST`/`LOG_LEVEL`.
+`FIREBASE_PROJECT_ID`, `ADMIN_UIDS`, `CORS_ORIGINS`, `RATE_LIMIT_MAX`/`RATE_LIMIT_WINDOW_MS`,
+`BODY_LIMIT`, `TOKEN_CACHE_TTL_MS`/`TOKEN_CACHE_MAX`, `PORT`/`HOST`/`LOG_LEVEL`.
 
 ## Проверки
 
@@ -63,6 +64,27 @@ docker compose up --build  # api + postgres
 Доступ есть у uid из `ADMIN_UIDS=uid1,uid2` (пусто — эндпоинт закрыт для всех, отвечает `403`).
 UI показывает окно аналитики по своей проверке (`VITE_ADMIN_EMAIL`), но данные получает
 с сервера: если uid не совпал, окно скажет «Недостаточно прав».
+
+## Периметр API
+
+Настройки живут в `src/security.ts`, значения — в переменных окружения.
+
+- **CORS** — только origin'ы из `CORS_ORIGINS`. Пусто — cross-origin запрещён: браузер
+  не получит `Access-Control-Allow-Origin`, и приложение с другого домена не сможет
+  обратиться к API. Предварительный `OPTIONS` обрабатывает CORS, а не охранник (401 на него не будет).
+- **Лимит запросов** — `RATE_LIMIT_MAX` за `RATE_LIMIT_WINDOW_MS`, ключ — uid после
+  проверки токена, иначе IP. Ответ `429` с `{ code: 'RATE_LIMITED', message }`.
+  Счётчики в памяти процесса: при нескольких инстансах лимит действует на каждый отдельно.
+- **Размер тела** — `BODY_LIMIT`, больше — `413`.
+- **Заголовки безопасности** — `@fastify/helmet` (`nosniff`, `SAMEORIGIN` и прочее); CSP
+  отключён: API отдаёт JSON, а не страницы.
+
+### Кэш проверки токена
+
+Проверка с `checkRevoked=true` ходит к Google на каждый запрос. Кэш запоминает результат
+на `TOKEN_CACHE_TTL_MS` (по умолчанию 5 минут), ключ — SHA-256 токена, чтобы сырые токены
+не лежали в памяти. Плата за это: отозванная сессия продолжает работать до истечения TTL.
+`TOKEN_CACHE_TTL_MS=0` выключает кэш и возвращает нулевую задержку отзыва.
 
 ## База данных
 
@@ -123,4 +145,5 @@ src/
   index.ts    точка входа, запуск и graceful shutdown
   app.ts      сборка Fastify-приложения (роуты)
   config.ts   разбор и валидация переменных окружения (zod)
+  security.ts CORS, заголовки, лимиты и кэш проверки токена
 ```

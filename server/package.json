@@ -18,6 +18,9 @@
     "db:import": "tsx src/scripts/migrate-firestore.ts"
   },
   "dependencies": {
+    "@fastify/cors": "^11.4.3",
+    "@fastify/helmet": "^13.2.0",
+    "@fastify/rate-limit": "^11.2.2",
     "dotenv": "^18.0.10",
     "drizzle-orm": "^0.45.4",
     "fastify": "^5.12.8",

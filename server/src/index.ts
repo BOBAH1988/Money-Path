@@ -3,9 +3,14 @@ import { buildApp } from './app.js';
 import { createFirebaseVerifier } from './auth.js';
 import { loadEnv, parseAdminUids } from './config.js';
 import { createDb } from './db/index.js';
+import { cachedVerifier, securityFromEnv } from './security.js';
 
 const env = loadEnv();
-const verifier = createFirebaseVerifier({ projectId: env.FIREBASE_PROJECT_ID });
+const security = securityFromEnv(env);
+const verifier = cachedVerifier(createFirebaseVerifier({ projectId: env.FIREBASE_PROJECT_ID }), {
+  ttlMs: security.tokenCacheTtlMs,
+  max: security.tokenCacheMax,
+});
 const handle = env.DATABASE_URL ? createDb(env.DATABASE_URL) : null;
 
 if (!handle) {

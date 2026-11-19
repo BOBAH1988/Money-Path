@@ -29,6 +29,8 @@ export const registerAuthGuard = (app: FastifyInstance, verifier: TokenVerifier)
 
   app.addHook('onRequest', async (request, reply) => {
     if (request.routeOptions.url === '/health') return;
+    // Предварительный запрос браузера идёт без Authorization: ответ даёт CORS.
+    if (request.method === 'OPTIONS') return;
 
     const token = bearerToken(request.headers.authorization);
     if (!token) {
