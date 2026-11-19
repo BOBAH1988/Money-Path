@@ -9,6 +9,9 @@ export interface UserDump {
   createdAt?: string;
   lastActive?: string;
   avatar?: string | null;
+  acceptedTermsVersion?: string | null;
+  acceptedPrivacyVersion?: string | null;
+  consentUpdatedAt?: string | null;
   assets: ItemRow[];
   liabilities: ItemRow[];
   income: ItemRow[];
@@ -72,6 +75,9 @@ export const applyUserDump = async (db: Database, dump: UserDump): Promise<Apply
         createdAt,
         lastActive,
         avatar: dump.avatar ?? null,
+        acceptedTermsVersion: dump.acceptedTermsVersion ?? null,
+        acceptedPrivacyVersion: dump.acceptedPrivacyVersion ?? null,
+        consentUpdatedAt: dump.consentUpdatedAt ? dateOrNow(dump.consentUpdatedAt) : null,
       })
       .onConflictDoUpdate({
         target: profiles.uid,
@@ -79,6 +85,10 @@ export const applyUserDump = async (db: Database, dump: UserDump): Promise<Apply
           email: sql`excluded.email`,
           lastActive: sql`excluded.last_active`,
           avatar: sql`excluded.avatar`,
+          // Если в источнике поля нет, уже записанное согласие не затираем.
+          acceptedTermsVersion: sql`coalesce(excluded.accepted_terms_version, ${profiles.acceptedTermsVersion})`,
+          acceptedPrivacyVersion: sql`coalesce(excluded.accepted_privacy_version, ${profiles.acceptedPrivacyVersion})`,
+          consentUpdatedAt: sql`coalesce(excluded.consent_updated_at, ${profiles.consentUpdatedAt})`,
         },
       });
 

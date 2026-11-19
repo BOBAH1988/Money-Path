@@ -15,7 +15,8 @@
     "check": "npm run lint && npm test && npm run build",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "tsx src/scripts/db-migrate.ts",
-    "db:import": "tsx src/scripts/migrate-firestore.ts"
+    "db:import": "tsx src/scripts/migrate-firestore.ts",
+    "db:compare": "tsx src/scripts/compare-firestore.ts"
   },
   "dependencies": {
     "@fastify/cors": "^11.4.3",

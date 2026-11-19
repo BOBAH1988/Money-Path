@@ -1,10 +1,9 @@
 import 'dotenv/config';
-import { applicationDefault, initializeApp } from 'firebase-admin/app';
-import { getFirestore, type Firestore } from 'firebase-admin/firestore';
 import { loadEnv } from '../config.js';
 import { createDb } from '../db/index.js';
 import { toArchiveRow, toItemRow, type ArchiveRow, type ItemRow } from '../db/normalize.js';
 import { applyUserDump, type UserDump } from '../db/user-dump.js';
+import { listUserIds, openFirestore, readFirestoreUser, type FirestoreUser } from './firestore-source.js';
 
 interface Args {
   dryRun: boolean;
@@ -16,56 +15,32 @@ const parseArgs = (argv: string[]): Args => ({
   uid: argv.find((arg) => arg.startsWith('--uid='))?.slice('--uid='.length),
 });
 
-const readItems = async (fsdb: Firestore, path: string): Promise<ItemRow[]> => {
-  const snapshot = await fsdb.collection(path).get();
-  return snapshot.docs
-    .map((doc) => toItemRow({ ...doc.data(), id: doc.id }))
-    .filter((row): row is ItemRow => row !== null);
-};
+const toUserDump = (uid: string, raw: FirestoreUser, now: Date): UserDump => {
+  const profile = raw.profile ?? {};
 
-const readBudgetPlan = async (fsdb: Firestore, uid: string): Promise<UserDump['budgetPlan']> => {
-  const paths = [`users/${uid}/budget_plan/budget_plan`, `budget_plan/users/${uid}/budget_plan`];
-
-  for (const path of paths) {
-    const snapshot = await fsdb.doc(path).get();
-    if (!snapshot.exists) continue;
-    const data = snapshot.data() as { items?: unknown[]; updatedAt?: string } | undefined;
-    return { items: Array.isArray(data?.items) ? data.items : [], updatedAt: data?.updatedAt ?? '' };
-  }
-  return null;
-};
-
-const dumpUser = async (fsdb: Firestore, uid: string, now: Date): Promise<UserDump> => {
-  const profileSnap = await fsdb.doc(`users/${uid}`).get();
-  const profile = (profileSnap.data() ?? {}) as {
-    email?: string;
-    createdAt?: string;
-    lastActive?: string;
-    avatar?: string | null;
-  };
-
-  const [archiveDocs, assets, liabilities, income] = await Promise.all([
-    fsdb.collection(`users/${uid}/income_archive`).get(),
-    readItems(fsdb, `users/${uid}/assets`),
-    readItems(fsdb, `users/${uid}/liabilities`),
-    readItems(fsdb, `users/${uid}/income`),
-  ]);
-
-  const incomeArchive = archiveDocs.docs
-    .map((doc) => toArchiveRow({ ...doc.data(), id: doc.id }, now))
-    .filter((row): row is ArchiveRow => row !== null);
+  const items = (docs: FirestoreUser['assets']): ItemRow[] =>
+    docs
+      .map((doc) => toItemRow({ ...doc.data, id: doc.id }))
+      .filter((row): row is ItemRow => row !== null);
 
   return {
     uid,
     email: typeof profile.email === 'string' ? profile.email : '',
-    createdAt: profile.createdAt,
-    lastActive: profile.lastActive,
+    createdAt: typeof profile.createdAt === 'string' ? profile.createdAt : undefined,
+    lastActive: typeof profile.lastActive === 'string' ? profile.lastActive : undefined,
     avatar: typeof profile.avatar === 'string' ? profile.avatar : null,
-    assets,
-    liabilities,
-    income,
-    incomeArchive,
-    budgetPlan: await readBudgetPlan(fsdb, uid),
+    acceptedTermsVersion:
+      typeof profile.acceptedTermsVersion === 'string' ? profile.acceptedTermsVersion : null,
+    acceptedPrivacyVersion:
+      typeof profile.acceptedPrivacyVersion === 'string' ? profile.acceptedPrivacyVersion : null,
+    consentUpdatedAt: typeof profile.consentUpdatedAt === 'string' ? profile.consentUpdatedAt : null,
+    assets: items(raw.assets),
+    liabilities: items(raw.liabilities),
+    income: items(raw.income),
+    incomeArchive: raw.incomeArchive
+      .map((doc) => toArchiveRow({ ...doc.data, id: doc.id }, now))
+      .filter((row): row is ArchiveRow => row !== null),
+    budgetPlan: raw.budgetPlan,
   };
 };
 
@@ -73,11 +48,7 @@ const main = async () => {
   const args = parseArgs(process.argv.slice(2));
   const env = loadEnv();
 
-  const app = initializeApp({
-    credential: applicationDefault(),
-    projectId: env.FIREBASE_PROJECT_ID,
-  });
-  const fsdb = getFirestore(app);
+  const fsdb = openFirestore(env.FIREBASE_PROJECT_ID);
 
   if (!args.dryRun && !env.DATABASE_URL) {
     throw new Error('DATABASE_URL не задан: перенос данных невозможен (используйте --dry-run для проверки чтения)');
@@ -87,17 +58,16 @@ const main = async () => {
   const now = new Date();
 
   try {
-    const docs = args.uid
-      ? [await fsdb.doc(`users/${args.uid}`).get()]
-      : (await fsdb.collection('users').get()).docs;
+    const uids = args.uid ? [args.uid] : await listUserIds(fsdb);
 
     let total = 0;
-    for (const doc of docs) {
-      if (!doc.exists && args.uid) {
-        throw new Error(`Пользователь ${args.uid} не найден в Firestore`);
+    for (const uid of uids) {
+      const raw = await readFirestoreUser(fsdb, uid);
+      if (!raw.profile && args.uid) {
+        throw new Error(`Пользователь ${uid} не найден в Firestore`);
       }
-      const uid = args.uid ?? doc.id;
-      const dump = await dumpUser(fsdb, uid, now);
+
+      const dump = toUserDump(uid, raw, now);
       const counts = {
         assets: dump.assets.length,
         liabilities: dump.liabilities.length,

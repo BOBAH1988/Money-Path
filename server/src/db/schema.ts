@@ -61,6 +61,11 @@ export const profiles = pgTable('profiles', {
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   lastActive: timestamp('last_active', { withTimezone: true }).notNull().defaultNow(),
   avatar: text('avatar'),
+  // Записи о согласии: приложение их больше не пишет, но в Firestore они есть.
+  // Переносим, чтобы не потерять историю согласий при переезде.
+  acceptedTermsVersion: text('accepted_terms_version'),
+  acceptedPrivacyVersion: text('accepted_privacy_version'),
+  consentUpdatedAt: timestamp('consent_updated_at', { withTimezone: true }),
 });
 
 export const collectionTables = {
